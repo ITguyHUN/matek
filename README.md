@@ -1,0 +1,79 @@
+# Matek gyakorló
+
+Interaktív gyakorlóoldal a következőkkel:
+- belépés csak a táblázatban felsorolt felhasználóknak;
+- cukorka, amely sorban nyitja a fejezeteket, és napi sorozat (streak);
+- tanári felület, amely csoportonként mutatja a diákok megoldásait.
+
+A weboldal GitHub Pages-en fut, az adatokat egy Google Táblázat tárolja (Google Apps Script).
+
+## Mappaszerkezet
+
+```
+index.html                 az oldal váza (ritkán kell hozzányúlni)
+config.js                  BEÁLLÍTÁSOK: szerver URL, cukorka- és nyitási szabályok, streak, verzió
+assets/
+  app.js                   az alkalmazás (belépés, gyakorlás, próba, tanári felület)
+  rules.js                 cukorka/nyitás/streak szabályai (a Code.gs aljára is be van másolva)
+  mathlib.js               segédfüggvények a feladatgenerátorokhoz
+  style.css                megjelenés
+tananyag/
+  README.md                ← új fejezet / témakör / évfolyam hozzáadása
+  sablon-fejezet.js
+  11/kurzus.js             11. évfolyam: témakörök, fejezetsorrend
+  11/hatvany-gyok-log/     10 fejezet, mindegyik külön fájlban
+apps-script/Code.gs        a Google Táblázat mögötti szerverkód
+felhasznalok_minta.xlsx    minta a felhasználói listához
+```
+
+## Telepítés
+
+1. **Google Táblázat.** Hozz létre egy új táblázatot, és nyisd meg a **Bővítmények → Apps Script** menüt. Másold be az `apps-script/Code.gs` tartalmát, mentsd el, majd futtasd a `setup` függvényt, és engedélyezd a hozzáférést.
+2. **Felhasználók.** A `setup` létrehoz egy „Felhasználók” lapot. Ide másold be a `felhasznalok_minta.xlsx` mintájára készített listát.
+
+   | Felhasználónév | Jelszó | Név | Csoport | Tananyag | Szerep |
+   |---|---|---|---|---|---|
+   | kiss.anna | Kv7-29 | Kiss Anna | 11.A | 11 | diák |
+   | tanar | … | Tanár Úr | * | 11 | tanár |
+
+   - Csak az léphet be, aki ezen a lapon szerepel. Ha valakit törölsz, vagy megváltoztatod a jelszavát, azonnal kijelentkezik.
+   - Több „Felhasználók…” kezdetű lap is lehet, például „Felhasználók 11.A” vagy „Felhasználók 11.B”.
+   - Tanárnál a Csoport oszlop azt adja meg, mely csoportokat látja: `*` vagy üres = mindet, egyébként a csoportok vesszővel elválasztva, például `11.A, 11.B`.
+   - A **Matek gyakorló → Felhasználók ellenőrzése** menüpont összesíti, hány diák van csoportonként, és kinek hiányzik a jelszava.
+3. **Webalkalmazás.** Válaszd a **Telepítés → Új telepítés → Webalkalmazás** lehetőséget, ezekkel a beállításokkal:
+   - Végrehajtás mint: **Én**
+   - Hozzáférés: **Bárki**
+
+   Másold ki a `…/exec` végű URL-t.
+4. **config.js.** Írd be az URL-t a `vegpont: ''` sorba, majd töltsd fel a teljes mappát a GitHub-repóba. A Pages a repó gyökeréből szolgál ki, a `.nojekyll` fájl maradjon benne.
+
+Ha később módosítod a Code.gs-t: **Telepítés → Telepítések kezelése → szerkesztés → Verzió: Új verzió**. Így az URL nem változik.
+
+## Szabályok
+
+Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban nincs cukorka, sorozat és zárolás, minden fejezet nyitva van.
+
+- **Cukorka:** a témakör *legutolsó nyitott* fejezetében `joValaszCukorkahoz` (alapból 10) egymás utáni jó megoldás ér egy cukorkát.
+  - Csak olyan feladat számít, amelyet a diák korábban még nem oldott meg, és nem nézte meg előtte a megoldását.
+  - Hibás válasz, vagy ha megnézi a megoldást, nullázza a sorozatot.
+  - A már korábban megoldott feladat nem számít bele a sorozatba, de nem is nullázza.
+- **Fejezetnyitás:** ha összegyűlik `cukorkaNyitashoz` (alapból 3) cukorka, automatikusan megnyílik a következő fejezet, és az ára le is jön a diák cukorkáiból.
+- **Napi sorozat:** az a nap számít, amelyen a diák legalább `streakNapiMin` (alapból 1) új feladatot old meg a legutolsó nyitott fejezetben.
+  - Ha kihagy egy napot, a sorozat újraindul.
+  - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
+- **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik.
+- A régebbi fejezetekben szabadon lehet gyakorolni, de ott nem jár jutalom. Ezért nem lehet „farmolni”.
+
+## Táblázat lapjai
+
+| Lap | Tartalom |
+|---|---|
+| Felhasználók | ezt te töltöd ki |
+| Állapot | diákonként: elkölthető és összes cukorka, napi sorozat, helyes megoldások, próbák |
+| Megoldások | minden beküldött válasz: feladat, válasz, helyes válasz, eredmény, kapott-e cukorkát |
+| Próbák | beadott próba-témazárók pontszámmal és jeggyel |
+| Csoportnyitás | a Tanári felületen beállított nyitások |
+
+## Helyi kipróbálás
+
+Ha a `vegpont` üres, az oldal belépés nélkül, helyi módban fut: nincs cukorka, napi sorozat és zárolás. Ez új fejezetek kipróbálására jó. Megnyithatod közvetlenül az `index.html`-t is. Ha a böngésző így nem tölti be a fejezeteket, indíts a mappában egy kis webszervert, például `python -m http.server`, majd nyisd meg a http://localhost:8000 címet.

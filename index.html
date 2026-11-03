@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matek gyakorló</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="strip" id="strip">aⁿ · ⁿ√a · logₐ b</div>
+      <h1 id="apptitle">Matek gyakorló</h1>
+      <p id="appsub"></p>
+    </div>
+    <div class="overall">
+      <div class="stats" id="stats"></div>
+      <div class="acct" id="acct" hidden></div>
+    </div>
+  </header>
+  <div class="layout" id="layout">
+    <nav class="toc" id="toc" aria-label="Fejezetek"></nav>
+    <main class="sheet" id="main" tabindex="-1"><p class="small">Betöltés…</p></main>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+  svg: { fontCache: 'global' },
+  options: { enableMenu: false }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+<script src="config.js"></script>
+<script src="assets/mathlib.js"></script>
+<script src="assets/rules.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
