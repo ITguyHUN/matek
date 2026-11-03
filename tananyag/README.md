@@ -11,7 +11,7 @@ tananyag/
   9/  10/  7/                ← további évfolyamok ugyanígy (saját kurzus.js-sel)
 ```
 
-A felhasználó a **Tananyag** oszlopban kapja meg, melyik mappa töltődjön be neki, például `11`.
+A felhasználó a **Tananyag** oszlopban kapja meg, melyik mappa töltődjön be neki, például `11`. Több is megadható vesszővel, például `11, 10`. Ilyenkor a kezdőlapon évfolyamot is választhat, az első a saját évfolyama.
 
 ## Új fejezet
 
@@ -32,6 +32,8 @@ A `kurzus.js` `temakorok` listájához adj hozzá egy új elemet:
 ```
 
 Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott. Ha egy témakört átmenetileg el akarsz rejteni, add hozzá: `aktiv: false`.
+
+Ha legalább két témakör van, a kezdőlapon megjelenik a **témakörválasztó**, a menü pedig mindig csak a kiválasztott témakör fejezeteit mutatja. A választást az oldal megjegyzi. Azt, hogy kezdetben melyik témakör legyen kiválasztva, a `kurzus.js`-ben adhatod meg: `alapTemakor: 'trig'`. Ez hasznos, amikor az órán új témakörbe léptek.
 
 ## Új évfolyam
 

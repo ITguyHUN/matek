@@ -9,7 +9,10 @@
  *    Hibás válasz vagy a megoldás megnézése (ebben a fejezetben) nullázza a sorozatot.
  *  - `kombo` (alapból 10) egymás utáni jó megoldás = 1 cukorka (témakörönkénti „pénztárcába”).
  *  - Ha a pénztárcában összegyűlik `need` cukorka, megnyílik a következő fejezet, és a nyitás
- *    levonja az árát a pénztárcából.
+ *    levonja az árát a pénztárcából. Az utolsó fejezet után ugyanígy a próba-témazáró nyílik meg
+ *    (unlock = fejezetek száma → a témakör teljesítve).
+ *  - Kulcsok: témakör = 'évfolyam/témakör' (pl. '11/hgl'), fejezet = 'évfolyam/fejezet' (pl. '11/hatvany'),
+ *    így egy tanuló több évfolyam anyagát is gyakorolhatja ütközés nélkül.
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
  *    old meg a legutolsó nyitott fejezetben. Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
@@ -19,7 +22,7 @@
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 2, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {},
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {},
              streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, fagy: '' }, candy: 0, seen: [] };
   }
 
@@ -28,6 +31,7 @@ var Szabalyok = (function () {
   function normal(s) {
     var u = ujAllapot();
     if (!s || typeof s !== 'object') return u;
+    u.v = egesz(s.v || 1, 1, 99);
     if (s.ch && typeof s.ch === 'object') {
       Object.keys(s.ch).forEach(function (k) {
         var c = s.ch[k] || {};
@@ -65,6 +69,22 @@ var Szabalyok = (function () {
     return Math.min(order.length - 1, u);
   }
 
+  /* Régi (évfolyam nélküli) kulcsok átírása 'évfolyam/…' alakra. */
+  function migral(st, kurzus) {
+    if (st.v >= 3) return st;
+    var p = function (o) { var n = {}; Object.keys(o || {}).forEach(function (k) { n[k.indexOf('/') >= 0 ? k : kurzus + '/' + k] = o[k]; }); return n; };
+    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo);
+    st.v = 3;
+    return st;
+  }
+
+  /* Igaz, ha a témakör minden fejezete teljesítve (a próba-témazáró is megnyílt). */
+  function teljesitett(st, ctx, mod) {
+    var order = (ctx.order && ctx.order[mod]) || [];
+    if (!order.length) return false;
+    return Math.max(st.unlock[mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[mod]) || 0) >= order.length;
+  }
+
   /* Igaz, ha egyik témakörben sincs már megnyitható új fejezet. */
   function kesz(st, ctx) {
     var mods = Object.keys((ctx && ctx.order) || {}).filter(function (m) { return ctx.order[m].length; });
@@ -89,7 +109,7 @@ var Szabalyok = (function () {
      Visszaad: { dup, uj, cukorka, nyitott, ar, streak, ok, ok2, kombo, nullazva }
      ok2: 'segitseg' | 'ismert' | 'nemfront' */
   function alkalmaz(st, ev, ctx) {
-    var fx = { dup: false, uj: false, cukorka: false, nyitott: null, ar: 0, streak: false, ok: !!ev.ok, ok2: '', kombo: 0, nullazva: false };
+    var fx = { dup: false, uj: false, cukorka: false, nyitott: null, proba: false, ar: 0, streak: false, ok: !!ev.ok, ok2: '', kombo: 0, nullazva: false };
     if (ev.eid) {
       if (st.seen.indexOf(ev.eid) >= 0) { fx.dup = true; return fx; }
       st.seen.push(ev.eid);
@@ -131,13 +151,15 @@ var Szabalyok = (function () {
       fx.cukorka = true;
     }
     fx.kombo = st.combo[ev.mod];
-    // fejezetnyitás: a pénztárcából levonja az árát
+    // fejezetnyitás (az utolsó után a próba-témazáró): a pénztárcából levonja az árát
     var need = (ctx.need && ctx.need[ev.mod]) || 3;
-    if ((st.purse[ev.mod] || 0) >= need && f < order.length - 1 && (st.unlock[ev.mod] || 0) <= f) {
-      st.unlock[ev.mod] = f + 1;
+    var eff = Math.max(st.unlock[ev.mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[ev.mod]) || 0);
+    if ((st.purse[ev.mod] || 0) >= need && eff < order.length) {
+      st.unlock[ev.mod] = eff + 1;
       st.purse[ev.mod] -= need;
       st.combo[ev.mod] = 0;
-      fx.nyitott = order[f + 1]; fx.ar = need;
+      if (eff + 1 < order.length) fx.nyitott = order[eff + 1]; else fx.proba = true;
+      fx.ar = need;
       frissit(st, ctx);
     }
     return fx;
@@ -179,7 +201,7 @@ var Szabalyok = (function () {
     return ('0000000' + h.toString(16)).slice(-8);
   }
 
-  return { ujAllapot: ujAllapot, normal: normal, elozoNap: elozoNap, front: front, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
+  return { ujAllapot: ujAllapot, normal: normal, migral: migral, elozoNap: elozoNap, front: front, teljesitett: teljesitett, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
            aktualisStreak: aktualisStreak, penz: penz, tomorit: tomorit, azonosito: azonosito };
 })();
 if (typeof window !== 'undefined') window.Szabalyok = Szabalyok;

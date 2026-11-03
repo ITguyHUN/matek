@@ -5,7 +5,7 @@
 window.BEALLITAS = {
   // A Google Apps Script webalkalmazás URL-je (…/exec a vége).
   // Üresen hagyva „helyi mód”: nincs belépés, a haladás csak a böngészőben marad (teszteléshez jó).
-  vegpont: 'https://script.google.com/macros/s/AKfycbwewOCystIZyruR6xlQQAZpDzAsCBP7dxw9oTK67yEY1bF9wFHbZuWm_ygDSjVgQbQEEQ/exec',
+  vegpont: '',
 
   // Az oldal neve a fejlécben.
   cim: 'Matek gyakorló',

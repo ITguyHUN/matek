@@ -42,6 +42,7 @@ function toast(html, ms = 4200) {
 
 /* ===================== Tananyag-betöltő ===================== */
 const KURZUS_DEF = {}, FEJEZET_DEF = {}, KURZUSOK = {};
+const FEJ = {};              // 'évfolyam/fejezet' → { ch, t, K }
 const BETOLTESI_HIBAK = [];
 window.Tananyag = {
   kurzus(def) { const s = document.currentScript; KURZUS_DEF[s ? s.dataset.kurzus : '_'] = def; },
@@ -63,14 +64,14 @@ async function betoltKurzus(id) {
   await script(`tananyag/${id}/kurzus.js`, { kurzus: id });
   const def = KURZUS_DEF[id];
   if (!def) throw new Error(`A tananyag/${id}/kurzus.js nem hívta meg a Tananyag.kurzus(…) függvényt.`);
-  const K = { id, cim: def.cim || id, alcim: def.alcim || '', temakorok: [], fej: {} };
+  const K = { id, cim: def.cim || id, alcim: def.alcim || '', alapTemakor: def.alapTemakor || '', temakorok: [], fej: {} };
   const temak = (def.temakorok || []).filter(t => t && t.aktiv !== false);
   await Promise.all(temak.map(t => Promise.all((t.fejezetek || []).map((f, i) => {
     const hely = `${id}/${t.id}/${i}`;
     return script(`tananyag/${id}/${t.mappa ? t.mappa + '/' : ''}${f}`, { hely }).catch(e => BETOLTESI_HIBAK.push(e.message));
   }))));
   for (const t of temak) {
-    const T = { id: t.id, cim: t.cim || t.id, need: t.cukorkaNyitashoz || CFG.cukorkaNyitashoz || 3,
+    const T = { id: t.id, key: `${id}/${t.id}`, kid: id, cim: t.cim || t.id, need: t.cukorkaNyitashoz || CFG.cukorkaNyitashoz || 3,
                 probaDb: (t.proba && t.proba.feladatszam) || 12, fejezetek: [] };
     (t.fejezetek || []).forEach((f, i) => {
       const d = FEJEZET_DEF[`${id}/${t.id}/${i}`];
@@ -80,10 +81,11 @@ async function betoltKurzus(id) {
       if (!d.feladatok || !Object.keys(d.feladatok).length) hibak.push('nincs egy feladattípus sem');
       if (d.id && K.fej[d.id]) hibak.push(`az id („${d.id}”) már foglalt`);
       if (hibak.length) { BETOLTESI_HIBAK.push(`${f}: ${hibak.join(', ')}`); return; }
-      const ch = Object.assign({}, d, { mod: T.id, fajl: f, rovid: d.rovid || d.cim, igazHamis: d.igazHamis || [], gens: Object.keys(d.feladatok) });
+      const ch = Object.assign({}, d, { mod: T.key, key: `${id}/${d.id}`, kid: id, fajl: f, rovid: d.rovid || d.cim, igazHamis: d.igazHamis || [], gens: Object.keys(d.feladatok) });
       ch.idx = T.fejezetek.length;
       T.fejezetek.push(ch);
       K.fej[ch.id] = { ch, t: T };
+      FEJ[ch.key] = { ch, t: T, K };
     });
     if (T.fejezetek.length) K.temakorok.push(T);
   }
@@ -91,8 +93,13 @@ async function betoltKurzus(id) {
   return K;
 }
 
+/* Hivatkozások: #11/hatvany, #11/proba-hgl */
+const chHref = ch => `#${ch.key}`;
+const probaHref = t => `#${t.kid}/proba-${t.id}`;
+
 /* ===================== Munkamenet és állapot ===================== */
-let K = null;                 // aktuális tananyag
+let K = null;                 // aktuális (kiválasztott) tananyag
+let KS = [];                  // a felhasználó összes betöltött tananyaga
 let profile = null;           // { user, name, group, course, role }
 let sess = null;              // { user, token }
 let store = { state: Szabalyok.ujAllapot(), queue: [], tests: [], gu: {} };
@@ -104,15 +111,41 @@ const KOMBO = () => CFG.joValaszCukorkahoz || 10;
 const storeKey = () => 'mg:adat:' + (sess ? sess.user.toLowerCase() : '_helyi');
 const loadStore = () => {
   const d = lsGet(storeKey()) || {};
-  store = { state: Szabalyok.normal(d.state), queue: d.queue || [], tests: d.tests || [], gu: d.gu || {} };
+  store = { state: Szabalyok.migral(Szabalyok.normal(d.state), kurzusLista()[0]), queue: (d.queue || []).filter(e => String(e.mod || '').includes('/')), tests: d.tests || [], gu: d.gu || {} };
 };
+/* A felhasználó tananyagai: profil (Tananyag oszlop, pl. „11, 10”) vagy config.js. */
+function kurzusLista() {
+  let l = profile && Array.isArray(profile.courses) && profile.courses.length ? profile.courses : (profile && profile.course ? [profile.course] : []);
+  if (!l.length) l = Array.isArray(CFG.alapTananyag) ? CFG.alapTananyag : String(CFG.alapTananyag || '11').split(/[,;\s]+/);
+  return l.map(String).filter(Boolean);
+}
 const saveStore = () => lsSet(storeKey(), store);
 function ctx() {
   const order = {}, need = {};
-  if (K) K.temakorok.forEach(t => { order[t.id] = t.fejezetek.map(c => c.id); need[t.id] = t.need; });
+  KS.forEach(k => k.temakorok.forEach(t => { order[t.key] = t.fejezetek.map(c => c.key); need[t.key] = t.need; }));
   return { order, need, kombo: KOMBO(), streakMin: CFG.streakNapiMin || 1, groupUnlock: store.gu || {}, today: dayKey() };
 }
-const frontIdx = modId => Szabalyok.front(store.state, ctx(), modId);
+const frontIdx = modKey => Szabalyok.front(store.state, ctx(), modKey);
+const probaNyitva = t => !jatek() || Szabalyok.teljesitett(store.state, ctx(), t.key);
+/* Kiválasztott témakör (eszközönként, felhasználónként megjegyezve). */
+let aktTema = null;
+const temaKey = () => 'mg:tema:' + (sess ? sess.user.toLowerCase() : '_helyi') + ':' + (K ? K.id : '');
+const kurzusKey = () => 'mg:kurzus:' + (sess ? sess.user.toLowerCase() : '_helyi');
+function setKurzus(id) {
+  const k = KS.find(x => x.id === id); if (!k || k === K) return false;
+  K = k; aktTema = null; lsSet(kurzusKey(), id); renderHeader(); return true;
+}
+function aktivTema() {
+  if (!K || !K.temakorok.length) return null;
+  let t = K.temakorok.find(x => x.id === aktTema);
+  if (!t) {
+    const saved = lsGet(temaKey());
+    t = K.temakorok.find(x => x.id === saved) || K.temakorok.find(x => x.id === K.alapTemakor) || K.temakorok[0];
+    aktTema = t.id;
+  }
+  return t;
+}
+function setTema(id) { if (aktTema === id) return; aktTema = id; lsSet(temaKey(), id); }
 function chStatus(ch) {
   if (!jatek()) return 'open';
   const f = frontIdx(ch.mod);
@@ -180,7 +213,7 @@ function authLost() {
   renderLogin();
 }
 function logout() {
-  clearTimeout(syncTimer); sess = null; profile = null; dirty = false; lsSet('mg:sess', null); setSync('local');
+  clearTimeout(syncTimer); aktTema = null; KS = []; sess = null; profile = null; dirty = false; lsSet('mg:sess', null); setSync('local');
 }
 async function logoutClick() {
   if (sess && !isTeacher() && (store.queue.length || store.tests.length)) {
@@ -206,7 +239,8 @@ function rogzit(ev) {
   saveStore(); scheduleSync();
   if (fx.cukorka) toast(`${ICON.candy}<span>${KOMBO()} jó válasz egymás után: +1 cukorka!</span>`, 3500);
   if (fx.streak) toast(`${ICON.flame}<span>A mai napod megvan! Napi sorozat: ${store.state.streak.cur} nap.</span>`, 4500);
-  if (fx.nyitott) { const n = K.fej[fx.nyitott]; if (n) toast(`${ICON.check}<span>Megnyitottad: <a href="#${n.ch.id}">${esc(n.ch.cim)}</a> (−${fx.ar} cukorka)</span>`, 7000); }
+  if (fx.nyitott) { const n = FEJ[fx.nyitott]; if (n) toast(`${ICON.check}<span>Megnyitottad: <a href="${chHref(n.ch)}">${esc(n.ch.cim)}</a> (−${fx.ar} cukorka)</span>`, 7000); }
+  if (fx.proba) { const n = FEJ[ev.ch]; if (n) toast(`${ICON.check}<span>Teljesítetted a témakört! Megnyílt a <a href="${probaHref(n.t)}">próba-témazáró</a> (−${fx.ar} cukorka)</span>`, 8000); }
   refreshChrome();
   return fx;
 }
@@ -237,14 +271,19 @@ function renderToc(active) {
   const toc = $('#toc');
   if (!K) { toc.innerHTML = ''; return; }
   let h = `<a href="#start" ${active === 'start' ? 'aria-current="page"' : ''}><span class="n">◦</span><span>Kezdőlap</span><span></span></a>`;
-  for (const t of K.temakorok) {
-    h += `<div class="mod">${esc(t.cim)}</div>`;
+  const tt = aktivTema();
+  if (KS.length > 1) h += `<a href="#start" class="modsw" title="Évfolyam váltása a kezdőlapon"><span class="n">⇄</span><span>${esc(K.cim)}</span><span class="p">váltás</span></a>`;
+  for (const t of tt ? [tt] : []) {
+    h += K.temakorok.length > 1
+      ? `<a href="#start" class="modsw" title="Témakör váltása a kezdőlapon"><span class="n">⇄</span><span>${esc(t.cim)}</span><span class="p">váltás</span></a>`
+      : `<div class="mod">${esc(t.cim)}</div>`;
     for (const c of t.fejezetek) {
-      const s = chStatus(c), st = store.state.ch[c.id] || {};
-      const right = s === 'locked' ? ICON.lock : s === 'done' ? `<span class="p done">${ICON.check}</span>` : s === 'cur' ? `<span class="p cur">${store.state.combo[t.id] || 0}/${KOMBO()}</span>` : '<span></span>';
-      h += `<a href="#${c.id}" class="${s === 'locked' ? 'locked' : ''}" ${active === c.id ? 'aria-current="page"' : ''}><span class="n">${pad2(c.idx + 1)}</span><span>${esc(c.rovid)}</span>${right}</a>`;
+      const s = chStatus(c), pn = probaNyitva(t) && jatek();
+      const right = s === 'locked' ? ICON.lock : s === 'done' || (s === 'cur' && pn) ? `<span class="p done">${ICON.check}</span>` : s === 'cur' ? `<span class="p cur">${store.state.combo[t.key] || 0}/${KOMBO()}</span>` : '<span></span>';
+      h += `<a href="${chHref(c)}" class="${s === 'locked' ? 'locked' : ''}" ${active === c.key ? 'aria-current="page"' : ''}><span class="n">${pad2(c.idx + 1)}</span><span>${esc(c.rovid)}</span>${right}</a>`;
     }
-    h += `<a href="#proba-${t.id}" ${active === 'proba-' + t.id ? 'aria-current="page"' : ''}><span class="n">✎</span><span>Próba-témazáró</span><span></span></a>`;
+    const pk = `${t.kid}/proba-${t.id}`, pOpen = probaNyitva(t);
+    h += `<a href="${probaHref(t)}" class="${pOpen ? '' : 'locked'}" ${active === pk ? 'aria-current="page"' : ''}><span class="n">✎</span><span>Próba-témazáró</span>${pOpen ? '<span></span>' : ICON.lock}</a>`;
   }
   if (isTeacher()) h += `<div class="sep"></div><a href="#tanar" ${active === 'tanar' ? 'aria-current="page"' : ''}><span class="n">★</span><span>Tanári felület</span><span></span></a>`;
   toc.innerHTML = h;
@@ -257,8 +296,10 @@ function renderHeader() {
 }
 function refreshChrome() {
   renderStats(); renderAcct(); renderToc(currentId());
-  const m = $('#meter'); if (m && m.dataset.ch && K && K.fej[m.dataset.ch]) m.outerHTML = meterHtml(K.fej[m.dataset.ch].ch);
+  const m = $('#meter'); if (m && m.dataset.ch && FEJ[m.dataset.ch]) m.outerHTML = meterHtml(FEJ[m.dataset.ch].ch);
+  const ks = $('#kurzusok'); if (ks) ks.innerHTML = kurzusValaszto();
   const hc = $('#homecards'); if (hc) hc.innerHTML = homeCards();
+  const tp = $('#topics'); if (tp) tp.innerHTML = temaValaszto();
 }
 
 /* ===================== Belépés ===================== */
@@ -308,64 +349,98 @@ function renderLogin() {
 }
 
 /* ===================== Kezdőlap ===================== */
+function kurzusValaszto() {
+  if (KS.length < 2) return '';
+  return `<section class="blk"><h3>Évfolyam <span class="tag">gyakorolhatsz más évfolyam anyagából is</span></h3><div class="chips" role="group" aria-label="Évfolyam választása">${KS.map(k =>
+    `<button class="chip" data-evf="${esc(k.id)}" aria-pressed="${k === K}">${esc(k.cim)}</button>`).join('')}</div></section>`;
+}
+function temaInfo(t) {
+  if (!jatek()) return `${t.fejezetek.length} fejezet`;
+  if (Szabalyok.teljesitett(store.state, ctx(), t.key)) return `${ICON.check} teljesítve · ${store.state.purse[t.key] || 0} cukorka`;
+  return `${frontIdx(t.key) + 1}/${t.fejezetek.length} fejezet nyitva · ${store.state.purse[t.key] || 0} cukorka`;
+}
+function temaValaszto() {
+  if (K.temakorok.length < 2) return '';
+  const akt = aktivTema();
+  return `<section class="blk"><h3>Témakörök <span class="tag">válassz</span></h3><div class="topics" role="group" aria-label="Témakör választása">${K.temakorok.map(t => {
+    const info = temaInfo(t);
+    return `<button class="tcard" data-tema="${esc(t.id)}" aria-pressed="${t.id === akt.id}"><strong>${esc(t.cim)}</strong><span class="d">${info}</span></button>`;
+  }).join('')}</div></section>`;
+}
 function homeCards() {
-  return K.temakorok.map(t => {
-    const f = jatek() ? frontIdx(t.id) : -1;
+  const akt = aktivTema();
+  return (akt ? [akt] : []).map(t => {
+    const pn = probaNyitva(t);
     const cards = t.fejezetek.map(c => {
-      const s = chStatus(c), st = store.state.ch[c.id] || {};
-      const d = s === 'locked' ? `${ICON.lock} zárva` : s === 'done' ? `${ICON.check} teljesítve` : s === 'cur' ? `${ICON.candy.replace('<svg', '<svg width="15" height="15" class="ico"')} itt gyűlik a cukorka` : `${c.gens.length} feladattípus`;
-      return `<a class="ccard" href="#${c.id}"${s === 'locked' ? ' style="opacity:.6"' : ''}><span class="n">${pad2(c.idx + 1)}</span><strong>${esc(c.cim)}</strong><span class="d">${d}</span></a>`;
+      const s = chStatus(c);
+      const d = s === 'locked' ? `${ICON.lock} zárva` : s === 'done' || (s === 'cur' && jatek() && pn) ? `${ICON.check} teljesítve` : s === 'cur' ? `${ICON.candy.replace('<svg', '<svg width="15" height="15" class="ico"')} itt gyűlik a cukorka` : `${c.gens.length} feladattípus`;
+      return `<a class="ccard" href="${chHref(c)}"${s === 'locked' ? ' style="opacity:.6"' : ''}><span class="n">${pad2(c.idx + 1)}</span><strong>${esc(c.cim)}</strong><span class="d">${d}</span></a>`;
     }).join('');
-    return `<section class="blk"><h3>${esc(t.cim)} <span class="tag">${f >= 0 ? `${f + 1}/${t.fejezetek.length} fejezet nyitva` : `${t.fejezetek.length} fejezet`}</span></h3>
-      <div class="cards">${cards}<a class="ccard test" href="#proba-${t.id}"><span class="n">${t.probaDb} feladat</span><strong>Próba-témazáró</strong><span class="d">${jatek() ? 'A már megnyitott fejezetekből' : 'A témakör fejezeteiből'}</span></a></div></section>`;
+    return `<section class="blk"><h3>${K.temakorok.length > 1 ? 'Fejezetek: ' : ''}${esc(t.cim)} <span class="tag">${temaInfo(t).replace(/<svg[\s\S]*?<\/svg>\s*/, '')}</span></h3>
+      <div class="cards">${cards}<a class="ccard test" href="${probaHref(t)}"${pn ? '' : ' style="opacity:.6"'}><span class="n">${t.probaDb} feladat</span><strong>Próba-témazáró</strong><span class="d">${pn ? 'A témakör összes fejezetéből' : `${ICON.lock} minden fejezet teljesítése után nyílik meg`}</span></a></div></section>`;
   }).join('');
 }
 function renderHome() {
   const m = $('#main');
-  const need = K.temakorok[0] ? K.temakorok[0].need : (CFG.cukorkaNyitashoz || 3), min = CFG.streakNapiMin || 1, kombo = KOMBO();
+  const akt = aktivTema();
+  const need = akt ? akt.need : (CFG.cukorkaNyitashoz || 3), min = CFG.streakNapiMin || 1, kombo = KOMBO();
   m.innerHTML = `<div class="eyebrow">${esc(K.alcim || '')}</div>
     <h2 class="ch">${profile && profile.name ? `Szia, ${esc(profile.name.split(' ').slice(-1)[0])}!` : 'Gyakoroljunk!'}</h2>
     ${notice ? `<div class="fb ${notice.cls} notice" role="status">${esc(notice.text)}</div>` : ''}
     ${BETOLTESI_HIBAK.length && isTeacher() || BETOLTESI_HIBAK.length && !ENDPOINT ? `<div class="fb no"><b>Tananyag-betöltési hibák:</b><br>${BETOLTESI_HIBAK.map(esc).join('<br>')}</div>` : ''}
-    ${isTeacher() ? `<p class="lead">Tanári fiókkal minden fejezet nyitva van, és a gyakorlásod nem kerül a statisztikába. A diákok eredményeit a <a href="#tanar">Tanári felületen</a> látod.</p>`
-      : jatek() ? `<section class="blk"><h3>Így működik</h3><div class="how">
+    ${isTeacher() ? `<p class="lead">Tanári fiókkal minden fejezet nyitva van, és a gyakorlásod nem kerül a statisztikába. A diákok eredményeit a <a href="#tanar">Tanári felületen</a> látod.</p>` : ''}
+    <div id="kurzusok">${kurzusValaszto()}</div>
+    <div id="topics">${temaValaszto()}</div>
+    <div id="homecards">${homeCards()}</div>
+    ${jatek() ? `<section class="blk"><h3>Így működik</h3><div class="how">
         <div><b>${ICON.candy.replace('<svg', '<svg width="18" height="18" class="ico" style="color:var(--candy)"')} Cukorka</b><span>A legutolsó nyitott fejezetben ${kombo} egymás utáni jó megoldás ér egy cukorkát. Csak a még meg nem oldott feladatok számítanak; hibás válasz vagy a megoldás megnézése nullázza a sorozatot.</span></div>
         <div><b>${ICON.check} Fejezetnyitás</b><span>${need} cukorkáért megnyílik a következő fejezet, ennyi cukorka le is jön a számládról. A már teljesített fejezetekben bármikor gyakorolhatsz, de ott nem jár cukorka.</span></div>
         <div><b>${ICON.flame.replace('<svg', '<svg width="18" height="18" class="ico" style="color:var(--flame)"')} Napi sorozat</b><span>Ha egy nap legalább ${min === 1 ? 'egy' : min} új feladatot megoldasz a legutolsó nyitott fejezetben, nő a sorozatod. Ha kihagysz egy napot, újraindul; ha viszont már nincs megnyitható új fejezet, nem vész el.</span></div></div></section>` : ''}
-    <div id="homecards">${homeCards()}</div>
     ${!ENDPOINT ? `<div class="foot"><span>Helyi mód (nincs beállítva szerver): belépés, cukorka és napi sorozat nélkül.</span></div>` : ''}`;
   notice = null;
+  const ks = $('#kurzusok');
+  if (ks) ks.onclick = e => {
+    const b = e.target.closest('[data-evf]'); if (!b) return;
+    if (setKurzus(b.dataset.evf)) route();
+  };
+  const tp = $('#topics');
+  if (tp) tp.onclick = e => {
+    const b = e.target.closest('[data-tema]'); if (!b) return;
+    setTema(b.dataset.tema);
+    tp.innerHTML = temaValaszto(); $('#homecards').innerHTML = homeCards(); renderToc('start');
+  };
 }
 
 /* ===================== Fejezet ===================== */
 function meterHtml(ch) {
   if (isTeacher()) return `<div class="meter" id="meter" data-ch="${ch.id}"><div class="row"><b>Tanári nézet</b><span class="small">A gyakorlófeladatoknál látod a helyes választ is.</span></div></div>`;
   if (!jatek()) return '';
-  const t = K.fej[ch.id].t, s = chStatus(ch), st = store.state;
+  const t = FEJ[ch.key].t, s = chStatus(ch), st = store.state;
   const next = t.fejezetek[ch.idx + 1];
   const f = frontIdx(ch.mod), frontCh = t.fejezetek[f];
-  if (s === 'done') return `<div class="meter done" id="meter" data-ch="${ch.id}"><div class="row"><b>${ICON.check} Teljesítetted ezt a fejezetet</b>
-    <span class="small">Itt bármikor gyakorolhatsz, de cukorka most a(z) <a href="#${frontCh.id}">${esc(frontCh.rovid)}</a> fejezetben jár.</span></div></div>`;
-  const kombo = KOMBO(), k = st.combo[t.id] || 0, purse = st.purse[t.id] || 0;
+  if (s === 'done') return `<div class="meter done" id="meter" data-ch="${ch.key}"><div class="row"><b>${ICON.check} Teljesítetted ezt a fejezetet</b>
+    <span class="small">Itt bármikor gyakorolhatsz, de cukorka most a(z) <a href="${chHref(frontCh)}">${esc(frontCh.rovid)}</a> fejezetben jár.</span></div></div>`;
+  const kombo = KOMBO(), k = st.combo[t.key] || 0, purse = st.purse[t.key] || 0, kesz = probaNyitva(t);
   const dots = Array.from({ length: kombo }, (_, i) => `<span class="dot${i < k ? ' on' : ''}"></span>`).join('');
-  const icons = next ? Array.from({ length: t.need }, (_, i) => ICON.candy.replace('<svg', `<svg${i < purse ? '' : ' class="empty"'} style="color:var(--candy)"`)).join('') : '';
+  const icons = !kesz ? Array.from({ length: t.need }, (_, i) => ICON.candy.replace('<svg', `<svg${i < purse ? '' : ' class="empty"'} style="color:var(--candy)"`)).join('') : '';
   const txt = next ? `Cukorkáid: <b>${purse}</b> · ${t.need} cukorkáért megnyílik: <b>${esc(next.rovid)}</b>`
-    : `Cukorkáid: <b>${purse}</b> · Ez a témakör utolsó fejezete, itt is gyűjthetsz.`;
-  return `<div class="meter" id="meter" data-ch="${ch.id}">
+    : kesz ? `Cukorkáid: <b>${purse}</b> · ${ICON.check} Teljesítetted a témakört, a <a href="${probaHref(t)}">próba-témazáró</a> nyitva. Itt tovább gyűjtheted a cukorkát.`
+    : `Cukorkáid: <b>${purse}</b> · Ez az utolsó fejezet: ${t.need} cukorkáért megnyílik a <b>próba-témazáró</b>.`;
+  return `<div class="meter" id="meter" data-ch="${ch.key}">
     <div class="row"><b>Jó válaszok egymás után: ${k}/${kombo}</b><span class="small">Hibás válasz vagy a megoldás megnézése nullázza.</span></div>
     <div class="dots" aria-hidden="true">${dots}</div>
     <div class="row"><span>${txt}</span><span class="candies" aria-hidden="true">${icons}</span></div></div>`;
 }
 function renderLocked(ch) {
-  const t = K.fej[ch.id].t, f = frontIdx(ch.mod), fc = t.fejezetek[f];
+  const t = FEJ[ch.key].t, f = frontIdx(ch.mod), fc = t.fejezetek[f];
   $('#main').innerHTML = `<div class="eyebrow">${pad2(ch.idx + 1)}. fejezet · ${esc(t.cim)}</div><h2 class="ch">${esc(ch.cim)}</h2>
     <div class="lockbox">${ICON.lock.replace('width="13" height="13"', 'width="34" height="34"')}
     <p class="lead">Ez a fejezet még zárva van. Gyűjts cukorkát a legutolsó nyitott fejezetben (<b>${esc(fc.cim)}</b>), és sorban megnyílnak a következők.</p>
-    <a class="btn primary" href="#${fc.id}">Tovább: ${esc(fc.rovid)} →</a></div>`;
+    <a class="btn primary" href="${chHref(fc)}">Tovább: ${esc(fc.rovid)} →</a></div>`;
 }
 function renderChapter(ch) {
   if (chStatus(ch) === 'locked') return renderLocked(ch);
-  const t = K.fej[ch.id].t, next = t.fejezetek[ch.idx + 1];
+  const t = FEJ[ch.key].t, next = t.fejezetek[ch.idx + 1];
   const m = $('#main');
   m.innerHTML = `<div class="eyebrow">${pad2(ch.idx + 1)}. fejezet · ${esc(t.cim)}</div>
    <h2 class="ch">${esc(ch.cim)}</h2>${ch.bevezeto ? `<p class="lead">${ch.bevezeto}</p>` : ''}
@@ -376,7 +451,7 @@ function renderChapter(ch) {
      <div class="ansrow"><button class="btn" id="stepn">Következő lépés</button><button class="btn ghost" id="stepall">Mind látszódjon</button></div></section>` : ''}
    ${ch.grafikon ? `<section class="blk"><h3>Grafikonrajzoló <span class="tag">kísérletezz</span></h3><div id="plot"></div></section>` : ''}
    <section class="blk"><h3>Gyakorlás</h3><div class="practice" id="pr"></div></section>
-   <div class="foot">${next ? `<a class="btn" href="#${next.id}">${chStatus(next) === 'locked' ? ICON.lock + ' ' : ''}Tovább: ${esc(next.rovid)} →</a>` : `<a class="btn primary" href="#proba-${t.id}">Próba-témazáró →</a>`}</div>`;
+   <div class="foot">${next ? `<a class="btn" href="${chHref(next)}">${chStatus(next) === 'locked' ? ICON.lock + ' ' : ''}Tovább: ${esc(next.rovid)} →</a>` : `<a class="btn primary" href="${probaHref(t)}">${probaNyitva(t) ? '' : ICON.lock + ' '}Próba-témazáró →</a>`}</div>`;
   if (ch.igazHamis.length) {
     $('#tf').innerHTML = ch.igazHamis.map((x, i) => `<div class="tfc" id="tf${i}"><div class="st">${x.allitas}</div><div class="btns"><button class="btn sm" data-i="${i}" data-v="1">Igaz</button><button class="btn sm" data-i="${i}" data-v="0">Hamis</button></div><div class="why" hidden></div></div>`).join('');
     $('#tf').onclick = e => {
@@ -429,7 +504,7 @@ function makePractice(box, ch) {
   chips.onclick = e => { const b = e.target.closest('.chip'); if (!b) return; gid = b.dataset.g; chips.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); newProblem(); };
   const fb = (cls, html) => { const f = $('#fb', box); f.hidden = false; f.className = 'fb ' + cls; f.innerHTML = html; typeset(f); };
   const event = (kind, ok, a) => ({
-    kind, ok, helped: revealed, mod: ch.mod, modCim: K.fej[ch.id].t.cim, ch: ch.id, chCim: ch.cim, gen: cur.gid, genNev: cur.g.nev || cur.gid, sig: cur.sig,
+    kind, ok, helped: revealed, mod: ch.mod, modCim: `${FEJ[ch.key].K.cim} · ${FEJ[ch.key].t.cim}`, ch: ch.key, chCim: ch.cim, gen: cur.gid, genNev: cur.g.nev || cur.gid, sig: cur.sig,
     q: stripHtml(cur.p.kerdes).slice(0, 600), a: String(a == null ? '' : a).slice(0, 120), helyes: valaszSzoveg(cur.p.valasz)
   });
   function submit(ok, a, rawRes) {
@@ -443,7 +518,7 @@ function makePractice(box, ch) {
     else if (fx.uj && !fx.ok2) msg = `Helyes! Sorozat: ${fx.kombo}/${KOMBO()}.`;
     else if (fx.ok2 === 'segitseg') msg = 'Helyes, de mivel előtte megnézted a megoldást, ezért nem jár érte cukorka.';
     else if (fx.ok2 === 'ismert') msg = 'Helyes! Ezt a feladatot már korábban megoldottad, ezért most nem jár érte cukorka.';
-    else if (fx.ok2 === 'nemfront') { const t = K.fej[ch.id].t, fc = t.fejezetek[frontIdx(ch.mod)]; msg = `Helyes! Cukorka csak a legutolsó nyitott fejezetben jár: <a href="#${fc.id}">${esc(fc.rovid)}</a>.`; }
+    else if (fx.ok2 === 'nemfront') { const t = FEJ[ch.key].t, fc = t.fejezetek[frontIdx(ch.mod)]; msg = `Helyes! Cukorka csak a legutolsó nyitott fejezetben jár: <a href="${chHref(fc)}">${esc(fc.rovid)}</a>.`; }
     fb('ok', msg);
   }
   function newProblem() {
@@ -451,7 +526,7 @@ function makePractice(box, ch) {
     try { cur = feladatKeszit(ch, id); }
     catch (e) { $('#q', box).innerHTML = `<p class="err">Hiba a(z) „${esc(id)}” feladattípusban: ${esc(e.message)}</p>`; return; }
     solved = false; revealed = false;
-    const known = (store.state.solved[ch.id] || []).includes(cur.sig);
+    const known = (store.state.solved[ch.key] || []).includes(cur.sig);
     const badge = !jatek() ? '' : known ? '<span class="badge old">már megoldottad</span>' : '<span class="badge new">új feladat</span>';
     $('#q', box).innerHTML = `<div class="eyebrow" style="margin-bottom:4px">${esc(cur.g.nev || id)} ${badge}</div>${cur.p.kerdes}
       ${isTeacher() ? `<div class="teach">Helyes válasz: <b>${esc(valaszSzoveg(cur.p.valasz))}</b></div>` : ''}`;
@@ -573,7 +648,16 @@ try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () =
 /* ===================== Próba-témazáró ===================== */
 function renderProba(t) {
   const m = $('#main');
-  const allowed = t.fejezetek.filter(c => chStatus(c) !== 'locked');
+  if (!probaNyitva(t)) {
+    const fc = t.fejezetek[frontIdx(t.key)];
+    m.innerHTML = `<div class="eyebrow">${esc(t.cim)}</div><h2 class="ch">Próba-témazáró</h2>
+      <div class="lockbox">${ICON.lock.replace('width="13" height="13"', 'width="34" height="34"')}
+      <p class="lead">A próba-témazáró akkor nyílik meg, ha a témakör minden fejezetét teljesítetted: az utolsó fejezetben is összegyűjtöttél ${t.need} cukorkát.</p>
+      <p class="small">Most itt tartasz: <b>${esc(fc.cim)}</b> (${fc.idx + 1}/${t.fejezetek.length}. fejezet).</p>
+      <a class="btn primary" href="${chHref(fc)}">Tovább: ${esc(fc.rovid)} →</a></div>`;
+    return;
+  }
+  const allowed = t.fejezetek;
   const pool = allowed.map(c => ({ c, gens: c.gens.filter(g => c.feladatok[g].proba !== false) })).filter(x => x.gens.length);
   const items = [];
   let guard = 0;
@@ -586,7 +670,7 @@ function renderProba(t) {
     } catch (e) { /* hibás generátor: kihagyjuk */ }
   }
   m.innerHTML = `<div class="eyebrow">${esc(t.cim)}</div><h2 class="ch">Próba-témazáró</h2>
-   <p class="lead">${items.length} véletlenszerű feladat a már megnyitott fejezetekből (${allowed.map(c => esc(c.rovid)).join(', ')}), feladatonként 1 pont. Tippet itt nem kapsz; a végén a „Beadás” gombbal értékelheted, és minden feladat megoldását megnézheted.</p>
+   <p class="lead">${items.length} véletlenszerű feladat a témakör összes fejezetéből, feladatonként 1 pont. Tippet itt nem kapsz; a végén a „Beadás” gombbal értékelheted, és minden feladat megoldását megnézheted.</p>
    <div id="tl"></div>
    <div class="ansrow" style="margin-top:18px"><button class="btn primary" id="sub">Beadás</button><button class="btn" id="again">Új feladatsor</button></div>
    <div id="res" style="margin-top:18px"></div>`;
@@ -599,20 +683,20 @@ function renderProba(t) {
     let pts = 0; const byCh = {};
     items.forEach((it, i) => {
       const row = $('#ti' + i), val = $('#pa' + i).value, res = valaszEllenoriz(it.p.valasz, valaszErtelmez(val));
-      byCh[it.ch.id] = byCh[it.ch.id] || [0, 0]; byCh[it.ch.id][1]++; if (res.ok) { pts++; byCh[it.ch.id][0]++; }
+      byCh[it.ch.key] = byCh[it.ch.key] || [0, 0]; byCh[it.ch.key][1]++; if (res.ok) { pts++; byCh[it.ch.key][0]++; }
       row.className = 'titem ' + (res.ok ? 'ok' : 'no');
       const f = row.querySelector('.fb'); f.hidden = false; f.className = 'fb ' + (res.ok ? 'ok' : 'no'); f.textContent = res.ok ? 'Helyes, 1 pont.' : (val.trim() ? 'Nem jó, 0 pont.' : 'Nincs válasz, 0 pont.');
       const s = row.querySelector('.solbox'); s.hidden = false; s.innerHTML = (it.p.megoldas || []).map(x => /^\s*\\\[/.test(x) ? `<div class="mathbox">${x}</div>` : `<p>${x}</p>`).join('');
     });
     const max = items.length || 1, pct = Math.round(100 * pts / max);
     const grade = pct >= 85 ? 5 : pct >= 70 ? 4 : pct >= 55 ? 3 : pct >= 40 ? 2 : 1;
-    const weak = Object.entries(byCh).filter(([, v]) => v[0] < v[1]).map(([k]) => K.fej[k].ch);
+    const weak = Object.entries(byCh).filter(([, v]) => v[0] < v[1]).map(([k]) => FEJ[k].ch);
     $('#res').innerHTML = `<div class="result"><div><div class="big">${pts} / ${items.length}</div><div class="fmt">${pct}% · tájékoztató jegy: ${grade}</div></div>
-      <div class="prose">${weak.length ? 'Ismételd át: ' + weak.map(c => `<a href="#${c.id}">${esc(c.rovid)}</a>`).join(', ') + '.' : 'Minden feladat sikerült. Kérj új feladatsort, és próbáld meg még egyszer!'}</div></div><p class="small" id="sendst"></p>`;
+      <div class="prose">${weak.length ? 'Ismételd át: ' + weak.map(c => `<a href="${chHref(c)}">${esc(c.rovid)}</a>`).join(', ') + '.' : 'Minden feladat sikerült. Kérj új feladatsort, és próbáld meg még egyszer!'}</div></div><p class="small" id="sendst"></p>`;
     $('#sub').disabled = true; typeset(m);
     const stEl = $('#sendst');
     if (ENDPOINT && sess && !isTeacher()) {
-      store.tests.push({ tid: uid(), mod: t.id, modCim: t.cim, score: pts, max: items.length, pct, grade, weak: weak.map(c => c.rovid), detail: Object.fromEntries(Object.entries(byCh).map(([k, v]) => [K.fej[k].ch.rovid, v])) });
+      store.tests.push({ tid: uid(), mod: t.key, modCim: `${K.cim} · ${t.cim}`, score: pts, max: items.length, pct, grade, weak: weak.map(c => c.rovid), detail: Object.fromEntries(Object.entries(byCh).map(([k, v]) => [FEJ[k].ch.rovid, v])) });
       saveStore(); stEl.textContent = 'Eredmény küldése a tanárnak…';
       syncNow().then(() => { stEl.textContent = store.tests.length ? 'Most nem sikerült elküldeni az eredményt; automatikusan újrapróbálom.' : 'Az eredményt elküldtük a tanárnak.'; });
     }
@@ -622,7 +706,7 @@ function renderProba(t) {
 }
 
 /* ===================== Tanári felület ===================== */
-const TV = { group: '', mod: '', data: null, tab: 'attekintes', student: null, logCh: '', onlyWrong: false };
+const TV = { group: '', courseId: '', mod: '', data: null, tab: 'attekintes', student: null, logCh: '', onlyWrong: false };
 const fmtTime = s => { if (!s) return '–'; const d = new Date(s); if (isNaN(d)) return esc(s); return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}. ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
 async function renderTeacher() {
   const m = $('#main');
@@ -636,41 +720,43 @@ async function renderTeacher() {
 async function loadTeacher() {
   const body = $('#tbody'); if (!body) return;
   try {
-    const res = await api('tOverview', Object.assign(auth(), { group: TV.group }));
+    const res = await api('tOverview', Object.assign(auth(), { group: TV.group, course: TV.courseId }));
     if (!res.ok) { if (res.error === 'auth') return authLost(); body.innerHTML = `<p class="err">Hiba: ${esc(res.error)}</p>`; return; }
-    TV.data = res; TV.group = res.group || '';
-    TV.course = await betoltKurzus(res.course || (profile && profile.course) || CFG.alapTananyag);
-    if (!TV.course.temakorok.some(t => t.id === TV.mod)) TV.mod = (TV.course.temakorok[0] || {}).id || '';
+    TV.data = res; TV.group = res.group || ''; TV.courseId = res.course || kurzusLista()[0];
+    TV.course = await betoltKurzus(TV.courseId);
+    if (!TV.course.temakorok.some(t => t.id === TV.mod)) TV.mod = (TV.course.temakorok.find(t => t.id === aktTema) || TV.course.temakorok[0] || {}).id || '';
     drawTeacher();
   } catch (e) { body.innerHTML = `<p class="err">Nem sikerült betölteni: ${esc(e.message)}</p>`; }
 }
 function tMod() { return TV.course.temakorok.find(t => t.id === TV.mod); }
 function tCtx() {
   const order = {}, need = {};
-  TV.course.temakorok.forEach(t => { order[t.id] = t.fejezetek.map(c => c.id); need[t.id] = t.need; });
+  TV.course.temakorok.forEach(t => { order[t.key] = t.fejezetek.map(c => c.key); need[t.key] = t.need; });
   return { order, need, kombo: KOMBO(), groupUnlock: (TV.data.groupUnlock || {}), today: dayKey() };
 }
 function drawTeacher() {
   const d = TV.data, t = tMod();
   $('#tctrl').innerHTML = `<label for="tg">Csoport<select id="tg">${d.groups.map(g => `<option ${g === TV.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></label>
+    ${(d.courses || []).length > 1 ? `<label for="tk">Tananyag<select id="tk">${d.courses.map(c => `<option value="${esc(c)}" ${c === TV.courseId ? 'selected' : ''}>${esc(c)}. évfolyam</option>`).join('')}</select></label>` : ''}
     <label for="tm">Témakör<select id="tm">${TV.course.temakorok.map(x => `<option value="${esc(x.id)}" ${x.id === TV.mod ? 'selected' : ''}>${esc(x.cim)}</option>`).join('')}</select></label>
     <button class="btn" id="trf">Frissítés</button>`;
   $('#tg').onchange = e => { TV.group = e.target.value; TV.student = null; $('#tbody').innerHTML = '<p class="small">Betöltés…</p>'; loadTeacher(); };
   $('#tm').onchange = e => { TV.mod = e.target.value; drawTeacher(); };
+  const tk = $('#tk'); if (tk) tk.onchange = e => { TV.courseId = e.target.value; TV.mod = ''; TV.student = null; $('#tbody').innerHTML = '<p class="small">Betöltés…</p>'; loadTeacher(); };
   $('#trf').onclick = () => { $('#tbody').innerHTML = '<p class="small">Betöltés…</p>'; loadTeacher(); };
   if (!t) { $('#tbody').innerHTML = '<p>Ehhez a csoporthoz nem tartozik betölthető tananyag.</p>'; return; }
-  const gu = (d.groupUnlock || {})[t.id] || 0;
+  const gu = Math.min((d.groupUnlock || {})[t.key] || 0, t.fejezetek.length);
   $('#tbody').innerHTML = `
     <section class="blk"><h3>Csoportszintű nyitás</h3>
-      <p class="small">A kiválasztott fejezetig a csoport minden tagja hozzáfér. A cukorka és a napi sorozat mindenkinél a legutolsó nyitott fejezetben gyűlik, ez lehet a csoportnak megnyitott fejezet is.</p>
-      <div class="tctrl"><label for="tu">A csoportnak nyitva eddig<select id="tu">${t.fejezetek.map((c, i) => `<option value="${i}" ${i === gu ? 'selected' : ''}>${pad2(i + 1)}. ${esc(c.rovid)}</option>`).join('')}</select></label>
+      <p class="small">A kiválasztott fejezetig a csoport minden tagja hozzáfér. A cukorka és a napi sorozat mindenkinél a legutolsó nyitott fejezetben gyűlik, ez lehet a csoportnak megnyitott fejezet is. Az utolsó lehetőség a próba-témazárót is megnyitja.</p>
+      <div class="tctrl"><label for="tu">A csoportnak nyitva eddig<select id="tu">${t.fejezetek.map((c, i) => `<option value="${i}" ${i === gu ? 'selected' : ''}>${pad2(i + 1)}. ${esc(c.rovid)}</option>`).join('')}<option value="${t.fejezetek.length}" ${gu === t.fejezetek.length ? 'selected' : ''}>Minden fejezet + próba-témazáró</option></select></label>
       <button class="btn" id="tus">Mentés</button><span class="small" id="tust"></span></div></section>
     <section class="blk"><div class="tabs"><button class="chip" data-tab="attekintes" aria-pressed="${TV.tab === 'attekintes'}">Áttekintés</button><button class="chip" data-tab="megoldasok" aria-pressed="${TV.tab === 'megoldasok'}">Megoldások</button><button class="chip" data-tab="probak" aria-pressed="${TV.tab === 'probak'}">Próbák</button></div>
     <div id="tview"></div></section>`;
   $('#tus').onclick = async () => {
     const idx = +$('#tu').value, st = $('#tust'); st.textContent = 'Mentés…';
     try {
-      const r = await api('tUnlock', Object.assign(auth(), { group: TV.group, course: TV.course.id, mod: t.id, idx, chCim: t.fejezetek[idx].cim }));
+      const r = await api('tUnlock', Object.assign(auth(), { group: TV.group, course: TV.course.id, mod: t.id, idx, chCim: idx < t.fejezetek.length ? t.fejezetek[idx].cim : 'Próba-témazáró' }));
       if (!r.ok) throw new Error(r.error);
       TV.data.groupUnlock = r.groupUnlock || TV.data.groupUnlock; st.textContent = 'Elmentve.'; drawView();
     } catch (e) { st.textContent = 'Nem sikerült menteni: ' + e.message; }
@@ -680,12 +766,12 @@ function drawTeacher() {
 }
 function stuCells(stu, t) {
   const c = tCtx(), st = Szabalyok.normal(stu.state);
-  const f = Szabalyok.front(st, c, t.id);
+  const f = Szabalyok.front(st, c, t.key), kesz = Szabalyok.teljesitett(st, c, t.key);
   return t.fejezetek.map((ch, i) => {
-    const s = st.ch[ch.id] || { ok: 0, tried: 0, candy: 0 };
+    const s = st.ch[ch.key] || { ok: 0, tried: 0, candy: 0 };
     const title = `${ch.rovid}: ${s.ok} helyes / ${s.tried} próbálkozás, ${s.candy} cukorka`;
-    if (i < f) return `<td title="${esc(title)}"><span class="cell done">${s.ok}</span></td>`;
-    if (i === f) return `<td title="${esc(title)} · sorozat ${st.combo[t.id] || 0}/${KOMBO()}"><span class="cell cur">${st.combo[t.id] || 0}/${KOMBO()}</span></td>`;
+    if (i < f || kesz) return `<td title="${esc(title)}"><span class="cell done">${s.ok}</span></td>`;
+    if (i === f) return `<td title="${esc(title)} · sorozat ${st.combo[t.key] || 0}/${KOMBO()}"><span class="cell cur">${st.combo[t.key] || 0}/${KOMBO()}</span></td>`;
     return `<td title="${esc(title)}"><span class="cell lock">${s.ok ? s.ok : '–'}</span></td>`;
   }).join('');
 }
@@ -696,20 +782,20 @@ function drawView() {
     if (!d.students.length) { v.innerHTML = '<p>Ebben a csoportban nincs diák. A Felhasználók lapon add meg a csoportot.</p>'; return; }
     v.innerHTML = `<div class="legend"><span><span class="cell done">12</span> teljesített fejezet, helyes megoldások száma</span><span><span class="cell cur">7/${KOMBO()}</span> aktuális fejezet, jó válaszok sorozata</span><span><span class="cell lock">–</span> zárva</span></div>
       <div class="tbl ttbl"><table><thead><tr><th>Név</th><th>Cukorka</th><th>Sorozat</th><th>Legjobb</th>${t.fejezetek.map(c => `<th title="${esc(c.cim)}">${pad2(c.idx + 1)}</th>`).join('')}<th>Utolsó próba</th><th>Utolsó aktivitás</th></tr></thead>
-      <tbody>${d.students.map((s, i) => { const st = Szabalyok.normal(s.state); const lt = (s.tests || []).find(x => x.mod === t.id);
+      <tbody>${d.students.map((s, i) => { const st = Szabalyok.normal(s.state); const lt = (s.tests || []).find(x => x.mod === t.key);
         return `<tr data-i="${i}" class="${TV.student === s.user ? 'sel' : ''}"><td><b>${esc(s.name)}</b><br><span class="small">${esc(s.user)}</span></td><td class="num" title="összesen eddig: ${st.candy}">${Szabalyok.penz(st)}</td><td class="num">${Szabalyok.aktualisStreak(st, today, tCtx())}</td><td class="num">${st.streak.best}</td>${stuCells(s, t)}<td class="num">${lt ? lt.pct + '%' : '–'}</td><td class="small">${s.last ? fmtTime(s.last) : 'még nem lépett be'}</td></tr>`; }).join('')}</tbody></table></div>
       <div id="tstu"></div>`;
     v.querySelector('tbody').onclick = e => { const r = e.target.closest('tr[data-i]'); if (!r) return; const s = d.students[+r.dataset.i]; TV.student = s.user; v.querySelectorAll('tbody tr').forEach(x => x.classList.toggle('sel', x === r)); drawStudent(s); };
     const sel = d.students.find(s => s.user === TV.student); if (sel) drawStudent(sel);
   } else if (TV.tab === 'megoldasok') {
-    v.innerHTML = `<div class="tctrl" style="margin:10px 0"><label for="tlc">Fejezet<select id="tlc"><option value="">Mind</option>${t.fejezetek.map(c => `<option value="${esc(c.id)}" ${TV.logCh === c.id ? 'selected' : ''}>${pad2(c.idx + 1)}. ${esc(c.rovid)}</option>`).join('')}</select></label>
+    v.innerHTML = `<div class="tctrl" style="margin:10px 0"><label for="tlc">Fejezet<select id="tlc"><option value="">Mind</option>${t.fejezetek.map(c => `<option value="${esc(c.key)}" ${TV.logCh === c.key ? 'selected' : ''}>${pad2(c.idx + 1)}. ${esc(c.rovid)}</option>`).join('')}</select></label>
       <label class="chk" for="tlw" style="flex-direction:row;align-items:center"><input type="checkbox" id="tlw" ${TV.onlyWrong ? 'checked' : ''}> csak a hibás válaszok</label></div><div id="tlog"><p class="small">Betöltés…</p></div>`;
     $('#tlc').onchange = e => { TV.logCh = e.target.value; loadLog($('#tlog'), {}); };
     $('#tlw').onchange = e => { TV.onlyWrong = e.target.checked; loadLog($('#tlog'), {}); };
     loadLog($('#tlog'), {});
   } else {
     const rows = [];
-    d.students.forEach(s => (s.tests || []).forEach(x => { if (x.mod === t.id || !x.mod) rows.push(Object.assign({ name: s.name }, x)); }));
+    d.students.forEach(s => (s.tests || []).forEach(x => { if (x.mod === t.key) rows.push(Object.assign({ name: s.name }, x)); }));
     rows.sort((a, b) => String(b.t).localeCompare(String(a.t)));
     v.innerHTML = rows.length ? `<div class="tbl"><table><thead><tr><th>Időpont</th><th>Név</th><th>Pont</th><th>%</th><th>Jegy</th><th>Ismétlendő</th></tr></thead><tbody>${rows.map(r => `<tr><td class="small">${fmtTime(r.t)}</td><td>${esc(r.name)}</td><td class="num">${r.score}/${r.max}</td><td class="num">${r.pct}%</td><td class="num">${r.grade}</td><td class="small">${esc(r.weak || '–')}</td></tr>`).join('')}</tbody></table></div>`
       : '<p>Ebben a témakörben még senki nem adott be próba-témazárót.</p>';
@@ -724,7 +810,7 @@ function drawStudent(s) {
 async function loadLog(el, opt) {
   const t = tMod();
   try {
-    const res = await api('tLog', Object.assign(auth(), { group: TV.group, student: opt.student || '', ch: opt.student ? '' : TV.logCh, mod: t.id, onlyWrong: opt.student ? false : TV.onlyWrong, limit: 150 }));
+    const res = await api('tLog', Object.assign(auth(), { group: TV.group, student: opt.student || '', ch: opt.student ? '' : TV.logCh, mod: t.key, onlyWrong: opt.student ? false : TV.onlyWrong, limit: 150 }));
     if (!res.ok) throw new Error(res.error);
     if (!res.rows.length) { el.innerHTML = '<p class="small">Még nincs beküldött megoldás.</p>'; return; }
     el.innerHTML = `<div class="log">${res.rows.map(r => {
@@ -738,18 +824,28 @@ async function loadLog(el, opt) {
 }
 
 /* ===================== Útválasztás, indulás ===================== */
-const currentId = () => (location.hash || '').slice(1) || 'start';
+const currentId = () => decodeURIComponent((location.hash || '').slice(1)) || 'start';
+/* '11/hatvany' → fejezet; '11/proba-hgl' → próba; régi '#hatvany' alak az aktuális évfolyamban. */
+function feloldUt(id) {
+  const [kid, rest] = id.includes('/') ? id.split('/', 2) : [K && K.id, id];
+  const k = KS.find(x => x.id === kid);
+  if (!k || !rest) return null;
+  if (k.fej[rest]) return { k, ch: k.fej[rest].ch, t: k.fej[rest].t };
+  if (rest.startsWith('proba-')) { const t = k.temakorok.find(x => x.id === rest.slice(6)); if (t) return { k, t, proba: true }; }
+  return null;
+}
 function route() {
   if (!K) return;
   $('#layout').classList.remove('solo');
   redraw = null;
   const id = currentId();
-  const f = K.fej[id];
-  if (f) renderChapter(f.ch);
-  else if (id.startsWith('proba-') && K.temakorok.find(t => 'proba-' + t.id === id)) renderProba(K.temakorok.find(t => 'proba-' + t.id === id));
+  const u = feloldUt(id);
+  if (u) { setKurzus(u.k.id); setTema(u.t.id); }
+  if (u && u.ch) renderChapter(u.ch);
+  else if (u && u.proba) renderProba(u.t);
   else if (id === 'tanar') renderTeacher();
   else renderHome();
-  renderToc(f ? f.ch.id : id);
+  renderToc(u ? (u.ch ? u.ch.key : `${u.k.id}/proba-${u.t.id}`) : id);
   renderStats(); renderAcct();
 }
 window.addEventListener('hashchange', () => {
@@ -758,16 +854,24 @@ window.addEventListener('hashchange', () => {
   if (window.scrollY > top) window.scrollTo({ top, behavior: 'auto' });
 });
 async function startCourse() {
-  try {
-    K = await betoltKurzus((profile && profile.course) || CFG.alapTananyag);
-  } catch (e) {
-    $('#main').innerHTML = `<p class="err">${esc(e.message)}</p><p class="small">Ellenőrizd a tananyag mappáját és a kurzus.js fájlt.</p>`;
-    throw e;
+  const ids = kurzusLista();
+  const loaded = [];
+  for (const id of ids) {
+    try { loaded.push(await betoltKurzus(id)); }
+    catch (e) { BETOLTESI_HIBAK.push(e.message); }
   }
+  if (!loaded.length) {
+    $('#main').innerHTML = `<p class="err">${esc(BETOLTESI_HIBAK.join(' · ') || 'Nincs betölthető tananyag.')}</p><p class="small">Ellenőrizd a tananyag mappáját és a kurzus.js fájlt.</p>`;
+    throw new Error('Nincs tananyag');
+  }
+  KS = loaded;
+  const saved = lsGet(kurzusKey());
+  K = KS.find(k => k.id === saved) || KS[0];
+  aktTema = null;
   if (BETOLTESI_HIBAK.length) console.warn('Tananyag-betöltési hibák:', BETOLTESI_HIBAK);
   renderHeader(); route();
 }
-const statusSnapshot = () => K ? K.temakorok.map(t => t.fejezetek.map(chStatus).join(',')).join('|') : '';
+const statusSnapshot = () => KS.map(k => k.temakorok.map(t => t.fejezetek.map(chStatus).join(',') + (probaNyitva(t) ? '+' : '')).join('|')).join('#');
 async function boot() {
   renderHeader();
   if (!ENDPOINT) {
@@ -786,11 +890,11 @@ async function boot() {
   try {
     const res = await api('load', auth());
     if (!res.ok) { if (res.error === 'auth') return authLost(); throw new Error(res.error); }
-    const oldCourse = profile.course;
+    const oldCourses = kurzusLista().join(',');
     applyProfile(res.profile);
     store.gu = res.groupUnlock || {};
     store.state = Szabalyok.normal(res.state);
-    if ((res.profile.course || '') !== (oldCourse || '')) { await startCourse(); }
+    if (kurzusLista().join(',') !== oldCourses) { await startCourse(); }
     store.queue.forEach(ev => Szabalyok.alkalmaz(store.state, ev, ctx()));
     Szabalyok.frissit(store.state, ctx());
     saveStore();
@@ -802,5 +906,5 @@ async function boot() {
 boot();
 
 /* Tesztekhez és hibakereséshez */
-window.__mg = { get store() { return store; }, get K() { return K; }, syncNow, route, ctx };
+window.__mg = { get store() { return store; }, get K() { return K; }, get KS() { return KS; }, syncNow, route, ctx };
 })();

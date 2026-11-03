@@ -99,11 +99,12 @@ function felhasznalok_() {
         pass: String(v[i][H.pass]).trim(),
         name: (H.name >= 0 ? String(v[i][H.name]).trim() : '') || user,
         group: H.group >= 0 ? String(v[i][H.group]).trim() : '',
-        course: H.course >= 0 ? String(v[i][H.course]).trim().replace(/\.0+$/, '') : '',
+        courses: H.course >= 0 ? String(v[i][H.course]).split(/[,;\s]+/).map(function (x) { return x.trim().replace(/\.0+$/, ''); }).filter(String) : [],
         role: /^(tanar|teacher|admin|oktato)/.test(roleTxt) ? 'tanar' : 'diak'
       };
     }
   });
+  Object.keys(out).forEach(function (k) { out[k].course = out[k].courses[0] || ''; });
   return out;
 }
 function titok_() {
@@ -116,7 +117,7 @@ function hex_(bytes) { return bytes.map(function (b) { return ((b + 256) % 256).
 function token_(u) {
   return hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, titok_() + '|' + u.key + '|' + u.pass + '|' + u.role, Utilities.Charset.UTF_8)).slice(0, 40);
 }
-function profil_(u) { return { user: u.user, name: u.name, group: u.group, course: u.course, role: u.role }; }
+function profil_(u) { return { user: u.user, name: u.name, group: u.group, course: u.course, courses: u.courses, role: u.role }; }
 function azonosit_(d) {
   const u = felhasznalok_()[String(d.user || '').trim().toLowerCase()];
   if (!u || !u.pass || !d.token || String(d.token) !== token_(u)) return null;
@@ -134,11 +135,11 @@ function belepes_(d) {
   }
   cache.remove(ck);
   const a = allapotOlvas_(u);
-  return { ok: true, token: token_(u), profile: profil_(u), state: kliens_(a.state), groupUnlock: csoportNyitas_(u.group, u.course || '') };
+  return { ok: true, token: token_(u), profile: profil_(u), state: kliens_(a.state), groupUnlock: csoportNyitas_(u.group, u.courses) };
 }
 function betolt_(u) {
   const a = allapotOlvas_(u);
-  return { ok: true, profile: profil_(u), state: kliens_(a.state), groupUnlock: csoportNyitas_(u.group, u.course || '') };
+  return { ok: true, profile: profil_(u), state: kliens_(a.state), groupUnlock: csoportNyitas_(u.group, u.courses) };
 }
 
 /* ===================== Szinkronizálás ===================== */
@@ -147,13 +148,13 @@ function ctxTisztit_(c, gu) {
   c = c || {};
   const order = {}, need = {};
   Object.keys(c.order || {}).slice(0, 50).forEach(function (m) {
-    if (Array.isArray(c.order[m])) order[szoveg_(m, 40)] = c.order[m].slice(0, 300).map(function (x) { return szoveg_(x, 60); });
+    if (Array.isArray(c.order[m])) order[szoveg_(m, 60)] = c.order[m].slice(0, 300).map(function (x) { return szoveg_(x, 80); });
   });
-  Object.keys(c.need || {}).slice(0, 50).forEach(function (m) { need[szoveg_(m, 40)] = egesz_(c.need[m], 1, 100); });
+  Object.keys(c.need || {}).slice(0, 50).forEach(function (m) { need[szoveg_(m, 60)] = egesz_(c.need[m], 1, 100); });
   return { order: order, need: need, kombo: egesz_(c.kombo || 10, 1, 100), streakMin: egesz_(c.streakMin || 1, 1, 50), groupUnlock: gu, today: ma_() };
 }
 function szinkron_(u, d) {
-  const gu = csoportNyitas_(u.group, u.course || '');
+  const gu = csoportNyitas_(u.group, u.courses);
   const ctx = ctxTisztit_(d.ctx, gu);
   const a = allapotOlvas_(u);
   const st = a.state;
@@ -165,7 +166,7 @@ function szinkron_(u, d) {
     if (!e0 || typeof e0 !== 'object') return;
     const ev = {
       eid: szoveg_(e0.eid, 40), kind: e0.kind === 'megoldas' ? 'megoldas' : 'valasz',
-      mod: szoveg_(e0.mod, 40), ch: szoveg_(e0.ch, 60), sig: szoveg_(e0.sig, 20),
+      mod: szoveg_(e0.mod, 60), ch: szoveg_(e0.ch, 80), sig: szoveg_(e0.sig, 20),
       ok: e0.ok === true, helped: e0.helped === true, day: szoveg_(e0.day, 10)
     };
     if (!ev.eid || !ev.ch) return;
@@ -216,7 +217,7 @@ function allapotOlvas_(u) {
       if (String(keys[i][0]).trim().toLowerCase() === u.key) {
         const raw = sh.getRange(i + 2, H.adat).getValue();
         let st = null; try { st = JSON.parse(raw || 'null'); } catch (e) { st = null; }
-        return { row: i + 2, state: Szabalyok.normal(st) };
+        return { row: i + 2, state: Szabalyok.migral(Szabalyok.normal(st), u.courses[0] || '11') };
       }
     }
   }
@@ -229,7 +230,7 @@ function allapotIr_(u, row, st, ctx, probaPlusz, utolsoPct) {
   else vals = new Array(lc).fill('');
   let helyes = 0; Object.keys(st.ch).forEach(function (k) { helyes += st.ch[k].ok; });
   const tegye = function (h, v) { if (H[h]) vals[H[h] - 1] = v; };
-  tegye('Felhasználónév', u.user); tegye('Név', u.name); tegye('Csoport', u.group); tegye('Tananyag', u.course);
+  tegye('Felhasználónév', u.user); tegye('Név', u.name); tegye('Csoport', u.group); tegye('Tananyag', u.courses.join(', '));
   tegye('Utolsó aktivitás', new Date()); tegye('Cukorka', Szabalyok.penz(st)); tegye('Összes cukorka', st.candy);
   tegye('Napi sorozat', Szabalyok.aktualisStreak(st, ctx.today, ctx)); tegye('Legjobb sorozat', st.streak.best);
   tegye('Helyes megoldások', helyes);
@@ -243,13 +244,16 @@ function kliens_(st) { return st; }
 
 /* ===================== Csoportnyitás ===================== */
 
-function csoportNyitas_(group, course) {
+/* A csoportnak megnyitott fejezetek: { 'évfolyam/témakör': sorszám (0-tól; = fejezetszám → próba is) } */
+function csoportNyitas_(group, courses) {
   const out = {};
   if (!group) return out;
+  courses = (courses || []).map(String);
   const sh = lap_(LAP.nyitas), v = sh.getDataRange().getValues();
   for (let i = 1; i < v.length; i++) {
-    if (egyezik_(v[i][0], group) && String(v[i][1]).trim().replace(/\.0+$/, '') === String(course)) {
-      out[String(v[i][2]).trim()] = Math.max(0, egesz_(v[i][3], 1, 1000) - 1);
+    const c = String(v[i][1]).trim().replace(/\.0+$/, '');
+    if (egyezik_(v[i][0], group) && courses.indexOf(c) >= 0) {
+      out[c + '/' + String(v[i][2]).trim()] = Math.max(0, egesz_(v[i][3], 1, 1000) - 1);
     }
   }
   return out;
@@ -266,7 +270,7 @@ function tanarNyitas_(u, d) {
     if (egyezik_(v[i][0], g) && String(v[i][1]).trim() === course && String(v[i][2]).trim() === mod) { found = i + 1; break; }
   }
   if (found) sh.getRange(found, 1, 1, sor.length).setValues([sor]); else sh.appendRow(sor);
-  return { ok: true, groupUnlock: csoportNyitas_(g, course) };
+  return { ok: true, groupUnlock: csoportNyitas_(g, [course]) };
 }
 
 /* ===================== Tanári lekérdezések ===================== */
@@ -294,7 +298,8 @@ function tanarAttekintes_(u, d) {
   for (let i = 1; i < v.length; i++) {
     const key = String(v[i][H['Felhasználónév'] - 1]).trim().toLowerCase();
     let st = null; try { st = JSON.parse(v[i][H.adat - 1] || 'null'); } catch (e) { st = null; }
-    st = Szabalyok.normal(st); st.solved = {}; st.seen = [];
+    const fu = users[key];
+    st = Szabalyok.migral(Szabalyok.normal(st), (fu && fu.courses[0]) || '11'); st.solved = {}; st.seen = [];
     allapot[key] = { state: st, last: v[i][H['Utolsó aktivitás'] - 1] };
   }
   // próbák
@@ -308,11 +313,13 @@ function tanarAttekintes_(u, d) {
       pct: Math.round(Number(pv[i][P['Százalék'] - 1]) * 100), grade: pv[i][P.Jegy - 1], weak: String(pv[i][P['Ismétlendő fejezetek'] - 1] || '') });
   }
   const tananyagok = {};
-  diakok.forEach(function (x) { if (x.course) tananyagok[x.course] = (tananyagok[x.course] || 0) + 1; });
-  const course = Object.keys(tananyagok).sort(function (a, b) { return tananyagok[b] - tananyagok[a]; })[0] || u.course || '';
+  diakok.forEach(function (x) { x.courses.forEach(function (c, j) { tananyagok[c] = (tananyagok[c] || 0) + (j === 0 ? 100 : 1); }); });
+  const courseList = Object.keys(tananyagok).sort(function (a, b) { return tananyagok[b] - tananyagok[a]; });
+  if (!courseList.length && u.course) courseList.push(u.course);
+  const course = courseList.indexOf(String(d.course || '')) >= 0 ? String(d.course) : (courseList[0] || u.course || '');
   return {
-    ok: true, groups: groups, group: group, course: course,
-    groupUnlock: csoportNyitas_(group, course),
+    ok: true, groups: groups, group: group, course: course, courses: courseList,
+    groupUnlock: csoportNyitas_(group, [course]),
     students: diakok.map(function (x) {
       const a = allapot[x.key];
       return { user: x.user, name: x.name, course: x.course, last: a ? iso_(a.last) : '', state: a ? a.state : Szabalyok.ujAllapot(), tests: probak[x.key] || [] };
@@ -452,7 +459,10 @@ function ellenoriz() {
  *    Hibás válasz vagy a megoldás megnézése (ebben a fejezetben) nullázza a sorozatot.
  *  - `kombo` (alapból 10) egymás utáni jó megoldás = 1 cukorka (témakörönkénti „pénztárcába”).
  *  - Ha a pénztárcában összegyűlik `need` cukorka, megnyílik a következő fejezet, és a nyitás
- *    levonja az árát a pénztárcából.
+ *    levonja az árát a pénztárcából. Az utolsó fejezet után ugyanígy a próba-témazáró nyílik meg
+ *    (unlock = fejezetek száma → a témakör teljesítve).
+ *  - Kulcsok: témakör = 'évfolyam/témakör' (pl. '11/hgl'), fejezet = 'évfolyam/fejezet' (pl. '11/hatvany'),
+ *    így egy tanuló több évfolyam anyagát is gyakorolhatja ütközés nélkül.
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
  *    old meg a legutolsó nyitott fejezetben. Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
@@ -462,7 +472,7 @@ function ellenoriz() {
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 2, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {},
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {},
              streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, fagy: '' }, candy: 0, seen: [] };
   }
 
@@ -471,6 +481,7 @@ var Szabalyok = (function () {
   function normal(s) {
     var u = ujAllapot();
     if (!s || typeof s !== 'object') return u;
+    u.v = egesz(s.v || 1, 1, 99);
     if (s.ch && typeof s.ch === 'object') {
       Object.keys(s.ch).forEach(function (k) {
         var c = s.ch[k] || {};
@@ -508,6 +519,22 @@ var Szabalyok = (function () {
     return Math.min(order.length - 1, u);
   }
 
+  /* Régi (évfolyam nélküli) kulcsok átírása 'évfolyam/…' alakra. */
+  function migral(st, kurzus) {
+    if (st.v >= 3) return st;
+    var p = function (o) { var n = {}; Object.keys(o || {}).forEach(function (k) { n[k.indexOf('/') >= 0 ? k : kurzus + '/' + k] = o[k]; }); return n; };
+    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo);
+    st.v = 3;
+    return st;
+  }
+
+  /* Igaz, ha a témakör minden fejezete teljesítve (a próba-témazáró is megnyílt). */
+  function teljesitett(st, ctx, mod) {
+    var order = (ctx.order && ctx.order[mod]) || [];
+    if (!order.length) return false;
+    return Math.max(st.unlock[mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[mod]) || 0) >= order.length;
+  }
+
   /* Igaz, ha egyik témakörben sincs már megnyitható új fejezet. */
   function kesz(st, ctx) {
     var mods = Object.keys((ctx && ctx.order) || {}).filter(function (m) { return ctx.order[m].length; });
@@ -532,7 +559,7 @@ var Szabalyok = (function () {
      Visszaad: { dup, uj, cukorka, nyitott, ar, streak, ok, ok2, kombo, nullazva }
      ok2: 'segitseg' | 'ismert' | 'nemfront' */
   function alkalmaz(st, ev, ctx) {
-    var fx = { dup: false, uj: false, cukorka: false, nyitott: null, ar: 0, streak: false, ok: !!ev.ok, ok2: '', kombo: 0, nullazva: false };
+    var fx = { dup: false, uj: false, cukorka: false, nyitott: null, proba: false, ar: 0, streak: false, ok: !!ev.ok, ok2: '', kombo: 0, nullazva: false };
     if (ev.eid) {
       if (st.seen.indexOf(ev.eid) >= 0) { fx.dup = true; return fx; }
       st.seen.push(ev.eid);
@@ -574,13 +601,15 @@ var Szabalyok = (function () {
       fx.cukorka = true;
     }
     fx.kombo = st.combo[ev.mod];
-    // fejezetnyitás: a pénztárcából levonja az árát
+    // fejezetnyitás (az utolsó után a próba-témazáró): a pénztárcából levonja az árát
     var need = (ctx.need && ctx.need[ev.mod]) || 3;
-    if ((st.purse[ev.mod] || 0) >= need && f < order.length - 1 && (st.unlock[ev.mod] || 0) <= f) {
-      st.unlock[ev.mod] = f + 1;
+    var eff = Math.max(st.unlock[ev.mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[ev.mod]) || 0);
+    if ((st.purse[ev.mod] || 0) >= need && eff < order.length) {
+      st.unlock[ev.mod] = eff + 1;
       st.purse[ev.mod] -= need;
       st.combo[ev.mod] = 0;
-      fx.nyitott = order[f + 1]; fx.ar = need;
+      if (eff + 1 < order.length) fx.nyitott = order[eff + 1]; else fx.proba = true;
+      fx.ar = need;
       frissit(st, ctx);
     }
     return fx;
@@ -622,7 +651,7 @@ var Szabalyok = (function () {
     return ('0000000' + h.toString(16)).slice(-8);
   }
 
-  return { ujAllapot: ujAllapot, normal: normal, elozoNap: elozoNap, front: front, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
+  return { ujAllapot: ujAllapot, normal: normal, migral: migral, elozoNap: elozoNap, front: front, teljesitett: teljesitett, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
            aktualisStreak: aktualisStreak, penz: penz, tomorit: tomorit, azonosito: azonosito };
 })();
 if (typeof window !== 'undefined') window.Szabalyok = Szabalyok;

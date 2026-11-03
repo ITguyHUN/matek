@@ -33,11 +33,12 @@ felhasznalok_minta.xlsx    minta a felhasználói listához
 
    | Felhasználónév | Jelszó | Név | Csoport | Tananyag | Szerep |
    |---|---|---|---|---|---|
-   | kiss.anna | Kv7-29 | Kiss Anna | 11.A | 11 | diák |
+   | kiss.anna | Kv7-29 | Kiss Anna | 11.A | 11, 10 | diák |
    | tanar | … | Tanár Úr | * | 11 | tanár |
 
    - Csak az léphet be, aki ezen a lapon szerepel. Ha valakit törölsz, vagy megváltoztatod a jelszavát, azonnal kijelentkezik.
    - Több „Felhasználók…” kezdetű lap is lehet, például „Felhasználók 11.A” vagy „Felhasználók 11.B”.
+   - A Tananyag oszlopba több évfolyam is írható vesszővel, például `11, 10`. Az első a diák saját anyaga, ez nyílik meg alapból. A többit a kezdőlapon választhatja ki gyakorláshoz. Minden évfolyam haladása (cukorka, nyitott fejezetek) külön számít, a napi sorozat közös.
    - Tanárnál a Csoport oszlop azt adja meg, mely csoportokat látja: `*` vagy üres = mindet, egyébként a csoportok vesszővel elválasztva, például `11.A, 11.B`.
    - A **Matek gyakorló → Felhasználók ellenőrzése** menüpont összesíti, hány diák van csoportonként, és kinek hiányzik a jelszava.
 3. **Webalkalmazás.** Válaszd a **Telepítés → Új telepítés → Webalkalmazás** lehetőséget, ezekkel a beállításokkal:
@@ -58,10 +59,12 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
   - Hibás válasz, vagy ha megnézi a megoldást, nullázza a sorozatot.
   - A már korábban megoldott feladat nem számít bele a sorozatba, de nem is nullázza.
 - **Fejezetnyitás:** ha összegyűlik `cukorkaNyitashoz` (alapból 3) cukorka, automatikusan megnyílik a következő fejezet, és az ára le is jön a diák cukorkáiból.
+- **Próba-témazáró:** csak akkor nyílik meg, ha a témakör minden fejezete teljesítve van. Ez azt jelenti, hogy az utolsó fejezetben is összegyűlt a `cukorkaNyitashoz` darab cukorka, ugyanúgy, mint egy újabb fejezetnél. Tanári fiókkal és helyi módban mindig nyitva van.
+- **Témakör- és évfolyamválasztás:** ha egy évfolyamnak több témaköre van, vagy a diáknak több évfolyama, a kezdőlapon választhat közöttük. Az oldal megjegyzi a választást, a menü pedig mindig a kiválasztott témakört mutatja.
 - **Napi sorozat:** az a nap számít, amelyen a diák legalább `streakNapiMin` (alapból 1) új feladatot old meg a legutolsó nyitott fejezetben.
   - Ha kihagy egy napot, a sorozat újraindul.
   - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
-- **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik.
+- **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. A lista utolsó eleme („Minden fejezet + próba-témazáró”) a próbát is megnyitja. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik. A tanári felületen a csoport mellett tananyagot (évfolyamot) és témakört is választhatsz.
 - A régebbi fejezetekben szabadon lehet gyakorolni, de ott nem jár jutalom. Ezért nem lehet „farmolni”.
 
 ## Táblázat lapjai
