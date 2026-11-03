@@ -7,6 +7,7 @@
 Tananyag.kurzus({
   cim: 'Matek 11',
   alcim: '11. évfolyam · középszintű érettségi',
+  jelek: 'aⁿ · ⁿ√a · logₐ b',
   // alapTemakor: 'hgl',   // melyik témakör legyen kiválasztva, amíg a diák nem választ mást (elhagyható)
   temakorok: [
     {

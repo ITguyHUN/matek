@@ -32,34 +32,54 @@ function valaszErtelmez(str) {
   if (!s) return null;
   s = s.replace(/^[a-z]\s*[=∈]\s*/, '');
   const parts = s.split(/;|\bés\b|\bvagy\b|\|/).map(t => t.trim().replace(/^[a-z]_?\d?\s*=\s*/, '')).filter(Boolean);
-  const out = [];
-  for (const p0 of parts) {
-    if (/^nincs/.test(p0) || p0 === 'ø' || p0 === '∅') { out.push('nincs'); continue; }
+  const out = []; const meta = [];
+  for (const p00 of parts) {
+    if (/^nincs/.test(p00) || p00 === 'ø' || p00 === '∅') { out.push('nincs'); meta.push({}); continue; }
+    // mértékegység, százalékjel a végén (pl. „12 000 Ft”, „37,5%”, „1,6 km”)
+    const p0 = p00.replace(/\s*(forint|ft|dkg|kg|km|cm|mm|m³|m3|m|g|liter|l|óra|nap|perc|hónap|oldal|db|fok|°|%)\.?$/, '').trim() || p00;
+    let m = p0.match(/^([+-]?)(\d+)\s+(\d+)\s*\/\s*(\d+)$/);            // vegyes szám: 2 1/4
+    if (m) { const v = (m[1] === '-' ? -1 : 1) * (+m[2] + (+m[3]) / (+m[4])); out.push(v); meta.push({ tort: true, egysz: gcd(+m[3], +m[4]) === 1 && +m[3] < +m[4] }); continue; }
+    m = p0.replace(/\s/g, '').match(/^([+-]?)(\d*)[.,](\d*)\((\d+)\)$/);  // szakaszos tizedes tört: 0,(3) vagy 1,2(3)
+    if (m) { const pre = m[3], rep = m[4]; const v = (m[1] === '-' ? -1 : 1) * (+(m[2] || 0) + (pre ? +pre / 10 ** pre.length : 0) + (+rep) / ((10 ** rep.length - 1) * 10 ** pre.length)); out.push(v); meta.push({ szakaszos: true }); continue; }
     let p = p0.replace(/\s/g, ''); let pm = false;
     if (p.startsWith('±') || p.startsWith('+-')) { pm = true; p = p.replace(/^(±|\+-)/, ''); }
     const num = t => { t = t.replace(',', '.'); if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(t)) return NaN; return parseFloat(t); };
-    let v;
-    if (p.includes('/')) { const [a, b] = p.split('/'); v = num(a) / num(b); } else v = num(p);
-    if (!isFinite(v)) return { hiba: p0 };
-    out.push(v); if (pm) out.push(-v);
+    let v, mt = { tort: false };
+    if (p.includes('/')) { const [a, b] = p.split('/'); const A = num(a), B = num(b); v = A / B; mt = { tort: true, egysz: Number.isInteger(A) && Number.isInteger(B) && B > 0 && gcd(A, B) === 1 }; } else v = num(p);
+    if (!isFinite(v)) return { hiba: p00 };
+    out.push(v); meta.push(mt); if (pm) { out.push(-v); meta.push(mt); }
   }
+  out.meta = meta;
   return out;
 }
 function valaszEllenoriz(valasz, ertelmezett) {
   if (!ertelmezett || ertelmezett.hiba) return { ok: false, rossz: true };
+  // „Írj egy számot a két szám közé!” típus: bármely szám jó, ami szigorúan a két érték között van
+  if (valasz.kozott) { if (ertelmezett.length !== 1 || typeof ertelmezett[0] !== 'number') return { ok: false, darab: true, van: ertelmezett.length, kell: 1 };
+    const [lo, hi] = valasz.kozott; return { ok: ertelmezett[0] > lo + 1e-12 && ertelmezett[0] < hi - 1e-12 }; }
   if (valasz.nincs) return { ok: ertelmezett.length === 1 && ertelmezett[0] === 'nincs' };
   if (ertelmezett.includes('nincs')) return { ok: false };
   const want = valasz.ertekek.slice().sort((a, b) => a - b), got = ertelmezett.slice().sort((a, b) => a - b);
   const close = (a, b) => valasz.tolRel ? Math.abs(a - b) <= valasz.tolRel * Math.abs(b) + 1 : Math.abs(a - b) <= (valasz.tol || 1e-6);
   const uniq = []; for (const g of got) if (!uniq.some(u => close(u, g))) uniq.push(g);
   if (uniq.length !== want.length) return { ok: false, darab: true, van: uniq.length, kell: want.length };
-  return { ok: want.every((w, i) => close(uniq[i], w)) };
+  const ok = want.every((w, i) => close(uniq[i], w));
+  // kötelező alak (forma: 'tizedes' vagy 'tort'): jó érték, de nem a kért alakban → nem számít hibának, csak szólunk
+  if (ok && valasz.forma && ertelmezett.meta && ertelmezett.meta.length === 1) {
+    const mt = ertelmezett.meta[0];
+    if (valasz.forma === 'tizedes' && mt.tort) return { ok: false, forma: 'tizedes' };
+    if (valasz.forma === 'tort' && !mt.tort && !Number.isInteger(want[0])) return { ok: false, forma: 'tort' };
+    if (valasz.forma === 'tort' && mt.tort && !mt.egysz) return { ok: false, forma: 'egyszerusit' };
+  }
+  return { ok };
 }
 /* A helyes válasz olvasható alakja (tanári nézethez, naplóhoz). */
 function valaszSzoveg(valasz) {
   if (!valasz) return '';
   if (valasz.valasztas) return valasz.valasztas[valasz.helyes];
   if (valasz.nincs) return 'nincs';
+  if (valasz.kozott) return valasz.pelda ? `pl. ${valasz.pelda}` : `${hu(valasz.kozott[0], 4)} és ${hu(valasz.kozott[1], 4)} között`;
+  if (valasz.forma === 'tizedes') return (valasz.ertekek || []).map(x => hu(x)).join('; ');
   const f = x => {
     if (Math.abs(x - Math.round(x)) < 1e-9) return hu(Math.round(x));
     // lánctört-közelítés: a legegyszerűbb tört, amely pontosan megadja az értéket

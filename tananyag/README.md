@@ -8,7 +8,10 @@ tananyag/
     hatvany-gyok-log/        ← egy témakör mappája
       01-hatvanyozas.js      ← egy fejezet = egy fájl
       …
-  9/  10/  7/                ← további évfolyamok ugyanígy (saját kurzus.js-sel)
+  7/
+    kurzus.js                ← a 7. évfolyam leírója (az elején a 7.-es fejezetek közös segédfüggvényei: M7)
+    racionalis-arany-szazalek/  ← 6 fejezet (Sokszínű matematika 7., 1–4. lecke)
+  9/  10/                    ← további évfolyamok ugyanígy (saját kurzus.js-sel)
 ```
 
 A felhasználó a **Tananyag** oszlopban kapja meg, melyik mappa töltődjön be neki, például `11`. Több is megadható vesszővel, például `11, 10`. Ilyenkor a kezdőlapon évfolyamot is választhat, az első a saját évfolyama.
@@ -50,6 +53,7 @@ Hozz létre egy `tananyag/9/kurzus.js` fájlt a fentiek szerint, a táblázatban
 | `igazHamis` | nem | `[{ allitas, igaz: true/false, miert }]` |
 | `mintapelda` | nem | `{ feladat, lepesek: [ … ] }`, a lépések egyenként bonthatók ki |
 | `grafikon` | nem | `'exp'`, `'log'`, vagy egy saját `function (doboz) { … }` |
+| `grafikonCim`, `grafikonTag` | nem | a grafikon-szakasz címe és címkéje (alapból „Grafikonrajzoló”, „kísérletezz”) |
 | `feladatok` | igen | `{ azonosito: { nev, general() } }` |
 
 A `general()` minden hívásra **új, véletlenszerű** feladatot ad vissza:
@@ -62,6 +66,18 @@ A `general()` minden hívásra **új, véletlenszerű** feladatot ad vissza:
   tipp: '…',
   megoldas: ['…', '\\[ … \\]'] }
 ```
+
+További válaszfajták:
+
+| `valasz` | Jelentés |
+|---|---|
+| `{ ertekek: [0.375], forma: 'tizedes' }` | csak tizedes tört alakban fogadja el (a `3/8` nem jó) |
+| `{ ertekek: [0.375], forma: 'tort' }` | csak egyszerűsített tört alakban fogadja el (a `0,375` és a `6/16` nem jó) |
+| `{ kozott: [0.6, 0.666], pelda: '19/30' }` | bármely szám jó, ami szigorúan a két érték közé esik |
+
+Alaki hiba esetén az oldal szól („tizedes tört alakban kérjük”, „egyszerűsítsd tovább”), de ez nem számít rossz válasznak, és nem nullázza a sorozatot. A diák beírhat vegyes számot (`2 1/4`), szakaszos tizedes törtet (`0,(3)` vagy `1,2(3)`), és a válasz végén mértékegységet vagy százalékjelet is (`12 000 Ft`, `37,5%`, `1,6 km`).
+
+A `kurzus.js`-ben a `jelek` mező adja meg a fejléc fölötti jelsort (pl. `jelek: 'a/b · 0,375 · p%'`).
 
 Ha egy feladattípus ne kerüljön be a próba-témazáróba, add hozzá: `proba: false`. A feleletválasztós típusok eleve kimaradnak belőle.
 

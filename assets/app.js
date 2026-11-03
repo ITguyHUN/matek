@@ -64,7 +64,7 @@ async function betoltKurzus(id) {
   await script(`tananyag/${id}/kurzus.js`, { kurzus: id });
   const def = KURZUS_DEF[id];
   if (!def) throw new Error(`A tananyag/${id}/kurzus.js nem hívta meg a Tananyag.kurzus(…) függvényt.`);
-  const K = { id, cim: def.cim || id, alcim: def.alcim || '', alapTemakor: def.alapTemakor || '', temakorok: [], fej: {} };
+  const K = { id, cim: def.cim || id, alcim: def.alcim || '', jelek: def.jelek || '', alapTemakor: def.alapTemakor || '', temakorok: [], fej: {} };
   const temak = (def.temakorok || []).filter(t => t && t.aktiv !== false);
   await Promise.all(temak.map(t => Promise.all((t.fejezetek || []).map((f, i) => {
     const hely = `${id}/${t.id}/${i}`;
@@ -292,6 +292,7 @@ function renderToc(active) {
 function renderHeader() {
   $('#apptitle').textContent = K ? K.cim : (CFG.cim || 'Matek gyakorló');
   $('#appsub').textContent = K ? [K.alcim, CFG.cim].filter(Boolean).join(' · ') : '';
+  if (K && K.jelek && $('#strip')) $('#strip').textContent = K.jelek;   // a fejléc jelsora tananyagonként (kurzus.js: jelek)
   document.title = K ? `${K.cim} – ${CFG.cim || 'Matek gyakorló'}` : (CFG.cim || 'Matek gyakorló');
 }
 function refreshChrome() {
@@ -449,7 +450,7 @@ function renderChapter(ch) {
    ${ch.igazHamis.length ? `<section class="blk"><h3>Igaz vagy hamis? <span class="tag">tipikus hibák</span></h3><div class="tf" id="tf"></div></section>` : ''}
    ${ch.mintapelda ? `<section class="blk"><h3>Mintapélda</h3><div class="task prose">${ch.mintapelda.feladat}</div><ol class="steps" id="steps"></ol>
      <div class="ansrow"><button class="btn" id="stepn">Következő lépés</button><button class="btn ghost" id="stepall">Mind látszódjon</button></div></section>` : ''}
-   ${ch.grafikon ? `<section class="blk"><h3>Grafikonrajzoló <span class="tag">kísérletezz</span></h3><div id="plot"></div></section>` : ''}
+   ${ch.grafikon ? `<section class="blk"><h3>${esc(ch.grafikonCim || 'Grafikonrajzoló')} <span class="tag">${esc(ch.grafikonTag || 'kísérletezz')}</span></h3><div id="plot"></div></section>` : ''}
    <section class="blk"><h3>Gyakorlás</h3><div class="practice" id="pr"></div></section>
    <div class="foot">${next ? `<a class="btn" href="${chHref(next)}">${chStatus(next) === 'locked' ? ICON.lock + ' ' : ''}Tovább: ${esc(next.rovid)} →</a>` : `<a class="btn primary" href="${probaHref(t)}">${probaNyitva(t) ? '' : ICON.lock + ' '}Próba-témazáró →</a>`}</div>`;
   if (ch.igazHamis.length) {
@@ -489,6 +490,9 @@ function feladatKeszit(ch, gid) {
 }
 function fbText(res) {
   if (res.rossz) return 'Ezt nem tudom számként értelmezni. Törtet így írj: 3/2, tizedest így: 1,5, több megoldást pontosvesszővel: 1; 2.';
+  if (res.forma === 'tizedes') return 'Az érték jó, de <b>tizedes tört alakban</b> kérjük (pl. 0,375).';
+  if (res.forma === 'tort') return 'Az érték jó, de <b>tört alakban</b> kérjük (pl. 3/8).';
+  if (res.forma === 'egyszerusit') return 'Az érték jó, de <b>egyszerűsítsd</b> tovább a törtet!';
   if (res.darab) return res.kell > res.van ? `Nem jó, vagy hiányzik megoldás: ennek a feladatnak ${res.kell} megoldása van.` : `Túl sok megoldást adtál meg: ennek a feladatnak ${res.kell} megoldása van.`;
   return 'Nem jó. Próbáld újra, vagy kérj tippet!';
 }
@@ -537,13 +541,13 @@ function makePractice(box, ch) {
       inp.querySelector('.choices').onclick = e => { const b = e.target.closest('[data-c]'); if (!b || solved) return; submit(+b.dataset.c === v.helyes, v.valasztas[+b.dataset.c]); };
     } else {
       inp.innerHTML = `<div class="ansrow"><input id="ans-${esc(ch.id)}" type="text" autocomplete="off" spellcheck="false" aria-label="Válasz" placeholder="Válasz"><button class="btn primary" id="chk">Ellenőrzés</button></div>
-       <div class="fmt">Formátum: ${esc(cur.p.formatum || '')} · tört: <code>3/2</code> · tizedes: <code>1,5</code> · több megoldás: <code>1; 2</code> · ha nincs: <code>nincs</code></div>`;
+       <div class="fmt">Formátum: ${esc(cur.p.formatum || '')} · tört: <code>3/2</code> · tizedes: <code>1,5</code> · vegyes szám: <code>2 1/4</code> · szakaszos: <code>0,(3)</code> · több megoldás: <code>1; 2</code> · ha nincs: <code>nincs</code></div>`;
       const field = $('input', inp);
       const go = () => {
         if (solved) return;
         if (!field.value.trim()) return;
         const res = valaszEllenoriz(v, valaszErtelmez(field.value));
-        if (res.rossz) { fb('no', fbText(res)); return; }
+        if (res.rossz || res.forma) { fb(res.forma ? 'info' : 'no', fbText(res)); return; }   // alaki hiba: nem számít rossz válasznak
         submit(res.ok, field.value.trim(), res);
       };
       $('#chk', inp).onclick = go; field.onkeydown = e => { if (e.key === 'Enter') go(); };
@@ -685,7 +689,7 @@ function renderProba(t) {
       const row = $('#ti' + i), val = $('#pa' + i).value, res = valaszEllenoriz(it.p.valasz, valaszErtelmez(val));
       byCh[it.ch.key] = byCh[it.ch.key] || [0, 0]; byCh[it.ch.key][1]++; if (res.ok) { pts++; byCh[it.ch.key][0]++; }
       row.className = 'titem ' + (res.ok ? 'ok' : 'no');
-      const f = row.querySelector('.fb'); f.hidden = false; f.className = 'fb ' + (res.ok ? 'ok' : 'no'); f.textContent = res.ok ? 'Helyes, 1 pont.' : (val.trim() ? 'Nem jó, 0 pont.' : 'Nincs válasz, 0 pont.');
+      const f = row.querySelector('.fb'); f.hidden = false; f.className = 'fb ' + (res.ok ? 'ok' : 'no'); f.innerHTML = res.ok ? 'Helyes, 1 pont.' : (val.trim() ? (res.forma ? fbText(res) + ' 0 pont.' : 'Nem jó, 0 pont.') : 'Nincs válasz, 0 pont.');
       const s = row.querySelector('.solbox'); s.hidden = false; s.innerHTML = (it.p.megoldas || []).map(x => /^\s*\\\[/.test(x) ? `<div class="mathbox">${x}</div>` : `<p>${x}</p>`).join('');
     });
     const max = items.length || 1, pct = Math.round(100 * pts / max);
