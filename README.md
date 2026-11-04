@@ -67,6 +67,7 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
 - **Napi sorozat:** az a nap számít, amelyen a diák legalább `streakNapiMin` (alapból 1, évfolyamonként eltérhet) új feladatot old meg egy évfolyam legutolsó nyitott fejezetében. Több évfolyamnál a sorozat közös, de mindegyik évfolyamban a saját feltétele számít.
   - Ha kihagy egy napot, a sorozat újraindul.
   - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
+- **Közép / emelt szint:** a fejezetek, feladattípusok és igaz-hamis állítások megjelölhetők emelt szintűként (`szint: 'emelt'`). A Tanári felületen csoportonként és évfolyamonként beállítható a szint. Közép szintnél az emelt feladatok külön, alatta jelennek meg: ott egy jó megoldás kettőt ér, és csak a második hibás válasz (ugyanarra a feladatra) vagy a megoldás megnézése nullázza a sorozatot. Emelt szintnél minden feladat egy felületen van. Részletek: `tananyag/README.md`.
 - **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. A lista utolsó eleme („Minden fejezet + próba-témazáró”) a próbát is megnyitja. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik. A tanári felületen a csoport mellett tananyagot (évfolyamot) és témakört is választhatsz.
 - A régebbi fejezetekben szabadon lehet gyakorolni, de ott nem jár jutalom. Ezért nem lehet „farmolni”.
 
@@ -79,6 +80,7 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
 | Megoldások | minden beküldött válasz: feladat, válasz, helyes válasz, eredmény, kapott-e cukorkát |
 | Próbák | beadott próba-témazárók pontszámmal és jeggyel |
 | Csoportnyitás | a Tanári felületen beállított nyitások |
+| Csoportszint | a Tanári felületen beállított feladatszint (közép / emelt) csoportonként és évfolyamonként |
 
 ## Helyi kipróbálás
 

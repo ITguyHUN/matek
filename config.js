@@ -29,7 +29,10 @@ window.BEALLITAS = {
   // (kurzus.js: streakNapiMin)
   streakNapiMin: 1,
 
+  // Igaz-hamis kérdésbank: ennyi állítás jelenik meg egyszerre (fejezetenként: igazHamisDb).
+  igazHamisDb: 4,
+
   // Ha bármelyik tananyagfájlt módosítod, írd át ezt (pl. a mai dátumra),
   // hogy a diákok böngészője biztosan az új változatot töltse le.
-  verzio: '2026-11-04'
+  verzio: '2026-11-04b'
 };

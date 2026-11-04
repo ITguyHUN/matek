@@ -14,17 +14,23 @@
  *    (unlock = fejezetek száma → a témakör teljesítve).
  *  - Kulcsok: témakör = 'évfolyam/témakör' (pl. '11/hgl'), fejezet = 'évfolyam/fejezet' (pl. '11/hatvany'),
  *    így egy tanuló több évfolyam anyagát is gyakorolhatja ütközés nélkül.
+ *  - Szintek: ha a csoport beállított szintje KÖZÉP (ctx.szint[évfolyam] = 'kozep'), az emelt szintű
+ *    feladat (ev.emelt) helyes megoldása 2 jó válasznak számít; az első hibás válasz egy feladatra
+ *    még nem nullázza a sorozatot, csak a második (ugyanarra a feladatra), illetve a megoldás megnézése.
+ *    Az emelt szintű fejezetek ilyenkor nem részei a nyitási láncnak: ctx.kieg[fejezet] = az a láncbeli
+ *    fejezet, amelyhez tartoznak; akkor gyűlik bennük cukorka, ha az a legutolsó nyitott fejezet.
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
  *    old meg egy évfolyam legutolsó nyitott fejezetében (a `streakMin` évfolyamonként eltérhet). Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
  *
  * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index},
  *         need: {temakorId: db | [db, …]}   (tömb: i. elem = az i. fejezet utáni nyitás ára),
- *         kombo: db | {évfolyam: db}, streakMin: db | {évfolyam: db}, today: 'ÉÉÉÉ-HH-NN' }
+ *         kombo: db | {évfolyam: db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
+ *         kieg: {fejezetId: láncbeli fejezetId}, today: 'ÉÉÉÉ-HH-NN' }
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {},
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {},
              streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, napi: {}, fagy: '' }, candy: 0, seen: [] };
   }
 
@@ -49,6 +55,7 @@ var Szabalyok = (function () {
     ['purse', 'combo'].forEach(function (f) {
       if (s[f] && typeof s[f] === 'object') Object.keys(s[f]).forEach(function (k) { u[f][k] = egesz(s[f][k], 0, 1e6); });
     });
+    if (s.hiba && typeof s.hiba === 'object') Object.keys(s.hiba).slice(0, 100).forEach(function (k) { u.hiba[k] = String(s.hiba[k]).slice(0, 20); });
     var st = s.streak || {};
     u.streak = { cur: egesz(st.cur, 0, 1e5), best: egesz(st.best, 0, 1e5), last: String(st.last || ''), day: String(st.day || ''),
                  dayCount: egesz(st.dayCount, 0, 1e6), napi: {}, fagy: String(st.fagy || '') };
@@ -72,6 +79,8 @@ var Szabalyok = (function () {
   }
   function kombo(ctx, mod) { return Math.max(1, evfErtek(ctx.kombo, mod, 10) || 10); }
   function streakMin(ctx, mod) { return Math.max(1, evfErtek(ctx.streakMin, mod, 1) || 1); }
+  /* Igaz, ha a csoport beállított szintje ebben az évfolyamban közép (az emelt feladatok külön, kedvezménnyel). */
+  function kozepSzint(ctx, mod) { return evfErtek(ctx.szint, mod, '') === 'kozep'; }
 
   /* A témakör jelenlegi nyitási szintje (0 = csak az első fejezet nyitott; = fejezetszám → próba is). */
   function szint(st, ctx, mod) { return Math.max(st.unlock[mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[mod]) || 0); }
@@ -104,7 +113,7 @@ var Szabalyok = (function () {
   function migral(st, kurzus) {
     if (st.v >= 3) return st;
     var p = function (o) { var n = {}; Object.keys(o || {}).forEach(function (k) { n[k.indexOf('/') >= 0 ? k : kurzus + '/' + k] = o[k]; }); return n; };
-    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo);
+    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo); st.hiba = {};
     st.v = 3;
     return st;
   }
@@ -161,13 +170,22 @@ var Szabalyok = (function () {
       frissit(st, ctx);
       return fx;
     }
-    var idx = order.indexOf(ev.ch), f = front(st, ctx, ev.mod), frontban = idx >= 0 && idx === f;
-    var nullaz = function () { if (frontban) { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; } };
+    var idx = order.indexOf(ev.ch), f = front(st, ctx, ev.mod);
+    var anchor = ctx.kieg && ctx.kieg[ev.ch];
+    var frontban = f >= 0 && ((idx >= 0 && idx === f) || (idx < 0 && !!anchor && anchor === order[f]));
+    var bonusz = !!ev.emelt && kozepSzint(ctx, ev.mod);
+    var nullaz = function () { if (frontban) { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; } delete st.hiba[ev.mod]; };
     fx.kombo = st.combo[ev.mod] || 0;
     if (ev.kind === 'megoldas') { nullaz(); fx.kombo = st.combo[ev.mod] || 0; return fx; }
     var c = st.ch[ev.ch] || (st.ch[ev.ch] = { ok: 0, tried: 0, candy: 0 });
     c.tried++;
-    if (!ev.ok) { nullaz(); fx.kombo = st.combo[ev.mod] || 0; return fx; }
+    if (!ev.ok) {
+      // emelt feladat közép szinten: az első hibás válasz még nem nulláz (csak a második ugyanarra a feladatra)
+      if (bonusz && frontban && st.hiba[ev.mod] !== ev.sig) { st.hiba[ev.mod] = ev.sig; fx.elsoHiba = true; }
+      else nullaz();
+      fx.kombo = st.combo[ev.mod] || 0; return fx;
+    }
+    delete st.hiba[ev.mod];
     c.ok++;
     if (ev.helped) { fx.ok2 = 'segitseg'; return fx; }
     var list = st.solved[ev.ch] || (st.solved[ev.ch] = []);
@@ -189,11 +207,13 @@ var Szabalyok = (function () {
       fx.streak = true;
     }
     // jó-válasz-sorozat → cukorka
-    st.combo[ev.mod] = (st.combo[ev.mod] || 0) + 1;
-    if (st.combo[ev.mod] >= kombo(ctx, ev.mod)) {
-      st.combo[ev.mod] = 0;
+    var kb = kombo(ctx, ev.mod);
+    fx.ertek = bonusz ? 2 : 1;   // emelt feladat közép szinten: 2 jó válasznak számít
+    st.combo[ev.mod] = (st.combo[ev.mod] || 0) + fx.ertek;
+    while (st.combo[ev.mod] >= kb) {
+      st.combo[ev.mod] -= kb;
       c.candy++; st.candy++; st.purse[ev.mod] = (st.purse[ev.mod] || 0) + 1;
-      fx.cukorka = true;
+      fx.cukorka = true; fx.cukorkaDb = (fx.cukorkaDb || 0) + 1;
     }
     fx.kombo = st.combo[ev.mod];
     // a fejezetnyitás nem automatikus: jelezzük, ha már van rá elég cukorka (a gombbal nyitható)
@@ -239,6 +259,6 @@ var Szabalyok = (function () {
   }
 
   return { ujAllapot: ujAllapot, normal: normal, migral: migral, elozoNap: elozoNap, front: front, teljesitett: teljesitett, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
-           aktualisStreak: aktualisStreak, ar: ar, kovetkezo: kovetkezo, szint: szint, kombo: kombo, streakMin: streakMin, penz: penz, tomorit: tomorit, azonosito: azonosito };
+           aktualisStreak: aktualisStreak, ar: ar, kovetkezo: kovetkezo, szint: szint, kombo: kombo, streakMin: streakMin, kozepSzint: kozepSzint, penz: penz, tomorit: tomorit, azonosito: azonosito };
 })();
 if (typeof window !== 'undefined') window.Szabalyok = Szabalyok;
