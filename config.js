@@ -19,7 +19,7 @@ window.BEALLITAS = {
 
   // Ennyi cukorkába kerül a következő fejezet megnyitása (a nyitás levonja a cukorkák közül).
   // Témakörönként felülírható a kurzus.js-ben (cukorkaNyitashoz).
-  cukorkaNyitashoz: 3,
+  cukorkaNyitashoz: 1,
 
   // Napi streak: ennyi ÚJ feladatot kell aznap megoldani a legutolsó nyitott fejezetben.
   streakNapiMin: 1,
