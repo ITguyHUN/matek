@@ -34,7 +34,35 @@ A `kurzus.js` `temakorok` listájához adj hozzá egy új elemet:
   proba: { feladatszam: 12 }, fejezetek: ['01-szogfuggvenyek.js', '02-…'] }
 ```
 
-Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott. Ha egy témakört átmenetileg el akarsz rejteni, add hozzá: `aktiv: false`.
+Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott.
+
+## Cukorka és streak évfolyamonként, fejezetenként
+
+A `config.js` adja az alapértékeket, a `kurzus.js` ezeket felülírhatja:
+
+```js
+Tananyag.kurzus({
+  cim: 'Matek 7',
+  joValaszCukorkahoz: 8,     // ebben az évfolyamban 8 egymás utáni jó megoldás = 1 cukorka
+  cukorkaNyitashoz: 2,       // egy fejezet ára ebben az évfolyamban (ha a témakör/fejezet nem ad meg mást)
+  streakNapiMin: 3,          // napi sorozathoz 3 új feladat kell aznap ebben az évfolyamban
+  temakorok: [{
+    id: 'rac', cim: '…', mappa: '…',
+    cukorkaNyitashoz: 3,                     // a témakör fejezeteinek ára
+    proba: { feladatszam: 12, cukorka: 5 },  // a próba-témazáró nyitási ára
+    fejezetek: [
+      '01-alakok.js',                        // az első fejezet mindig nyitott (ára nincs)
+      { fajl: '02-szamegyenes.js', cukorka: 1 },   // ezt 1 cukorkáért lehet megnyitni
+      '03-muveletek.js',                     // ez a témakör árába (3) kerül
+      { fajl: '04-sorrend.js', cukorka: 5 }
+    ]
+  }]
+});
+```
+
+Elsőbbség: fejezet `cukorka` → témakör `cukorkaNyitashoz` → évfolyam `cukorkaNyitashoz` → `config.js`. A `cukorka: 0` is megengedett (ingyen nyitható, de a gombra kattintani akkor is kell).
+
+A nyitás **nem automatikus**: amikor összegyűlt az ár, a fejezetben (és a zárt fejezet, ill. a próba oldalán) megjelenik a **Megnyitom** gomb, és a cukorka a kattintáskor jön le. Ha egy témakört átmenetileg el akarsz rejteni, add hozzá: `aktiv: false`.
 
 Ha legalább két témakör van, a kezdőlapon megjelenik a **témakörválasztó**, a menü pedig mindig csak a kiválasztott témakör fejezeteit mutatja. A választást az oldal megjegyzi. Azt, hogy kezdetben melyik témakör legyen kiválasztva, a `kurzus.js`-ben adhatod meg: `alapTemakor: 'trig'`. Ez hasznos, amikor az órán új témakörbe léptek.
 
@@ -81,7 +109,7 @@ A `kurzus.js`-ben a `jelek` mező adja meg a fejléc fölötti jelsort (pl. `jel
 
 Ha egy feladattípus ne kerüljön be a próba-témazáróba, add hozzá: `proba: false`. A feleletválasztós típusok eleve kimaradnak belőle.
 
-**Cukorka és streak.** Egy feladat attól számít „újnak”, hogy a kérdés szövege (`kerdes`) más, mint a korábban megoldottaké. Egy fejezet teljesítéséhez alapbeállítással 3 × 10 = 30 új feladat kell, ezért a fejezet feladattípusainak együtt bőven ennél több különböző feladatot kell tudniuk adni. Egy 3–4 változatos típus hamar „kifogy”.
+**Cukorka és streak.** Egy feladat attól számít „újnak”, hogy a kérdés szövege (`kerdes`) más, mint a korábban megoldottaké. Egy fejezet teljesítéséhez (ár × `joValaszCukorkahoz`) új feladat kell, például 3 × 10 = 30, ezért a fejezet feladattípusainak együtt bőven ennél több különböző feladatot kell tudniuk adni. Egy 3–4 változatos típus hamar „kifogy”.
 
 ## Segédfüggvények (assets/mathlib.js)
 
