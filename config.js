@@ -14,17 +14,25 @@ window.BEALLITAS = {
   // A tananyag mappája: tananyag/<azonosító>/kurzus.js
   alapTananyag: '11',
 
+  // ALAPÉRTÉKEK – mindhárom felülírható évfolyamonként a tananyag/<évfolyam>/kurzus.js-ben.
+
   // Ennyi egymás utáni jó megoldás (új feladat, a legutolsó nyitott fejezetben) ér 1 cukorkát.
+  // (kurzus.js: joValaszCukorkahoz)
   joValaszCukorkahoz: 10,
 
-  // Ennyi cukorkába kerül a következő fejezet megnyitása (a nyitás levonja a cukorkák közül).
-  // Témakörönként felülírható a kurzus.js-ben (cukorkaNyitashoz).
+  // Ennyi cukorkába kerül a következő fejezet megnyitása. A diák a „Megnyitom” gombbal nyitja meg,
+  // és a nyitás levonja az árát. Felülírható évfolyamonként, témakörönként és fejezetenként is
+  // a kurzus.js-ben (cukorkaNyitashoz, ill. a fejezetnél { fajl: '…', cukorka: 2 }).
   cukorkaNyitashoz: 1,
 
   // Napi streak: ennyi ÚJ feladatot kell aznap megoldani a legutolsó nyitott fejezetben.
+  // (kurzus.js: streakNapiMin)
   streakNapiMin: 1,
+
+  // Igaz-hamis kérdésbank: ennyi állítás jelenik meg egyszerre (fejezetenként: igazHamisDb).
+  igazHamisDb: 4,
 
   // Ha bármelyik tananyagfájlt módosítod, írd át ezt (pl. a mai dátumra),
   // hogy a diákok böngészője biztosan az új változatot töltse le.
-  verzio: '2026-11-03b'
+  verzio: '2026-11-04b'
 };

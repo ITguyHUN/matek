@@ -76,13 +76,17 @@ Tananyag.kurzus({
   cim: 'Matek 7',
   alcim: '7. évfolyam · Sokszínű matematika 7. (Mozaik)',
   jelek: 'a/b · 0,375 · 0,3̇ · x : y · p%',   // a fejléc fölötti jelsor (elhagyható)
+  // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
+  // joValaszCukorkahoz: 10,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
+  // streakNapiMin: 1,         // napi sorozathoz ennyi új feladat kell aznap
   temakorok: [
     {
       id: 'rac',
       cim: 'Racionális számok, arányosság, százalék',
       mappa: 'racionalis-arany-szazalek',
-      cukorkaNyitashoz: 3,          // ennyi cukorkába kerül a következő fejezet; elhagyható (akkor a config.js értéke)
-      proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat a témakör fejezeteiből
+      cukorkaNyitashoz: 3,          // ennyi cukorkába kerül egy fejezet; elhagyható (akkor az évfolyam / config.js értéke)
+      proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat; nyitási ára: proba: { feladatszam: 12, cukorka: 2 }
+      // Fejezetenként eltérő ár: a fájlnév helyett { fajl: '…js', cukorka: 2 } – ennyibe kerül megnyitni AZT a fejezetet.
       fejezetek: [
         '01-alakok.js',
         '02-szamegyenes.js',

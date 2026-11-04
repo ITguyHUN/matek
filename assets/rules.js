@@ -8,22 +8,30 @@
  *    amelyet a tanuló korábban még nem oldott meg, és nem nézte meg előtte a megoldást.
  *    Hibás válasz vagy a megoldás megnézése (ebben a fejezetben) nullázza a sorozatot.
  *  - `kombo` (alapból 10) egymás utáni jó megoldás = 1 cukorka (témakörönkénti „pénztárcába”).
- *  - Ha a pénztárcában összegyűlik `need` cukorka, megnyílik a következő fejezet, és a nyitás
- *    levonja az árát a pénztárcából. Az utolsó fejezet után ugyanígy a próba-témazáró nyílik meg
+ *  - A következő fejezetet a tanuló GOMBBAL nyitja meg ('nyitas' esemény), ha van elég cukorkája;
+ *    a nyitás levonja az árát a pénztárcából. Az ár fejezetenként eltérhet (need[témakör][i] =
+ *    az i. fejezetről továbblépés ára). Az utolsó fejezet után ugyanígy a próba-témazáró nyílik meg
  *    (unlock = fejezetek száma → a témakör teljesítve).
  *  - Kulcsok: témakör = 'évfolyam/témakör' (pl. '11/hgl'), fejezet = 'évfolyam/fejezet' (pl. '11/hatvany'),
  *    így egy tanuló több évfolyam anyagát is gyakorolhatja ütközés nélkül.
+ *  - Szintek: ha a csoport beállított szintje KÖZÉP (ctx.szint[évfolyam] = 'kozep'), az emelt szintű
+ *    feladat (ev.emelt) helyes megoldása 2 jó válasznak számít; az első hibás válasz egy feladatra
+ *    még nem nullázza a sorozatot, csak a második (ugyanarra a feladatra), illetve a megoldás megnézése.
+ *    Az emelt szintű fejezetek ilyenkor nem részei a nyitási láncnak: ctx.kieg[fejezet] = az a láncbeli
+ *    fejezet, amelyhez tartoznak; akkor gyűlik bennük cukorka, ha az a legutolsó nyitott fejezet.
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
- *    old meg a legutolsó nyitott fejezetben. Ha egy nap kimarad, újraindul – KIVÉVE, ha már
+ *    old meg egy évfolyam legutolsó nyitott fejezetében (a `streakMin` évfolyamonként eltérhet). Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
  *
- * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index}, need: {temakorId: db},
- *         kombo: db, streakMin: db, today: 'ÉÉÉÉ-HH-NN' }
+ * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index},
+ *         need: {temakorId: db | [db, …]}   (tömb: i. elem = az i. fejezet utáni nyitás ára),
+ *         kombo: db | {évfolyam: db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
+ *         kieg: {fejezetId: láncbeli fejezetId}, today: 'ÉÉÉÉ-HH-NN' }
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {},
-             streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, fagy: '' }, candy: 0, seen: [] };
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {},
+             streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, napi: {}, fagy: '' }, candy: 0, seen: [] };
   }
 
   function egesz(x, lo, hi) { var n = Math.round(Number(x)); if (!isFinite(n)) n = lo; return Math.min(hi, Math.max(lo, n)); }
@@ -47,9 +55,11 @@ var Szabalyok = (function () {
     ['purse', 'combo'].forEach(function (f) {
       if (s[f] && typeof s[f] === 'object') Object.keys(s[f]).forEach(function (k) { u[f][k] = egesz(s[f][k], 0, 1e6); });
     });
+    if (s.hiba && typeof s.hiba === 'object') Object.keys(s.hiba).slice(0, 100).forEach(function (k) { u.hiba[k] = String(s.hiba[k]).slice(0, 20); });
     var st = s.streak || {};
     u.streak = { cur: egesz(st.cur, 0, 1e5), best: egesz(st.best, 0, 1e5), last: String(st.last || ''), day: String(st.day || ''),
-                 dayCount: egesz(st.dayCount, 0, 1e6), fagy: String(st.fagy || '') };
+                 dayCount: egesz(st.dayCount, 0, 1e6), napi: {}, fagy: String(st.fagy || '') };
+    if (st.napi && typeof st.napi === 'object') Object.keys(st.napi).slice(0, 50).forEach(function (k) { u.streak.napi[String(k)] = egesz(st.napi[k], 0, 1e6); });
     u.candy = egesz(s.candy, 0, 1e7);
     u.seen = Array.isArray(s.seen) ? s.seen.map(String).slice(-300) : [];
     return u;
@@ -59,6 +69,36 @@ var Szabalyok = (function () {
   function elozoNap(key) {
     var p = String(key).split('-').map(Number);
     return new Date(Date.UTC(p[0], p[1] - 1, p[2] - 1)).toISOString().slice(0, 10);
+  }
+
+  /* Évfolyamonként megadható érték (szám vagy {évfolyam: szám}); a témakör kulcsa 'évfolyam/témakör'. */
+  function kurzusOf(mod) { return String(mod || '').split('/')[0]; }
+  function evfErtek(v, mod, def) {
+    if (v && typeof v === 'object') { var x = v[kurzusOf(mod)]; return x == null ? def : x; }
+    return v == null ? def : v;
+  }
+  function kombo(ctx, mod) { return Math.max(1, evfErtek(ctx.kombo, mod, 10) || 10); }
+  function streakMin(ctx, mod) { return Math.max(1, evfErtek(ctx.streakMin, mod, 1) || 1); }
+  /* Igaz, ha a csoport beállított szintje ebben az évfolyamban közép (az emelt feladatok külön, kedvezménnyel). */
+  function kozepSzint(ctx, mod) { return evfErtek(ctx.szint, mod, '') === 'kozep'; }
+
+  /* A témakör jelenlegi nyitási szintje (0 = csak az első fejezet nyitott; = fejezetszám → próba is). */
+  function szint(st, ctx, mod) { return Math.max(st.unlock[mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[mod]) || 0); }
+
+  /* A következő nyitás ára (az i. szintről továbblépés: i+1. fejezet, ill. az utolsó után a próba). */
+  function ar(ctx, mod, i) {
+    var n = ctx.need && ctx.need[mod];
+    if (Array.isArray(n)) { var x = n[i]; if (x == null) x = n.length ? n[n.length - 1] : 3; return Math.max(0, Number(x) || 0); }
+    return n == null ? 3 : Math.max(0, Number(n) || 0);
+  }
+
+  /* Mit lehet most megnyitni: { idx, ar, eleg, proba, ch } vagy null, ha már minden nyitva. */
+  function kovetkezo(st, ctx, mod) {
+    var order = (ctx.order && ctx.order[mod]) || [];
+    var eff = szint(st, ctx, mod);
+    if (!order.length || eff >= order.length) return null;
+    var a = ar(ctx, mod, eff);
+    return { idx: eff + 1, ar: a, eleg: (st.purse[mod] || 0) >= a, proba: eff + 1 >= order.length, ch: eff + 1 < order.length ? order[eff + 1] : '' };
   }
 
   /* A témakör legutolsó nyitott fejezetének sorszáma (0-tól). */
@@ -73,7 +113,7 @@ var Szabalyok = (function () {
   function migral(st, kurzus) {
     if (st.v >= 3) return st;
     var p = function (o) { var n = {}; Object.keys(o || {}).forEach(function (k) { n[k.indexOf('/') >= 0 ? k : kurzus + '/' + k] = o[k]; }); return n; };
-    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo);
+    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo); st.hiba = {};
     st.v = 3;
     return st;
   }
@@ -105,11 +145,13 @@ var Szabalyok = (function () {
     return st;
   }
 
-  /* Egy esemény feldolgozása. ev = { eid, kind: 'valasz'|'megoldas', mod, ch, sig, ok, helped, day }
+  /* Egy esemény feldolgozása. ev = { eid, kind: 'valasz'|'megoldas'|'nyitas', mod, ch, sig, ok, helped, day }
+     'nyitas': a tanuló a gombbal megnyitja a következő fejezetet (ch = a megnyitandó fejezet kulcsa,
+     a próbánál 'proba'); csak akkor hat, ha ez valóban a következő, és van rá elég cukorka.
      Visszaad: { dup, uj, cukorka, nyitott, ar, streak, ok, ok2, kombo, nullazva }
      ok2: 'segitseg' | 'ismert' | 'nemfront' */
   function alkalmaz(st, ev, ctx) {
-    var fx = { dup: false, uj: false, cukorka: false, nyitott: null, proba: false, ar: 0, streak: false, ok: !!ev.ok, ok2: '', kombo: 0, nullazva: false };
+    var fx = { dup: false, uj: false, cukorka: false, nyitott: null, proba: false, nyithato: null, ar: 0, streak: false, ok: !!ev.ok, ok2: '', kombo: 0, nullazva: false };
     if (ev.eid) {
       if (st.seen.indexOf(ev.eid) >= 0) { fx.dup = true; return fx; }
       st.seen.push(ev.eid);
@@ -117,13 +159,33 @@ var Szabalyok = (function () {
     }
     frissit(st, ctx);
     var order = (ctx.order && ctx.order[ev.mod]) || [];
-    var idx = order.indexOf(ev.ch), f = front(st, ctx, ev.mod), frontban = idx >= 0 && idx === f;
-    var nullaz = function () { if (frontban) { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; } };
+    if (ev.kind === 'nyitas') {
+      var kov = kovetkezo(st, ctx, ev.mod);
+      if (!kov || !kov.eleg || (kov.proba ? ev.ch !== 'proba' : ev.ch !== kov.ch)) return fx;
+      st.unlock[ev.mod] = kov.idx;
+      st.purse[ev.mod] = (st.purse[ev.mod] || 0) - kov.ar;
+      st.combo[ev.mod] = 0;
+      if (kov.proba) fx.proba = true; else fx.nyitott = kov.ch;
+      fx.ar = kov.ar;
+      frissit(st, ctx);
+      return fx;
+    }
+    var idx = order.indexOf(ev.ch), f = front(st, ctx, ev.mod);
+    var anchor = ctx.kieg && ctx.kieg[ev.ch];
+    var frontban = f >= 0 && ((idx >= 0 && idx === f) || (idx < 0 && !!anchor && anchor === order[f]));
+    var bonusz = !!ev.emelt && kozepSzint(ctx, ev.mod);
+    var nullaz = function () { if (frontban) { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; } delete st.hiba[ev.mod]; };
     fx.kombo = st.combo[ev.mod] || 0;
     if (ev.kind === 'megoldas') { nullaz(); fx.kombo = st.combo[ev.mod] || 0; return fx; }
     var c = st.ch[ev.ch] || (st.ch[ev.ch] = { ok: 0, tried: 0, candy: 0 });
     c.tried++;
-    if (!ev.ok) { nullaz(); fx.kombo = st.combo[ev.mod] || 0; return fx; }
+    if (!ev.ok) {
+      // emelt feladat közép szinten: az első hibás válasz még nem nulláz (csak a második ugyanarra a feladatra)
+      if (bonusz && frontban && st.hiba[ev.mod] !== ev.sig) { st.hiba[ev.mod] = ev.sig; fx.elsoHiba = true; }
+      else nullaz();
+      fx.kombo = st.combo[ev.mod] || 0; return fx;
+    }
+    delete st.hiba[ev.mod];
     c.ok++;
     if (ev.helped) { fx.ok2 = 'segitseg'; return fx; }
     var list = st.solved[ev.ch] || (st.solved[ev.ch] = []);
@@ -134,34 +196,29 @@ var Szabalyok = (function () {
     // napi sorozat
     var s = st.streak, day = ev.day || ctx.today;
     if (s.day && day < s.day) day = s.day;
-    if (s.day !== day) { s.day = day; s.dayCount = 0; }
+    if (s.day !== day) { s.day = day; s.dayCount = 0; s.napi = {}; }
     s.dayCount++;
-    if (s.dayCount >= (ctx.streakMin || 1) && s.last !== day && (!s.last || day > s.last)) {
+    var kid = kurzusOf(ev.mod);
+    s.napi[kid] = (s.napi[kid] || 0) + 1;
+    if (s.napi[kid] >= streakMin(ctx, ev.mod) && s.last !== day && (!s.last || day > s.last)) {
       s.cur = (s.last === elozoNap(day) || (s.fagy && s.cur > 0)) ? s.cur + 1 : 1;
       s.last = day;
       if (s.cur > s.best) s.best = s.cur;
       fx.streak = true;
     }
     // jó-válasz-sorozat → cukorka
-    var kombo = ctx.kombo || 10;
-    st.combo[ev.mod] = (st.combo[ev.mod] || 0) + 1;
-    if (st.combo[ev.mod] >= kombo) {
-      st.combo[ev.mod] = 0;
+    var kb = kombo(ctx, ev.mod);
+    fx.ertek = bonusz ? 2 : 1;   // emelt feladat közép szinten: 2 jó válasznak számít
+    st.combo[ev.mod] = (st.combo[ev.mod] || 0) + fx.ertek;
+    while (st.combo[ev.mod] >= kb) {
+      st.combo[ev.mod] -= kb;
       c.candy++; st.candy++; st.purse[ev.mod] = (st.purse[ev.mod] || 0) + 1;
-      fx.cukorka = true;
+      fx.cukorka = true; fx.cukorkaDb = (fx.cukorkaDb || 0) + 1;
     }
     fx.kombo = st.combo[ev.mod];
-    // fejezetnyitás (az utolsó után a próba-témazáró): a pénztárcából levonja az árát
-    var need = (ctx.need && ctx.need[ev.mod]) || 3;
-    var eff = Math.max(st.unlock[ev.mod] || 0, (ctx.groupUnlock && ctx.groupUnlock[ev.mod]) || 0);
-    if ((st.purse[ev.mod] || 0) >= need && eff < order.length) {
-      st.unlock[ev.mod] = eff + 1;
-      st.purse[ev.mod] -= need;
-      st.combo[ev.mod] = 0;
-      if (eff + 1 < order.length) fx.nyitott = order[eff + 1]; else fx.proba = true;
-      fx.ar = need;
-      frissit(st, ctx);
-    }
+    // a fejezetnyitás nem automatikus: jelezzük, ha már van rá elég cukorka (a gombbal nyitható)
+    var kv = kovetkezo(st, ctx, ev.mod);
+    if (fx.cukorka && kv && kv.eleg) fx.nyithato = kv;
     return fx;
   }
 
@@ -202,6 +259,6 @@ var Szabalyok = (function () {
   }
 
   return { ujAllapot: ujAllapot, normal: normal, migral: migral, elozoNap: elozoNap, front: front, teljesitett: teljesitett, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
-           aktualisStreak: aktualisStreak, penz: penz, tomorit: tomorit, azonosito: azonosito };
+           aktualisStreak: aktualisStreak, ar: ar, kovetkezo: kovetkezo, szint: szint, kombo: kombo, streakMin: streakMin, kozepSzint: kozepSzint, penz: penz, tomorit: tomorit, azonosito: azonosito };
 })();
 if (typeof window !== 'undefined') window.Szabalyok = Szabalyok;

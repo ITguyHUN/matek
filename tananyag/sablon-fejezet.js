@@ -9,6 +9,7 @@
   /* Egy feladattípus: a general() minden hívásra ÚJ, véletlenszerű feladatot ad vissza. */
   feladatok.peldaTipus = {
     nev: 'Példa feladattípus',              // a gomb felirata a gyakorlásnál
+    // szint: 'emelt',                      // emelt szintű feladattípus (alapból a fejezet szintje, az pedig közép)
     general() {
       const a = R(2, 9), b = R(2, 9);         // R(min, max): véletlen egész
       return {
@@ -42,8 +43,12 @@
     bevezeto: 'Egy-két mondat arról, miről szól a fejezet.',
     elmelet: T`<div class="prose"><p>Szöveg, képletek: \(a^2+b^2=c^2\).</p></div>
 <div class="mathbox">\[x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}\]</div>`,
-    igazHamis: [
-      { allitas: T`\(2+2=5\)`, igaz: false, miert: 'Kettő meg kettő az négy.' }
+    // szint: 'emelt',                         // az egész fejezet emelt szintű (elhagyható; alapból közép)
+    igazHamisDb: 4,                            // ennyi állítást húz egyszerre a kérdésbankból (elhagyható)
+    igazHamis: [                               // kérdésbank: minél több, annál változatosabb
+      { allitas: T`\(2+2=5\)`, igaz: false, miert: 'Kettő meg kettő az négy.' },
+      { allitas: T`\(2^{10}>1000\)`, igaz: true, miert: T`\(2^{10}=1024\).`, szint: 'emelt' },
+      { general() { const a = R(2, 9); return { allitas: T`\(${a}\cdot 0=${a}\)`, igaz: false, miert: 'Nullával szorozva 0.' }; } }
     ],
     mintapelda: {
       feladat: T`Oldd meg: \(x+3=5\)`,

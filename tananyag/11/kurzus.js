@@ -9,13 +9,18 @@ Tananyag.kurzus({
   alcim: '11. évfolyam · középszintű érettségi',
   jelek: 'aⁿ · ⁿ√a · logₐ b',
   // alapTemakor: 'hgl',   // melyik témakör legyen kiválasztva, amíg a diák nem választ mást (elhagyható)
+  // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
+  // joValaszCukorkahoz: 10,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
+  // cukorkaNyitashoz: 1,      // egy fejezet nyitási ára ebben az évfolyamban
+  // streakNapiMin: 1,         // napi sorozathoz ennyi új feladat kell aznap
   temakorok: [
     {
       id: 'hgl',
       cim: 'Hatvány, gyök, logaritmus',
       mappa: 'hatvany-gyok-log',
-      cukorkaNyitashoz: 1,          // ennyi cukorkába kerül a következő fejezet; elhagyható (akkor a config.js értéke)
-      proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat a már megnyitott fejezetekből
+      cukorkaNyitashoz: 1,          // ennyi cukorkába kerül egy fejezet; elhagyható (akkor az évfolyam / config.js értéke)
+      proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat; nyitási ára: proba: { feladatszam: 12, cukorka: 2 }
+      // Fejezetenként eltérő ár: a fájlnév helyett { fajl: '…js', cukorka: 2 } – ennyibe kerül megnyitni AZT a fejezetet.
       fejezetek: [
         '01-hatvanyozas.js',
         '02-gyokvonas.js',
