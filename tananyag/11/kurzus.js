@@ -14,7 +14,7 @@ Tananyag.kurzus({
       id: 'hgl',
       cim: 'Hatvány, gyök, logaritmus',
       mappa: 'hatvany-gyok-log',
-      cukorkaNyitashoz: 3,          // ennyi cukorkába kerül a következő fejezet; elhagyható (akkor a config.js értéke)
+      cukorkaNyitashoz: 1,          // ennyi cukorkába kerül a következő fejezet; elhagyható (akkor a config.js értéke)
       proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat a már megnyitott fejezetekből
       fejezetek: [
         '01-hatvanyozas.js',
