@@ -1,6 +1,6 @@
 /*
  * 5. fejezet – Arányos következtetések
- * Témakör: Racionális számok, arányosság, százalék (7. évfolyam, TK 3. lecke)
+ * Témakör: Természetes számok, racionális számok (7. évfolyam, TK 3. lecke)
  * A fájl szerkezetét lásd: tananyag/README.md. A közös segédfüggvények a 7/kurzus.js elején vannak (M7).
  */
 (function () {
@@ -128,6 +128,70 @@
     upd();
   }
 
+  /* ---- Bővítés (2026. november): további feladattípusok ---- */
+
+  G.aranyEgysz = { ch: 'arany', name: 'Arány egyszerűsítése', make() {
+    let a, b; do { a = R(1, 9); b = R(1, 9); } while (a === b || gcd(a, b) !== 1); const k = R(2, 12); const t = R(0, 2);
+    if (t === 0) return { q: T`<p>Egyszerűsítsd az arányt! Mi kerül a kérdőjel helyére?</p>\[${a * k}:${b * k}=${a}:\,?\]`, ans: { vals: [b] }, ansText: String(b), fmt: 'egész szám',
+      hint: 'Az arány tagjait ugyanazzal a számmal oszthatjuk (mint a törtnél az egyszerűsítést).', sol: [T`Mindkét tagot \(${k}\)-val/vel osztjuk: \(${a * k}:${b * k}=${a}:${b}\).`] };
+    if (t === 1) { const da = a / 10, db = b / 10 * P([1, 10]); const f = F(Math.round(da * 10), Math.round(db * 10)); const A = f.n, B = f.d;
+      return { q: T`<p>Írd fel egész számok legegyszerűbb arányaként! Mi kerül a kérdőjel helyére?</p>\[${nt(da)}:${nt(db)}=${A}:\,?\]`, ans: { vals: [B] }, ansText: String(B), fmt: 'egész szám',
+        hint: 'Szorozd meg mindkét tagot 10-zel (vagy 100-zal), hogy egész számokat kapj, aztán egyszerűsíts!', sol: [T`\(${nt(da)}:${nt(db)}=${Math.round(da * 10)}:${Math.round(db * 10)}=${A}:${B}\)`] }; }
+    const u = P([['m', 'cm', 100], ['kg', 'dkg', 100], ['óra', 'perc', 60], ['km', 'm', 1000]]); const x = R(1, 5), y = u[2] * x * a / b;
+    if (!Number.isInteger(y) || y <= 0) return G.aranyEgysz.make(); const f = F(x * u[2], y);
+    return { q: T`<p>Mennyi az arány legegyszerűbb alakja? Mi kerül a kérdőjel helyére?</p>\[${x}\text{ ${u[0]}} : ${y}\text{ ${u[1]}} = ${f.n}:\,?\]`, ans: { vals: [f.d] }, ansText: String(f.d), fmt: 'egész szám',
+      hint: 'Előbb váltsd át ugyanarra a mértékegységre!', sol: [T`\(${x}\) ${u[0]} \(=${x * u[2]}\) ${u[1]}.`, T`\(${x * u[2]}:${y}=${f.n}:${f.d}\)`] };
+  } };
+
+  G.aranypar = { ch: 'arany', name: 'Aránypár hiányzó tagja', make() {
+    let a, b; do { a = R(1, 9); b = R(1, 12); } while (a === b || gcd(a, b) !== 1); const k = P([2, 3, 4, 5, 6, 7, 8, 1.5, 2.5, 0.5]);
+    const pos = R(0, 3); const vals = [a, b, +(a * k).toFixed(6), +(b * k).toFixed(6)]; const ans = vals[pos];
+    const sh = vals.map((v, i) => i === pos ? 'x' : nt(v));
+    return { q: T`<p>Mennyi \(x\) értéke?</p>\[${sh[0]}:${sh[1]}=${sh[2]}:${sh[3]}\]`, ans: { vals: [ans] }, ansText: hu(ans), fmt: 'szám',
+      hint: T`Az aránypárban a „kültagok” szorzata egyenlő a „beltagok” szorzatával: \(a:b=c:d\) esetén \(a\cdot d=b\cdot c\).`,
+      sol: [T`Szorzatok: \(${sh[0]}\cdot ${sh[3]}=${sh[1]}\cdot ${sh[2]}\)`, T`\(x=${nt(ans)}\)`, T`Ellenőrzés: \(${nt(vals[0])}:${nt(vals[1])}\) és \(${nt(vals[2])}:${nt(vals[3])}\) ugyanannyi, \(${nt(+(a / b).toFixed(4))}${finDen(F(a, b).d) ? '' : T`\ldots`}\).`] };
+  } };
+
+  G.recept = { ch: 'arany', name: 'Recept átszámítása', make() {
+    const recipes = [['palacsinta', 4, [['liszt', 200, 'g'], ['tej', 500, 'ml'], ['tojás', 2, 'db'], ['cukor', 20, 'g']]],
+      ['piskóta', 6, [['tojás', 6, 'db'], ['cukor', 180, 'g'], ['liszt', 180, 'g']]],
+      ['gulyásleves', 4, [['marhahús', 600, 'g'], ['burgonya', 800, 'g'], ['hagyma', 2, 'db'], ['paprika', 10, 'g']]],
+      ['túrós csusza', 3, [['tészta', 300, 'g'], ['túró', 450, 'g'], ['tejföl', 300, 'g']]]];
+    const [nev, adag, hoz] = P(recipes); const [mit, menny, me] = P(hoz); let uj; do { uj = R(2, 15); } while (uj === adag || !Number.isInteger(menny * uj / adag) && me === 'db');
+    const v = +(menny * uj / adag).toFixed(4);
+    if (!Number.isInteger(v * 10)) return G.recept.make();
+    const acc = { liszt: 'lisztet', cukor: 'cukrot', marhahús: 'marhahúst', burgonya: 'burgonyát', hagyma: 'hagymát', paprika: 'paprikát', tészta: 'tésztát', túró: 'túrót', tejföl: 'tejfölt', tej: 'tejet', tojás: 'tojást' };
+    return { q: `<p>A ${nev} receptje ${adag} személyre ${menny} ${me} ${acc[mit]} ír elő. Mennyi ${mit} kell ${uj} személyre?</p>`,
+      ans: { vals: [v] }, ansText: hu(v), fmt: `szám (${me})`,
+      hint: 'Számold ki, mennyi kell 1 személyre, és szorozd meg az új létszámmal! (Egyenes arányosság.)',
+      sol: [T`1 személyre: \(${menny}:${adag}=${nt(+(menny / adag).toFixed(4))}${Number.isInteger(menny * 10000 / adag) ? '' : T`\ldots`}\) ${me}.`, T`${uj} személyre: \(${menny}\cdot\frac{${uj}}{${adag}}=${nt(v)}\) ${me}.`] };
+  } };
+
+  G.melyik = { ch: 'arany', name: 'Egyenes, fordított vagy egyik sem?', make() {
+    const A = R(12, 60), Kr = 2 * R(8, 30), ar = P([180, 250, 320, 450, 600, 890]), v = P([40, 50, 60, 80, 90]);
+    const items = [
+      [`a megvásárolt ${ar} Ft-os kiflik száma és a fizetett összeg`, 0], ['egy négyzet oldala és a kerülete', 0], [`a ${v} km/h sebességgel haladó autó által megtett út és az eltelt idő`, 0], ['a tankolt benzin mennyisége (liter) és az ára', 0],
+      ['egy szabályos háromszög oldala és a kerülete', 0], ['a recept szerinti adagok száma és a szükséges liszt mennyisége', 0], ['egy téglalap rövidebb oldala és a kerülete, ha a hosszabb oldal mindig kétszer akkora', 0], [`a ${R(2, 9)}%-os kamatra betett összeg és az egy év alatt kapott kamat`, 0],
+      ['egy adott munkán dolgozó (egyforma tempójú) munkások száma és a munka elvégzésének ideje', 1], [`egy ${v * 3} km-es út megtételéhez szükséges idő és a sebesség`, 1], [`egy ${A} cm² területű téglalap két oldala`, 1], ['egy tortából vágott egyforma szeletek száma és egy szelet tömege', 1],
+      [`${ar * 20} Ft-ból vásárolható azonos árú füzetek száma és egy füzet ára`, 1], ['egy medencét megtöltő egyforma csapok száma és a töltés ideje', 1], [`egy ${A * 2} fős tábor csoportjainak száma és egy (egyforma létszámú) csoport létszáma`, 1],
+      ['egy gyerek életkora és a magassága', 2], ['egy négyzet oldala és a területe', 2], [`egy ${Kr} cm kerületű téglalap két oldala`, 2], ['a hét napjai és a napi hőmérséklet', 2], ['egy ember életkora és a cipőmérete', 2],
+      ['egy kocka éle és a térfogata', 2], [`egy ${R(5, 30)} cm-es gyertya égési ideje és a még meglévő hossza`, 2], ['egy taxiút hossza és az ára, ha 1000 Ft az alapdíj', 2]];
+    const [txt, k] = P(items); const opts = ['egyenesen arányos', 'fordítottan arányos', 'egyik sem'];
+    const why = [ 'Ha az egyik kétszeresére nő, a másik is kétszeresére nő (a hányadosuk állandó).', 'Ha az egyik kétszeresére nő, a másik a felére csökken (a szorzatuk állandó).', 'Nincs olyan állandó szorzó vagy szorzat, amely összekapcsolná őket.' ][k];
+    return { q: `<p>Milyen kapcsolat van a két mennyiség között?</p><p><b>${txt[0].toUpperCase() + txt.slice(1)}</b></p>`, ans: { choice: opts, correct: k }, ansText: opts[k], fmt: '',
+      hint: 'Gondold végig: ha az egyik mennyiség kétszeresére nő, mi történik a másikkal?', sol: [`<b>${opts[k][0].toUpperCase() + opts[k].slice(1)}.</b> ${why}`] };
+  } };
+
+  G.kulonbseg = { ch: 'arany', name: 'Arányos osztás, ha a különbség ismert', make() {
+    let a, b; do { a = R(1, 9); b = R(1, 9); } while (a >= b || gcd(a, b) !== 1); const u = R(2, 25) * P([1, 1, 10]);
+    const diff = (b - a) * u; const ask = R(0, 2); const ctx = R(0, 1) === 0;
+    const vals = [a * u, b * u, (a + b) * u]; const qs = ['a kisebbik', 'a nagyobbik', 'a két szám összege'];
+    return { q: ctx ? `<p>Kata és Peti pénzének aránya ${a} : ${b}. Petinek ${big(diff)} Ft-tal több pénze van. ${['Mennyi pénze van Katának?', 'Mennyi pénze van Petinek?', 'Mennyi pénzük van összesen?'][ask]}</p>`
+        : `<p>Két szám aránya ${a} : ${b}, a különbségük ${big(diff)}. Mennyi ${qs[ask]}?</p>`, ans: { vals: [vals[ask]] }, ansText: String(vals[ask]), fmt: ctx ? 'szám (Ft)' : 'szám',
+      hint: `A különbség ${b} − ${a} = ${b - a} egyenlő résznek felel meg.`,
+      sol: [T`A különbség \(${b}-${a}=${b - a}\) rész, ez \(${bigT(diff)}\).`, T`1 rész: \(${bigT(diff)}:${b - a}=${bigT(u)}\).`, T`${['Kisebbik', 'Nagyobbik', 'Összeg'][ask]}: \(${[a, b, a + b][ask]}\cdot ${bigT(u)}=${bigT(vals[ask])}\).`] };
+  } };
+
   Tananyag.fejezet({
     id: 'arany',
     cim: 'Arányos következtetések',
@@ -142,13 +206,22 @@
 <li><b>Következtetés egységre:</b> előbb 1 darabra, 1 főre, 1 órára számolunk, aztán a kérdezett mennyiségre.</li>
 <li><b>Méretarány</b> 1 : 25 000 → 1 cm a térképen \(25\,000\) cm \(=250\) m \(=0{,}25\) km a valóságban. (\(100\,000\) cm = 1 km.)</li>
 <li><b>Összetett következtetés:</b> minden mennyiségről külön döntsd el, egyenesen vagy fordítottan arányos-e a keresett mennyiséggel.</li>
-<li><b>Arányos osztás</b> 3 : 5 arányban → \(3+5=8\) egyenlő részre osztunk, az egyik 3, a másik 5 részt kap.</li></ul></div>`,
+<li><b>Arányos osztás</b> 3 : 5 arányban → \(3+5=8\) egyenlő részre osztunk, az egyik 3, a másik 5 részt kap.</li></ul></div>
+<div class="prose"><p><b>Aránypár:</b> \(a:b=c:d\), ha a két arány egyenlő. Ilyenkor \(a\cdot d=b\cdot c\). Például \(3:4=x:20\) esetén \(4x=60\), \(x=15\).</p>
+<p><b>Arány egyszerűsítése:</b> mint a törtnél: \(24:36=2:3\); tizedes törtekkel \(0{,}6:1{,}5=6:15=2:5\); különböző mértékegységnél előbb átváltunk: \(1\text{ m}:40\text{ cm}=100:40=5:2\).</p>
+<p><b>Arányos osztás különbségből:</b> ha két szám aránya \(3:5\) és különbségük 24, akkor \(5-3=2\) rész = 24, 1 rész = 12, a számok 36 és 60.</p></div>`,
     igazHamis: [
       { allitas: T`Ugyanazon az úton az autó sebessége és a menetidő egyenesen arányos.`, igaz: false, miert: T`Kétszer gyorsabban feleannyi idő alatt érünk oda: ez fordított arányosság.` },
       { allitas: T`12 és 16 aránya 3 : 4.`, igaz: true, miert: T`\(\frac{12}{16}=\frac34\) (egyszerűsítés 4-gyel).` },
       { allitas: T`1 : 50 000 méretarányú térképen 1 cm a valóságban 500 m.`, igaz: true, miert: T`\(50\,000\) cm \(=500\) m.` },
       { allitas: T`Egy gyerek életkora és testmagassága egyenesen arányos.`, igaz: false, miert: T`Egy 10 éves nem kétszer olyan magas, mint egy 5 éves. Ez nem arányosság.` },
-      { allitas: T`Ha 3 munkás 12 nap alatt végez, akkor 6 munkás 24 nap alatt.`, igaz: false, miert: T`Kétszer annyi munkás feleannyi idő alatt végez: \(3\cdot12=36\), \(36:6=6\) nap.` }
+      { allitas: T`Ha 3 munkás 12 nap alatt végez, akkor 6 munkás 24 nap alatt.`, igaz: false, miert: T`Kétszer annyi munkás feleannyi idő alatt végez: \(3\cdot12=36\), \(36:6=6\) nap.` },
+      { allitas: T`\(12:18=2:3\)`, igaz: true, miert: T`Mindkét tagot 6-tal osztva \(2:3\).` },
+      { allitas: T`Egy négyzet oldala és területe egyenesen arányos.`, igaz: false, miert: T`Ha az oldalt kétszeresére növeljük, a terület négyszeresére nő (\(T=a^2\)). Nem egyenes arányosság.` },
+      { allitas: T`Ha 3 munkás 12 nap alatt végez, akkor 6 munkás 24 nap alatt végez.`, igaz: false, miert: T`Fordított arányosság: kétszer annyi munkás feleannyi idő alatt, 6 nap alatt végez.` },
+      { allitas: T`Ha \(x:y=2:5\), akkor \(y:x=5:2\).`, igaz: true, miert: T`Az arány megfordítása a tagok cseréje: \(\frac{y}{x}=\frac52\).` },
+      { allitas: T`1 : 50 000 méretarányú térképen 4 cm a valóságban 2 km.`, igaz: true, miert: T`\(4\cdot50\,000=200\,000\) cm = 2000 m = 2 km.` },
+      { general() { const a = R(1, 6), b = R(1, 6), k = R(2, 5); const ok = R(0, 1) === 1; const c = a * k, d = ok ? b * k : b * k + 1; return { allitas: T`\(${a}:${b}=${c}:${d}\)`, igaz: a * d === b * c, miert: T`\(${a}\cdot ${d}=${a * d}\) és \(${b}\cdot ${c}=${b * c}\); ${a * d === b * c ? 'egyenlők, tehát az aránypár igaz.' : 'nem egyenlők, tehát nem igaz.'}` }; } }
     ],
     mintapelda: {
       feladat: T`Egy 4 tagú család 4 hónap alatt 120 m³ vizet fogyaszt. a) Mennyit fogyaszt 2 ember 2 hónap alatt? b) Hány ember fogyaszt el 120 m³ vizet 1 hónap alatt?`,

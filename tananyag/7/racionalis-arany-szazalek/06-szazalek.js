@@ -1,6 +1,6 @@
 /*
  * 6. fejezet – Százalékszámítás
- * Témakör: Racionális számok, arányosság, százalék (7. évfolyam, TK 4. lecke)
+ * Témakör: Természetes számok, racionális számok (7. évfolyam, TK 4. lecke)
  * A fájl szerkezetét lásd: tananyag/README.md. A közös segédfüggvények a 7/kurzus.js elején vannak (M7).
  */
 (function () {
@@ -60,6 +60,68 @@
       hint: 'Hányad része az osztálynak? Ugyanannyiad része a 360°-nak!', sol: [T`Arány: \(\frac{${k}}{${N}}\).`, T`\(360°\cdot\frac{${k}}{${N}}=${nt(deg)}°\)`] };
   } };
 
+  /* ---- Bővítés (2026. november): további feladattípusok ---- */
+
+  G.hanySzazalekkal = { ch: 'szaz', name: 'Hány százalékkal változott?', make() {
+    let A, p; do { A = P([200, 250, 400, 500, 800, 1200, 1500, 2000, 2400, 3000, 4500, 6000, 8000, 12000, 27000]); p = P([5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 75, 12, 8, 2.5, 12.5]); } while (!fine(A * p / 100));
+    const up = R(0, 1) === 1; const B = +(A * (up ? 1 + p / 100 : 1 - p / 100)).toFixed(4);
+    const c = R(0, 2);
+    const q = [`<p>Egy termék ára ${big(A)} Ft-ról ${big(B)} Ft-ra ${up ? 'emelkedett' : 'csökkent'}. Hány százalékkal ${up ? 'emelkedett' : 'csökkent'} az ár?</p>`,
+      `<p>Tavaly ${big(A)} látogató volt a kiállításon, idén ${big(B)}. Hány százalékkal ${up ? 'nőtt' : 'csökkent'} a látogatók száma?</p>`,
+      `<p>Egy ${big(A)} Ft-os kabátot ${big(B)} Ft-ért ${up ? 'árulnak a szezon elején' : 'vehettünk meg a leárazáson'}. Hány százalékos volt ${up ? 'az áremelés' : 'a leárazás'}?</p>`][c];
+    return { q, ans: { vals: [p] }, ansText: hu(p), fmt: 'szám (%)',
+      hint: 'A változást mindig az EREDETI értékhez (a 100%-hoz) viszonyítjuk.',
+      sol: [T`A változás: \(${bigT(Math.max(A, B))}-${bigT(Math.min(A, B))}=${bigT(Math.abs(B - A))}\).`, T`Ez az eredeti \(${bigT(A)}\)-nak \(${bigT(Math.abs(B - A))}:${bigT(A)}=${nt(p / 100)}\) része, azaz \(${nt(p)}\%\).`, T`(Másképp: \(${bigT(B)}:${bigT(A)}=${nt(+(B / A).toFixed(6))}\), ez \(${nt(+(100 * B / A).toFixed(4))}\%\), tehát ${up ? 'növekedés' : 'csökkenés'} \(${nt(p)}\%\).)`] };
+  } };
+
+  G.egymasUtan = { ch: 'szaz', name: 'Egymás utáni változások', make() {
+    const p1 = P([10, 20, 25, 30, 40, 50]), p2 = P([10, 20, 25, 30, 40, 50]); const u1 = R(0, 1) === 1, u2 = R(0, 1) === 1;
+    const m = (u1 ? 1 + p1 / 100 : 1 - p1 / 100) * (u2 ? 1 + p2 / 100 : 1 - p2 / 100); const tot = +(Math.abs(m - 1) * 100).toFixed(6);
+    if (tot < 1e-9) return G.egymasUtan.make();
+    const A = P([2000, 4000, 5000, 8000, 10000, 20000, 25000, 40000]); const B = +(A * m).toFixed(4); const ask = R(0, 1);
+    const w = (u, p) => `${p}%-kal ${u ? 'megemelték' : 'csökkentették'}`;
+    return { q: ask ? `<p>Egy ${big(A)} Ft-os termék árát előbb ${w(u1, p1)}, majd az új árat ${w(u2, p2)}. Mennyi lett a végső ár?</p>`
+        : `<p>Egy termék árát előbb ${w(u1, p1)}, majd az új árat ${w(u2, p2)}. Összesen hány százalékkal ${m > 1 ? 'nőtt' : 'csökkent'} az eredeti ár?</p>`,
+      ans: { vals: [ask ? B : tot] }, ansText: hu(ask ? B : tot), fmt: ask ? 'szám (Ft)' : 'szám (%)',
+      hint: 'Ne add össze a százalékokat! Szorozd össze a két változás szorzóját (pl. +20% → 1,2; −10% → 0,9).',
+      sol: [T`Szorzók: \(${nt(u1 ? 1 + p1 / 100 : 1 - p1 / 100)}\) és \(${nt(u2 ? 1 + p2 / 100 : 1 - p2 / 100)}\).`, T`Együtt: \(${nt(u1 ? 1 + p1 / 100 : 1 - p1 / 100)}\cdot ${nt(u2 ? 1 + p2 / 100 : 1 - p2 / 100)}=${nt(+m.toFixed(6))}\), azaz az eredeti \(${nt(+(m * 100).toFixed(4))}\%\)-a.`,
+        ask ? T`\(${bigT(A)}\cdot ${nt(+m.toFixed(6))}=${nt(B)}\) Ft` : T`Ez \(${nt(tot)}\%\)-os ${m > 1 ? 'növekedés' : 'csökkenés'}.`] };
+  } };
+
+  G.afa = { ch: 'szaz', name: 'Áfa: nettó és bruttó ár', make() {
+    const netto = R(2, 80) * 100; const brutto = +(netto * 1.27).toFixed(2); const ask = R(0, 2);
+    if (ask === 0) return { q: `<p>Egy termék nettó ára ${big(netto)} Ft. Az áfa 27%. Mennyi a bruttó ár (amit a vásárló fizet)?</p>`, ans: { vals: [brutto] }, ansText: hu(brutto), fmt: 'szám (Ft)',
+      hint: 'Bruttó = nettó + 27% → a nettó 127%-a, azaz 1,27-szerese.', sol: [T`\(${bigT(netto)}\cdot1{,}27=${nt(brutto)}\) Ft`] };
+    if (ask === 1) return { q: `<p>Egy termék bruttó ára (27% áfával) ${hu(brutto)} Ft. Mennyi a nettó ára?</p>`, ans: { vals: [netto] }, ansText: String(netto), fmt: 'szám (Ft)',
+      hint: 'A bruttó ár a nettó 127%-a. Számolj vissza: ne a bruttóból vonj le 27%-ot!', sol: [T`127% \(=${nt(brutto)}\) Ft`, T`100%: \(${nt(brutto)}:1{,}27=${bigT(netto)}\) Ft`] };
+    const afa = +(netto * 0.27).toFixed(2);
+    return { q: `<p>Egy termék bruttó ára (27% áfával) ${hu(brutto)} Ft. Hány forint ebből az áfa?</p>`, ans: { vals: [afa] }, ansText: hu(afa), fmt: 'szám (Ft)',
+      hint: 'Előbb számold ki a nettó árat (a bruttó a nettó 127%-a), az áfa ennek 27%-a.', sol: [T`Nettó: \(${nt(brutto)}:1{,}27=${bigT(netto)}\) Ft.`, T`Áfa: \(${bigT(netto)}\cdot0{,}27=${nt(afa)}\) Ft (vagy \(${nt(brutto)}-${bigT(netto)}\)).`] };
+  } };
+
+  G.oldat = { ch: 'szaz', name: 'Keverékek, oldatok', make() {
+    const t = R(0, 2);
+    if (t === 0) { const m = P([200, 250, 400, 500, 800, 1000, 1200]); const p = P([2, 4, 5, 8, 10, 12, 15, 20, 25]); const so = m * p / 100;
+      return { q: `<p>Hány gramm só van ${m} g ${p}%-os sóoldatban?</p>`, ans: { vals: [so] }, ansText: hu(so), fmt: 'szám (g)', hint: 'Az oldat tömegének ennyi százaléka a só.', sol: [T`\(${m}\cdot ${nt(p / 100)}=${nt(so)}\) g`] }; }
+    if (t === 1) { const so = R(1, 12) * 5, viz = so * P([3, 4, 9, 19, 7, 15]); const p = +(100 * so / (so + viz)).toFixed(6);
+      return { q: `<p>${so} g cukrot ${viz} g vízben oldunk fel. Hány százalékos lesz az oldat?</p>`, ans: { vals: [p] }, ansText: hu(p), fmt: 'szám (%)',
+        hint: 'Az oldat tömege a víz ÉS a cukor együtt! A cukor ennek hány százaléka?', sol: [T`Az oldat tömege: \(${so}+${viz}=${so + viz}\) g.`, T`\(${so}:${so + viz}=${nt(p / 100)}\), azaz \(${nt(p)}\%\).`] }; }
+    const viz = P([80, 85, 90, 75]); const friss = P([2, 3, 4, 5, 6, 8, 10]); const szaraz = +(friss * (100 - viz) / 100).toFixed(4);
+    return { q: `<p>A friss gomba tömegének ${viz}%-a víz. Szárításkor a víz elpárolog. Hány kg szárított gomba lesz ${friss} kg friss gombából, ha a víz teljesen elpárolog?</p>`, ans: { vals: [szaraz] }, ansText: hu(szaraz), fmt: 'szám (kg)',
+      hint: `Ami megmarad, az a nem víz rész: ${100 - viz}%.`, sol: [T`\(100\%-${viz}\%=${100 - viz}\%\) marad meg.`, T`\(${friss}\cdot ${nt((100 - viz) / 100)}=${nt(szaraz)}\) kg`] };
+  } };
+
+  G.visszaall = { ch: 'szaz', name: 'Visszaállítás az eredeti árra', szint: 'emelt', make() {
+    const pairs = [[25, 20, 1], [20, 100 / 6, 1], [50, 100 / 3, 1], [100, 50, 1], [25, 100 / 3, 0], [20, 25, 0], [50, 100, 0], [10, 100 / 9, 0], [60, 150, 0], [75, 300, 0], [40, 66.66666666666667, 0]];
+    const [p, q, up] = P(pairs); if (!Number.isInteger(q) && R(0, 1) === 0) return G.visszaall.make();
+    const A = P([1200, 2400, 3600, 4800, 6000, 9000, 12000]); const B = A * (up ? 1 + p / 100 : 1 - p / 100);
+    const qtxt = Number.isInteger(q) ? nt(q) : T`${nt(+q.toFixed(2))}\ldots`;
+    return { q: `<p>Egy ${big(A)} Ft-os termék árát ${p}%-kal ${up ? 'megemelték' : 'csökkentették'}, így ${big(B)} Ft lett. Hány százalékkal kell az új árat ${up ? 'csökkenteni' : 'növelni'}, hogy újra ${big(A)} Ft legyen?${Number.isInteger(q) ? '' : ' (Két tizedesjegyre kerekítve add meg, vagy törtként!)'}</p>`,
+      ans: { vals: [q], tol: Number.isInteger(q) ? 1e-6 : 0.006 }, ansText: Number.isInteger(q) ? String(q) : hu(+q.toFixed(2)), fmt: 'szám (%)',
+      hint: `Most az új ár (${big(B)} Ft) a 100%! A változás ${big(Math.abs(B - A))} Ft – ez ennek hány százaléka?`,
+      sol: [T`A változás \(${bigT(Math.abs(B - A))}\) Ft, de most az alap \(${bigT(B)}\) Ft.`, T`\(${bigT(Math.abs(B - A))}:${bigT(B)}\cdot100=${qtxt}\%\)`, `Tehát nem ${p}%-kal, hanem ${Number.isInteger(q) ? q : 'kb. ' + hu(+q.toFixed(2))}%-kal kell ${up ? 'csökkenteni' : 'növelni'}.`] };
+  } };
+
   Tananyag.fejezet({
     id: 'szaz',
     cim: 'Százalékszámítás',
@@ -74,13 +136,25 @@
 <li><b>Következtetés 1%-ra:</b> az alap 1%-a az alap századrésze. Ha a 35% = 84, akkor 1% = 2,4, és 100% = 240.</li>
 <li><b>Csökkentés 15%-kal</b> → 85% marad → az eredeti <b>0,85-szorosa</b> lesz. <b>Növelés 20%-kal</b> → 120% → az eredeti 1,2-szerese.</li>
 <li><b>Visszafelé:</b> ha 20%-os emelés után 72 000 Ft az ár, akkor 120% = 72 000, így az eredeti \(72\,000:1{,}2=60\,000\) Ft. (Nem az új árból vonunk le 20%-ot!)</li>
-<li><b>Kördiagram:</b> a teljes kör 360° = 100%, így 1% = 3,6°.</li></ul></div>`,
+<li><b>Kördiagram:</b> a teljes kör 360° = 100%, így 1% = 3,6°.</li></ul></div>
+<div class="prose"><ul>
+<li><b>Hány százalékkal változott?</b> A változást az <b>eredeti</b> értékhez viszonyítjuk: 2400 Ft → 3000 Ft esetén \(600:2400=0{,}25\), azaz 25%-os emelés.</li>
+<li><b>Egymás utáni változások:</b> a szorzók összeszorzódnak, a százalékok NEM adódnak össze! \(+20\%\), majd \(-10\%\): \(1{,}2\cdot0{,}9=1{,}08\) → összesen 8%-os növekedés.</li>
+<li><b>Áfa:</b> a bruttó ár = nettó ár + 27% áfa, vagyis a nettó ár 1,27-szerese.</li>
+<li><b>Oldatok:</b> \(\text{töménység}=\dfrac{\text{oldott anyag}}{\text{oldat (víz + oldott anyag)}}\cdot100\%\).</li></ul></div>`,
     igazHamis: [
       { allitas: T`\(40\%=\frac25\)`, igaz: true, miert: T`\(40\%=\frac{40}{100}=\frac25\).` },
       { allitas: T`Ha egy árat 20%-kal növelünk, majd 20%-kal csökkentünk, visszakapjuk az eredetit.`, igaz: false, miert: T`\(1{,}2\cdot0{,}8=0{,}96\), tehát az eredeti 96%-a lesz. A második 20% nagyobb alapból számolódik.` },
       { allitas: T`8 literes fogyasztás 15%-kal csökkentve 6,8 liter.`, igaz: true, miert: T`\(8\cdot0{,}85=6{,}8\).` },
       { allitas: T`Ha 120% = 600, akkor az alap 720.`, igaz: false, miert: T`Az alap a 100%: \(600:1{,}2=500\). (A 720 a 600 120%-a lenne.)` },
-      { allitas: T`Kördiagramon a 25%-hoz 90°-os középponti szög tartozik.`, igaz: true, miert: T`\(360°\cdot0{,}25=90°\), ez a kör negyede.` }
+      { allitas: T`Kördiagramon a 25%-hoz 90°-os középponti szög tartozik.`, igaz: true, miert: T`\(360°\cdot0{,}25=90°\), ez a kör negyede.` },
+      { allitas: T`Ha egy ár 2000 Ft-ról 2500 Ft-ra nő, az 25%-os emelés.`, igaz: true, miert: T`\(500:2000=0{,}25=25\%\).` },
+      { allitas: T`Ha egy ár 2500 Ft-ról 2000 Ft-ra csökken, az 25%-os csökkentés.`, igaz: false, miert: T`Most a 2500 Ft az alap: \(500:2500=0{,}2=20\%\).` },
+      { allitas: T`10%-os, majd újabb 10%-os áremelés összesen 21%-os emelés.`, igaz: true, miert: T`\(1{,}1\cdot1{,}1=1{,}21\).` },
+      { allitas: T`30%-os, majd 10%-os árengedmény összesen 40% engedmény.`, igaz: false, miert: T`\(0{,}7\cdot0{,}9=0{,}63\): az ár 63%-a marad, ez 37% engedmény.` },
+      { allitas: T`20 g só és 80 g víz keveréke 25%-os sóoldat.`, igaz: false, miert: T`Az oldat 100 g, ebből 20 g só: \(20\%\)-os.` },
+      { allitas: T`Ha a kamat 5%-ról 7%-ra nő, az 2 százalékpontos, de 40%-os növekedés.`, igaz: true, miert: T`A különbség \(7-5=2\) százalékpont, de \(2:5=0{,}4\), tehát a kamatláb 40%-kal nőtt.`, szint: 'emelt' },
+      { general() { const p = P([10, 20, 25, 50]); return { allitas: T`Ha egy árat ${p}%-kal megemelünk, majd ${p}%-kal csökkentünk, visszakapjuk az eredeti árat.`, igaz: false, miert: T`\(${nt(1 + p / 100)}\cdot ${nt(1 - p / 100)}=${nt(+((1 + p / 100) * (1 - p / 100)).toFixed(4))}\): az eredeti ár \(${nt(+(100 * (1 + p / 100) * (1 - p / 100)).toFixed(2))}\%\)-a lesz.` }; } }
     ],
     mintapelda: {
       feladat: T`Egy autó 100 km-en 8 liter üzemanyagot fogyaszt. Áramvonalasítással a fogyasztás 15%-kal csökkent. a) Mennyi lett a fogyasztás? b) Hány százalékkal nőne újra, ha visszaszerelnénk a régi alkatrészeket?`,
