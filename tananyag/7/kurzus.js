@@ -80,15 +80,15 @@ Tananyag.kurzus({
   alcim: '7. évfolyam · Sokszínű matematika 7. (Mozaik)',
   jelek: 'a/b · 0,375 · 0,3̇ · x : y · p% · aⁿ',   // a fejléc fölötti jelsor (elhagyható)
   // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
-  // joValaszCukorkahoz: 10,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
-  // streakNapiMin: 1,         // napi sorozathoz ennyi új feladat kell aznap
+  joValaszCukorkahoz: 6,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
+  streakNapiMin: 2,         // napi sorozathoz ennyi új feladat kell aznap
   temakorok: [
     {
       id: 'rac',
       cim: 'Természetes számok, racionális számok',
       mappa: 'racionalis-arany-szazalek',
-      cukorkaNyitashoz: 3,          // ennyi cukorkába kerül egy fejezet; elhagyható (akkor az évfolyam / config.js értéke)
-      proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat; nyitási ára: proba: { feladatszam: 12, cukorka: 2 }
+      cukorkaNyitashoz: 1,          // ennyi cukorkába kerül egy fejezet; elhagyható (akkor az évfolyam / config.js értéke)
+      proba: { feladatszam: 12, cukorka: 2 },   // próba-témazáró: ennyi feladat; nyitási ára: proba: { feladatszam: 12, cukorka: 2 }
       // Fejezetenként eltérő ár: a fájlnév helyett { fajl: '…js', cukorka: 2 } – ennyibe kerül megnyitni AZT a fejezetet.
       fejezetek: [
         '01-alakok.js',
