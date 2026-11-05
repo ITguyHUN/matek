@@ -283,7 +283,15 @@ h2.ch .lvl{font-size:.8rem;vertical-align:.35em}
 .dg-fej{margin:10px 0 4px}
 .dg-fejcim{font-weight:600;margin-bottom:4px}
 .dg-tipus{display:flex;align-items:center;gap:8px;padding:3px 0 3px 12px;font-size:.95rem}
-.dg-tipus input{width:4.2em;font-family:var(--f-mono);padding:4px 6px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.dg-tnev{flex:1;min-width:0}
+.dg-fpl{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.dg-hatar{margin-top:10px}
+.dg-egys{display:flex;align-items:center;gap:6px}
+.dg-egys .dg-me{font-weight:400}
+.dg-ptab{border-collapse:collapse;margin:16px 0 0 auto;font-size:.9rem}
+.dg-ptab th,.dg-ptab td{border:1px solid #888;padding:3px 9px;text-align:center;min-width:2.4em}
+.dg-ptab tr:last-child td{height:1.8em}
+.dg-tipus input,.dg-fpl input{width:4.2em;font-family:var(--f-mono);padding:4px 6px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
 .dg-gombok{margin-bottom:6px}
 #dgnyomtat{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:8px 0;overflow-x:auto}
 #dgnyomtat .lvl{display:none}
@@ -332,3 +340,5 @@ h2.ch .lvl{font-size:.8rem;vertical-align:.35em}
 .tip.ok .tn,.tip.ok .tv{color:var(--green);font-weight:600}
 .tip.ok .tb span{background:var(--green)}
 .tip .tn svg{width:12px;height:12px;vertical-align:-1px}
+.dg-lap th{text-transform:none;letter-spacing:normal;font-family:inherit;font-size:inherit;color:#111;font-weight:700;background:#f3f3f3}
+.dg-lap td{color:#111}
