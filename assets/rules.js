@@ -25,7 +25,7 @@
  *
  * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index},
  *         need: {temakorId: db | [db, …]}   (tömb: i. elem = az i. fejezet utáni nyitás ára),
- *         kombo: db | {évfolyam: db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
+ *         kombo: db | {évfolyam: db, 'évfolyam/témakör': db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
  *         kieg: {fejezetId: láncbeli fejezetId}, today: 'ÉÉÉÉ-HH-NN' }
  */
 var Szabalyok = (function () {
@@ -77,7 +77,11 @@ var Szabalyok = (function () {
     if (v && typeof v === 'object') { var x = v[kurzusOf(mod)]; return x == null ? def : x; }
     return v == null ? def : v;
   }
-  function kombo(ctx, mod) { return Math.max(1, evfErtek(ctx.kombo, mod, 10) || 10); }
+  function kombo(ctx, mod) {
+    var v = ctx.kombo;
+    if (v && typeof v === 'object' && v[mod] != null) return Math.max(1, Number(v[mod]) || 10);   // témakörönként
+    return Math.max(1, evfErtek(v, mod, 10) || 10);
+  }
   function streakMin(ctx, mod) { return Math.max(1, evfErtek(ctx.streakMin, mod, 1) || 1); }
   /* Igaz, ha a csoport beállított szintje ebben az évfolyamban közép (az emelt feladatok külön, kedvezménnyel). */
   function kozepSzint(ctx, mod) { return evfErtek(ctx.szint, mod, '') === 'kozep'; }

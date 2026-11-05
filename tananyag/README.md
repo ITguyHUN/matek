@@ -34,7 +34,7 @@ A `kurzus.js` `temakorok` listájához adj hozzá egy új elemet:
   proba: { feladatszam: 12 }, fejezetek: ['01-szogfuggvenyek.js', '02-…'] }
 ```
 
-Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott.
+Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott. A jó válaszok sorozata is témakörönként számolódik; a cukorkához szükséges darabszám témakörönként is megadható: `joValaszCukorkahoz: 8`.
 
 ## Cukorka és streak évfolyamonként, fejezetenként
 
@@ -60,7 +60,9 @@ Tananyag.kurzus({
 });
 ```
 
-Elsőbbség: fejezet `cukorka` → témakör `cukorkaNyitashoz` → évfolyam `cukorkaNyitashoz` → `config.js`. A `cukorka: 0` is megengedett (ingyen nyitható, de a gombra kattintani akkor is kell).
+A `joValaszCukorkahoz` a témakörnél is megadható (elsőbbség: témakör → évfolyam → `config.js`).
+
+Elsőbbség (nyitási ár): fejezet `cukorka` → témakör `cukorkaNyitashoz` → évfolyam `cukorkaNyitashoz` → `config.js`. A `cukorka: 0` is megengedett (ingyen nyitható, de a gombra kattintani akkor is kell).
 
 A nyitás **nem automatikus**: amikor összegyűlt az ár, a fejezetben (és a zárt fejezet, ill. a próba oldalán) megjelenik a **Megnyitom** gomb, és a cukorka a kattintáskor jön le. Ha egy témakört átmenetileg el akarsz rejteni, add hozzá: `aktiv: false`.
 

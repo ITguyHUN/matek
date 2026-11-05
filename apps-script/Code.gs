@@ -158,7 +158,7 @@ function ctxTisztit_(c, gu, gl) {
   });
   /* szám, vagy évfolyamonként: { '11': 10, '7': 8 } */
   const evf = function (v, def, max) {
-    if (v && typeof v === 'object') { const o = {}; Object.keys(v).slice(0, 50).forEach(function (k) { o[szoveg_(k, 30)] = egesz_(v[k] || def, 1, max); }); return o; }
+    if (v && typeof v === 'object') { const o = {}; Object.keys(v).slice(0, 100).forEach(function (k) { o[szoveg_(k, 60)] = egesz_(v[k] || def, 1, max); }); return o; }
     return egesz_(v || def, 1, max);
   };
   /* emelt szintű (láncon kívüli) fejezet → láncbeli fejezet, amelyhez tartozik */
@@ -324,9 +324,7 @@ function lathatoCsoportok_(u, users) {
   const mind = {};
   Object.keys(users).forEach(function (k) { const x = users[k]; if (x.role === 'diak' && x.group) mind[x.group] = true; });
   const all = Object.keys(mind).sort();
-  const sajat = csoportLista_(u.group);
-  if (!sajat.length || sajat.indexOf('*') >= 0) return all;
-  return all.filter(function (g) { return sajat.some(function (s) { return egyezik_(s, g); }); });
+  return all;   // a tanárok minden csoportot látnak
 }
 function tanarAttekintes_(u, d) {
   const users = felhasznalok_();
@@ -518,7 +516,7 @@ function ellenoriz() {
  *
  * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index},
  *         need: {temakorId: db | [db, …]}   (tömb: i. elem = az i. fejezet utáni nyitás ára),
- *         kombo: db | {évfolyam: db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
+ *         kombo: db | {évfolyam: db, 'évfolyam/témakör': db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
  *         kieg: {fejezetId: láncbeli fejezetId}, today: 'ÉÉÉÉ-HH-NN' }
  */
 var Szabalyok = (function () {
@@ -570,7 +568,11 @@ var Szabalyok = (function () {
     if (v && typeof v === 'object') { var x = v[kurzusOf(mod)]; return x == null ? def : x; }
     return v == null ? def : v;
   }
-  function kombo(ctx, mod) { return Math.max(1, evfErtek(ctx.kombo, mod, 10) || 10); }
+  function kombo(ctx, mod) {
+    var v = ctx.kombo;
+    if (v && typeof v === 'object' && v[mod] != null) return Math.max(1, Number(v[mod]) || 10);   // témakörönként
+    return Math.max(1, evfErtek(v, mod, 10) || 10);
+  }
   function streakMin(ctx, mod) { return Math.max(1, evfErtek(ctx.streakMin, mod, 1) || 1); }
   /* Igaz, ha a csoport beállított szintje ebben az évfolyamban közép (az emelt feladatok külön, kedvezménnyel). */
   function kozepSzint(ctx, mod) { return evfErtek(ctx.szint, mod, '') === 'kozep'; }

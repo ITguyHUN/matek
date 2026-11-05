@@ -15,6 +15,8 @@ config.js                  BEÁLLÍTÁSOK: szerver URL, cukorka-, nyitási és s
 assets/
   app.js                   az alkalmazás (belépés, gyakorlás, próba, tanári felület)
   rules.js                 cukorka/nyitás/streak szabályai (a Code.gs aljára is be van másolva)
+  dolgozat.js              dolgozat- és témazáró-készítő (tanári eszköz)
+  docx.js                  Word-fájl (.docx) készítése a dolgozatkészítőhöz
   mathlib.js               segédfüggvények a feladatgenerátorokhoz
   style.css                megjelenés
 tananyag/
@@ -41,7 +43,7 @@ felhasznalok_minta.xlsx    minta a felhasználói listához
    - Csak az léphet be, aki ezen a lapon szerepel. Ha valakit törölsz, vagy megváltoztatod a jelszavát, azonnal kijelentkezik.
    - Több „Felhasználók…” kezdetű lap is lehet, például „Felhasználók 11.A” vagy „Felhasználók 11.B”.
    - A Tananyag oszlopba több évfolyam is írható vesszővel, például `11, 10`. Az első a diák saját anyaga, ez nyílik meg alapból. A többit a kezdőlapon választhatja ki gyakorláshoz. Minden évfolyam haladása (cukorka, nyitott fejezetek) külön számít, a napi sorozat közös.
-   - Tanárnál a Csoport oszlop azt adja meg, mely csoportokat látja: `*` vagy üres = mindet, egyébként a csoportok vesszővel elválasztva, például `11.A, 11.B`.
+   - A tanárok **minden csoportot** látnak a Tanári felületen (a Csoport oszlopuk nem számít). A tanár Tananyag oszlopa adja meg, mely évfolyamokból készíthet dolgozatot.
    - A **Matek gyakorló → Felhasználók ellenőrzése** menüpont összesíti, hány diák van csoportonként, és kinek hiányzik a jelszava.
 3. **Webalkalmazás.** Válaszd a **Telepítés → Új telepítés → Webalkalmazás** lehetőséget, ezekkel a beállításokkal:
    - Végrehajtás mint: **Én**
@@ -68,8 +70,19 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
   - Ha kihagy egy napot, a sorozat újraindul.
   - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
 - **Közép / emelt szint:** a fejezetek, feladattípusok és igaz-hamis állítások megjelölhetők emelt szintűként (`szint: 'emelt'`). A Tanári felületen csoportonként és évfolyamonként beállítható a szint. Közép szintnél az emelt feladatok külön, alatta jelennek meg: ott egy jó megoldás kettőt ér, és csak a második hibás válasz (ugyanarra a feladatra) vagy a megoldás megnézése nullázza a sorozatot. Emelt szintnél minden feladat egy felületen van. Részletek: `tananyag/README.md`.
+- **Cukorkához szükséges jó válaszok:** a sorozat témakörönként számolódik (minden témakörnek külön számlálója van). A szükséges darabszám (`joValaszCukorkahoz`) témakörönként is megadható a `kurzus.js`-ben.
 - **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. A lista utolsó eleme („Minden fejezet + próba-témazáró”) a próbát is megnyitja. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik. A tanári felületen a csoport mellett tananyagot (évfolyamot) és témakört is választhatsz.
 - A régebbi fejezetekben szabadon lehet gyakorolni, de ott nem jár jutalom. Ezért nem lehet „farmolni”.
+
+## Dolgozatkészítő (tanári eszköz)
+
+A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve helyi módban):
+
+- Évfolyamonként, témakörönként és fejezetenként felsorolja a feladattípusokat; mindegyiknél megadhatod, hány részfeladatot kérsz belőle.
+- Egy feladattípus egy számozott feladat lesz a), b), c)… részfeladatokkal. Ha minden részfeladat ugyanazzal az utasítással kezdődik, az a feladat fejlécébe kerül.
+- **Témazáró ebből a témakörből:** a témakör minden feladattípusát kitölti a megadott darabszámmal (a próba-témazáróból kizárt, `proba: false` típusok kivételével), igény szerint csak a közép szintűekkel.
+- Beállítható: cím, csoportok száma (A, B, C, D – mindegyik más feladatokat kap), hely a megoldásnak, pont/részfeladat, név-osztály-dátum sor, ponthatárok (85/70/55/40%), megoldókulcs (részletes megoldásokkal is).
+- **Letöltés:** Word (.docx) – a képletek képként, a szöveg szerkeszthető; PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”.
 
 ## Táblázat lapjai
 
