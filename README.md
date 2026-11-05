@@ -43,7 +43,7 @@ felhasznalok_minta.xlsx    minta a felhasználói listához
    - Csak az léphet be, aki ezen a lapon szerepel. Ha valakit törölsz, vagy megváltoztatod a jelszavát, azonnal kijelentkezik.
    - Több „Felhasználók…” kezdetű lap is lehet, például „Felhasználók 11.A” vagy „Felhasználók 11.B”.
    - A Tananyag oszlopba több évfolyam is írható vesszővel, például `11, 10`. Az első a diák saját anyaga, ez nyílik meg alapból. A többit a kezdőlapon választhatja ki gyakorláshoz. Minden évfolyam haladása (cukorka, nyitott fejezetek) külön számít, a napi sorozat közös.
-   - A tanárok **minden csoportot** látnak a Tanári felületen (a Csoport oszlopuk nem számít). A tanár Tananyag oszlopa adja meg, mely évfolyamokból készíthet dolgozatot.
+   - A tanár **csak a saját csoportjait** látja: a Csoport oszlopába a csoportjai kerülnek vesszővel elválasztva, például `11.A, 11.B`. `*` = minden csoport (pl. munkaközösség-vezetőnek). Üres Csoport oszloppal a tanár egy csoportot sem lát. A tanár Tananyag oszlopa adja meg, mely évfolyamokból készíthet dolgozatot.
    - A **Matek gyakorló → Felhasználók ellenőrzése** menüpont összesíti, hány diák van csoportonként, és kinek hiányzik a jelszava.
 3. **Webalkalmazás.** Válaszd a **Telepítés → Új telepítés → Webalkalmazás** lehetőséget, ezekkel a beállításokkal:
    - Végrehajtás mint: **Én**
@@ -73,6 +73,10 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
   - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
 - **Közép / emelt szint:** a fejezetek, feladattípusok és igaz-hamis állítások megjelölhetők emelt szintűként (`szint: 'emelt'`). A Tanári felületen csoportonként és évfolyamonként beállítható a szint. Közép szintnél az emelt feladatok külön, alatta jelennek meg: ott egy jó megoldás kettőt ér, és csak a második hibás válasz (ugyanarra a feladatra) vagy a megoldás megnézése nullázza a sorozatot. Emelt szintnél minden feladat egy felületen van. Részletek: `tananyag/README.md`.
 - **Cukorkához szükséges jó válaszok:** a szükséges darabszám (`joValaszCukorkahoz`, feladattípusonként értendő) témakörönként is megadható a `kurzus.js`-ben.
+- **Haladási korlát:** a Tanári felületen csoportonként és témakörönként megadható, hogy a diákok cukorkával legfeljebb melyik fejezetig nyithatnak, hogy ne haladjanak az óra elé. A cukorka közben gyűlik, és a korlát emelése után felhasználható. A csoportnyitás ettől függetlenül működik.
+- **Házi feladat:** a Tanári felület **Házi feladat** fülén kiadható: címmel, határidővel, és feladattípusonként azzal, hogy hány helyes megoldás kell. A diákok a menü tetején, a kezdőlapon és minden oldal tetején látják. Csak a még meg nem oldott, segítség (megoldás megnézése) nélküli helyes megoldások számítanak. A házi **nem számít bele semmilyen gyűjthető dologba** (cukorka, típusszámlálók, napi sorozat). A tanár diákonként látja az állást, és hogy határidőre vagy késve lett-e kész. A határidő után 14 napig a diákok is látják a házit.
+  - Ha a házi (vagy egy része) kész, a házi oldalán **zölden lezárul**: ott már nem lehet tovább dolgozni, a gyakorlás a fejezetben folytatható (ott a cukorka is gyűlik).
+  - Ha lejárt a határidő, és nincs kész, **piros** (a kezdőlapon, a felső sávban, a házi oldalán és a tanári táblázatban is); késve még befejezhető.
 - **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. A lista utolsó eleme („Minden fejezet + próba-témazáró”) a próbát is megnyitja. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik. A tanári felületen a csoport mellett tananyagot (évfolyamot) és témakört is választhatsz.
 - A régebbi fejezetekben szabadon lehet gyakorolni, de ott nem jár jutalom. Ezért nem lehet „farmolni”.
 
@@ -80,12 +84,13 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
 
 A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve helyi módban):
 
-- Évfolyamonként, témakörönként és fejezetenként felsorolja a feladattípusokat; mindegyiknél megadhatod, hány részfeladatot kérsz belőle.
-- Egy feladattípus egy számozott feladat lesz a), b), c)… részfeladatokkal. Ha minden részfeladat ugyanazzal az utasítással kezdődik, az a feladat fejlécébe kerül.
+- Évfolyamonként, témakörönként és fejezetenként felsorolja a feladattípusokat. Mindegyiknél megadható: hány részfeladat legyen belőle, **melyik feladatba** kerüljön (üresen: külön feladat), és hány **pontot** ér egy részfeladata (üresen: az alap pont).
+- Egy feladatban több típus is lehet; a részfeladatok betűjele (a, b, c, …) folytatólagos, mindegyik mellett ott a pontszáma. Ha a részfeladatok ugyanazzal az utasítással kezdődnek, az a feladat fejlécébe kerül.
+- **Nullázás:** „Minden darabszám 0” (a lista tetején) és témakörönként „Témakör nullázása”. A „csak a kiválasztott típusok látszanak” kapcsolóval a lista a kiválasztottakra szűkíthető.
 - **Témazáró ebből a témakörből:** a témakör minden feladattípusát kitölti a megadott darabszámmal (a próba-témazáróból kizárt, `proba: false` típusok kivételével), igény szerint csak a közép szintűekkel.
-- **Pontozás:** minden feladatnál (feladattípusnál) megadható a feladat pontszáma; ha üresen marad, részfeladatok száma × alap pont/részfeladat. Ebből készül a **ponttáblázat** (Feladat / Max. pont / Elért pont, összesen).
+- **Pontozás:** a feladat pontszáma a részfeladatai pontjainak összege. Ebből készül a **ponttáblázat** (Feladat / Max. pont / Elért pont, összesen).
 - **Ponthatárok:** az 5-ös, 4-es, 3-as, 2-es alsó határa megadható **százalékban** (alapból 85/70/55/40%) vagy **pontban**; váltáskor az értékek átszámolódnak. Az előnézet a pontsávokat is mutatja, és szól, ha a határok nem csökkenőek.
-- Beállítható még: cím, csoportok száma (A, B, C, D – mindegyik más feladatokat kap), hely a megoldásnak, név-osztály-dátum sor, megoldókulcs (részletes megoldásokkal is).
+- Beállítható még: cím, csoportok száma (számmal; a betűjel A, B, C, … – mindegyik csoport más feladatokat kap), hely a megoldásnak, név-osztály-dátum sor, megoldókulcs (részletes megoldásokkal is).
 - **Letöltés:** Word (.docx) – a képletek képként, a szöveg szerkeszthető; PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”.
 
 ## Táblázat lapjai
@@ -98,6 +103,8 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 | Próbák | beadott próba-témazárók pontszámmal és jeggyel |
 | Csoportnyitás | a Tanári felületen beállított nyitások |
 | Csoportszint | a Tanári felületen beállított feladatszint (közép / emelt) csoportonként és évfolyamonként |
+| Csoportkorlát | meddig nyithatnak a diákok cukorkával (haladási korlát) |
+| Házi feladatok | a kiadott házi feladatok (a Törölve oszlop kitöltésével el is rejthető) |
 
 ## Helyi kipróbálás
 

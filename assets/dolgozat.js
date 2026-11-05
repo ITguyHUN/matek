@@ -1,13 +1,14 @@
 /*
  * Matek gyakorló – dolgozat- és témazáró-készítő (tanári eszköz).
- * A tanár kiválasztja, melyik feladattípusból hány részfeladatot kér; egy feladattípus egy
- * számozott feladat lesz a), b), c) … részfeladatokkal. Több csoport (A, B, …) és megoldókulcs is kérhető.
+ * A tanár kiválasztja, melyik feladattípusból hány részfeladatot kér, és hogy melyik feladatba kerüljön
+ * (egy feladatban több típus is lehet, típusonként külön pontszámmal); a részfeladatok a), b), c) …
+ * jelet kapnak. Tetszőleges számú csoport (A, B, C, …) és megoldókulcs is kérhető.
  * Letöltés: .docx (a képletek képként) és PDF (a böngésző nyomtatásával: „Mentés PDF-ként”).
  */
 (function () {
 'use strict';
 const BETUK = 'abcdefghijklmnopqrstuvwxyz';
-const CSOPORT = ['A', 'B', 'C', 'D'];
+const CSOPORT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 let H = null;          // az app.js segédfüggvényei
 let DG = null;         // a készítő állapota
 let EREDMENY = null;   // a legutóbb generált dolgozat
@@ -25,11 +26,11 @@ function render(helpers) {
   if (!KS.length) { m.innerHTML = '<p>Nincs betöltött tananyag.</p>'; return; }
   if (!DG || !KS.some(k => k.id === DG.kid)) DG = alapAllapot(KS[0].id);
   m.innerHTML = `<div class="eyebrow">Tanári eszköz</div><h2 class="ch">Dolgozatkészítő</h2>
-    <p class="lead">Add meg, melyik feladattípusból hány részfeladatot kérsz. Egy feladattípus egy feladat lesz a), b), c)… részekkel. A <b>Témazáró</b> gomb egy témakör minden feladattípusát kitölti.</p>
+    <p class="lead">Add meg, melyik feladattípusból hány részfeladatot kérsz. Alapból minden típus külön feladat lesz a), b), c)… részekkel; a <b>feladat</b> mezőben megadhatod, melyik feladatba kerüljön (így egy feladatban több típus is lehet), a <b>pont</b> mezőben pedig, hány pontot ér egy részfeladata. A <b>Témazáró</b> gomb egy témakör minden feladattípusát kitölti.</p>
     <section class="blk dg-beall"><h3>Beállítások</h3><div class="tctrl">
       ${KS.length > 1 ? `<label for="dgk">Évfolyam<select id="dgk">${KS.map(k => `<option value="${H.esc(k.id)}" ${k.id === DG.kid ? 'selected' : ''}>${H.esc(k.cim)}</option>`).join('')}</select></label>` : ''}
       <label for="dgc">Cím<input id="dgc" type="text" value="${H.esc(DG.cim)}"></label>
-      <label for="dgv">Csoportok<select id="dgv">${[1, 2, 3, 4].map(n => `<option value="${n}" ${n === DG.valt ? 'selected' : ''}>${n === 1 ? '1 (egy változat)' : CSOPORT.slice(0, n).join(', ')}</option>`).join('')}</select></label>
+      <label for="dgv">Csoportok száma<span class="dg-egys"><input id="dgv" type="number" min="1" max="26" value="${DG.valt}" style="width:4.5em"><span class="dg-me" id="dgvb">${csopBetuk(DG.valt)}</span></span></label>
       <label for="dgh">Hely a megoldásnak<select id="dgh">${[['0', 'nincs'], ['1', 'kevés'], ['2', 'közepes'], ['3', 'sok']].map(([v, n]) => `<option value="${v}" ${+v === DG.hely ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <label for="dgp">Alap pont / részfeladat<input id="dgp" type="number" min="1" max="10" value="${DG.pont}" style="width:5em"></label>
     </div><div class="tctrl dg-chk">
@@ -42,8 +43,11 @@ function render(helpers) {
       <label for="dghm">Ponthatárok megadása<select id="dghm"><option value="pct" ${DG.hm === 'pct' ? 'selected' : ''}>százalékban</option><option value="pont" ${DG.hm === 'pont' ? 'selected' : ''}>pontban</option></select></label>
       ${[5, 4, 3, 2].map((j, i) => `<label>${SORSZ[j]} alsó határa<span class="dg-egys"><input type="number" min="0" data-hat="${i}" value="${hatarErtekek()[i]}" style="width:5.5em"><span class="dg-me">${DG.hm === 'pont' ? 'pont' : '%'}</span></span></label>`).join('')}
     </div><p class="small" id="dghprev"></p></section>
-    <section class="blk"><h3>Feladatok <span class="tag" id="dgossz"></span></h3><div id="dglista"></div>
-      <div class="ansrow" style="margin-top:12px"><button class="btn primary" id="dggen">Dolgozat generálása</button><button class="btn ghost" id="dgnull">Minden darabszám 0</button></div></section>
+    <section class="blk"><h3>Feladatok <span class="tag" id="dgossz"></span></h3>
+      <div class="tctrl dg-listafej"><button class="btn sm" id="dgnull">Minden darabszám 0</button>
+        <label class="chk"><input type="checkbox" id="dgcsak" ${DG.csak ? 'checked' : ''}> csak a kiválasztott típusok látszanak</label></div>
+      <div id="dglista" class="${DG.csak ? 'dg-csak' : ''}"></div>
+      <div class="ansrow" style="margin-top:12px"><button class="btn primary" id="dggen">Dolgozat generálása</button></div></section>
     <div id="dgout"></div>`;
   const kurzus = () => KS.find(k => k.id === DG.kid);
   const listaRajz = () => { $('#dglista').innerHTML = listaHtml(kurzus()); osszesit(); };
@@ -51,12 +55,14 @@ function render(helpers) {
   const kk = $('#dgk'); if (kk) kk.onchange = e => { ment(); DG = alapAllapot(e.target.value); render(H); };
   const opt = () => {
     const regiPont = DG.pont;
-    DG.cim = $('#dgc').value; DG.valt = +$('#dgv').value; DG.hely = +$('#dgh').value; DG.pont = Math.max(1, Math.min(10, +$('#dgp').value || 1));
-    if (regiPont !== DG.pont) document.querySelectorAll('[data-fp]').forEach(x => { x.placeholder = (DG.db[x.dataset.fp] || 0) * DG.pont; });
+    DG.cim = $('#dgc').value; DG.valt = Math.max(1, Math.min(26, Math.round(+$('#dgv').value || 1))); DG.hely = +$('#dgh').value; DG.pont = Math.max(1, Math.min(10, +$('#dgp').value || 1));
+    $('#dgvb').textContent = csopBetuk(DG.valt);
+    if (regiPont !== DG.pont) document.querySelectorAll('[data-rp]').forEach(x => { x.placeholder = DG.pont; });
     DG.nev = $('#dgnev').checked; DG.jegy = $('#dgjegy').checked; DG.ptab = $('#dgptab').checked; DG.kulcs = $('#dgkulcs').checked; DG.reszl = $('#dgreszl').checked; ment(); osszesit();
   };
   $('.dg-beall').addEventListener('change', e => { if (!e.target.closest('.dg-hatar')) opt(); });
-  $('#dgc').addEventListener('input', opt);
+  $('#dgc').addEventListener('input', opt); $('#dgv').addEventListener('input', opt);
+  $('#dgcsak').onchange = e => { DG.csak = e.target.checked; $('#dglista').classList.toggle('dg-csak', DG.csak); ment(); };
   /* ponthatárok: százalék ↔ pont váltáskor átszámolja az értékeket a jelenlegi összpontszámmal */
   $('#dghm').onchange = e => {
     const ossz = osszPont(), uj = e.target.value;
@@ -75,15 +81,16 @@ function render(helpers) {
     ment(); osszesit();
   });
   $('#dglista').addEventListener('input', e => {
-    const fp = e.target.closest('input[data-fp]');
-    if (fp) { const v = Math.max(0, Math.min(200, Math.round(+fp.value || 0))); if (v) DG.fp[fp.dataset.fp] = v; else delete DG.fp[fp.dataset.fp]; ment(); osszesit(); return; }
-    const i = e.target.closest('input[data-db]'); if (!i) return;
-    const n = Math.max(0, Math.min(26, Math.round(+i.value || 0)));
-    if (n) DG.db[i.dataset.db] = n; else delete DG.db[i.dataset.db];
-    const pi = i.parentNode.querySelector('[data-fp]'); if (pi) pi.placeholder = n * DG.pont;
+    const x = e.target.closest('input[data-rp],input[data-fsz],input[data-db]'); if (!x) return;
+    const [mezo, max] = x.dataset.rp ? ['rp', 100] : x.dataset.fsz ? ['fsz', 99] : ['db', 26];
+    const k = x.dataset[mezo], v = Math.max(0, Math.min(max, Math.round(+x.value || 0)));
+    if (v) DG[mezo][k] = v; else delete DG[mezo][k];
+    if (mezo === 'db') x.closest('.dg-tipus').classList.toggle('on', !!v);
     ment(); osszesit();
   });
   $('#dglista').addEventListener('click', e => {
+    const nb = e.target.closest('[data-tznull]');
+    if (nb) { const t = kurzus().temakorok.find(x => x.id === nb.dataset.tznull); nullaz(t.fejezetek); listaRajz(); H.toast(`Nullázva: ${H.esc(t.cim)}`); return; }
     const b = e.target.closest('[data-tz]'); if (!b) return;
     const t = kurzus().temakorok.find(x => x.id === b.dataset.tz);
     const box = b.closest('.dg-tema'), db = Math.max(1, Math.min(26, +box.querySelector('.dg-tzdb').value || 2)), csakKozep = box.querySelector('.dg-tzsz').value === 'kozep';
@@ -91,44 +98,64 @@ function render(helpers) {
     $('#dgc').value = DG.cim; listaRajz();
     H.toast(`A témazáró feladatai kitöltve: ${H.esc(t.cim)}${csakKozep ? ' (csak közép szint)' : ''}.`);
   });
-  $('#dgnull').onclick = () => { DG.db = {}; ment(); listaRajz(); };
+  $('#dgnull').onclick = () => { DG.db = {}; DG.fsz = {}; ment(); listaRajz(); };
   $('#dggen').onclick = () => generalas(kurzus());
 }
 
 function alapAllapot(kid) {
   let s = null; try { s = JSON.parse(localStorage.getItem(lsKey(kid)) || 'null'); } catch (e) {}
-  const d = Object.assign({ kid, cim: 'Dolgozat', valt: 2, hely: 2, pont: 1, nev: true, jegy: true, ptab: true, kulcs: true, reszl: false, db: {}, fp: {},
-    hm: 'pct', hp: ALAP_PCT.slice(), hpt: [0, 0, 0, 0] }, s || {}, { kid });
-  if (!d.fp) d.fp = {};
+  const d = Object.assign({ kid, cim: 'Dolgozat', valt: 2, hely: 2, pont: 1, nev: true, jegy: true, ptab: true, kulcs: true, reszl: false, csak: false,
+    db: {}, rp: {}, fsz: {}, hm: 'pct', hp: ALAP_PCT.slice(), hpt: [0, 0, 0, 0] }, s || {}, { kid });
+  ['db', 'rp', 'fsz'].forEach(k => { if (!d[k] || typeof d[k] !== 'object') d[k] = {}; });
+  delete d.fp;   // régi formátum (feladatonkénti összpont) – már részfeladatonkénti pont van
   if (!Array.isArray(d.hp) || d.hp.length !== 4) d.hp = ALAP_PCT.slice();
   if (!Array.isArray(d.hpt) || d.hpt.length !== 4) d.hpt = [0, 0, 0, 0];
   return d;
 }
 const hatarErtekek = () => DG.hm === 'pont' ? DG.hpt : DG.hp;
-/* egy feladat pontszáma: a megadott érték, vagy darabszám × alap pont/részfeladat */
-const feladatPont = (k, n) => DG.fp[k] || n * DG.pont;
+const csopBetuk = n => n <= 1 ? 'egy változat' : n <= 6 ? CSOPORT.slice(0, n).split('').join(', ') : `A–${CSOPORT[n - 1]}`;
+/* egy részfeladat pontszáma: a típusnál megadott érték, vagy az alap pont/részfeladat */
+const reszPont = k => DG.rp[k] || DG.pont;
 const osszPont = () => { const K = H.KS().find(k => k.id === DG.kid); return K ? kivalasztott(K).reduce((a, x) => a + x.p, 0) : 0; };
+function nullaz(fejezetek) {
+  ['db', 'fsz'].forEach(m => Object.keys(DG[m]).forEach(k => { if (fejezetek.some(ch => k.startsWith(ch.key + '|'))) delete DG[m][k]; }));
+  ment();
+}
 function ment() { try { localStorage.setItem(lsKey(DG.kid), JSON.stringify(DG)); } catch (e) {} }
 
 function listaHtml(K) {
   return K.temakorok.map(t => `<details class="dg-tema" open><summary><b>${H.esc(t.cim)}</b></summary>
-    <div class="tctrl dg-tzrow"><button class="btn sm" data-tz="${H.esc(t.id)}">Témazáró ebből a témakörből</button>
+    <div class="tctrl dg-tzrow"><button class="btn sm" data-tz="${H.esc(t.id)}">Témazáró ebből a témakörből</button><button class="btn sm ghost" data-tznull="${H.esc(t.id)}">Témakör nullázása</button>
       <label>részfeladat / típus<input class="dg-tzdb" type="number" min="1" max="26" value="2" style="width:4.5em"></label>
       <label>szint<select class="dg-tzsz"><option value="emelt">minden feladat</option><option value="kozep">csak közép</option></select></label></div>
     ${t.fejezetek.map(ch => `<div class="dg-fej"><div class="dg-fejcim">${String(ch.idx + 1).padStart(2, '0')}. ${H.esc(ch.cim)} ${ch.szint === 'emelt' ? H.szintCimke('emelt', K) : ''}</div>
-      ${ch.gens.map(g => { const k = ch.key + '|' + g; return `<div class="dg-tipus"><input type="number" min="0" max="26" data-db="${H.esc(k)}" value="${DG.db[k] || 0}" title="részfeladatok száma" aria-label="részfeladatok száma"><span class="dg-tnev">${H.esc(ch.feladatok[g].nev || g)} ${H.szintCimke(ch.genSzint[g], K)}</span><label class="dg-fpl">pont<input type="number" min="0" max="200" data-fp="${H.esc(k)}" value="${DG.fp[k] || ''}" placeholder="${(DG.db[k] || 0) * DG.pont}" title="a feladat pontszáma (üresen: részfeladatok × alap pont)"></label></div>`; }).join('')}</div>`).join('')}
+      ${ch.gens.map(g => { const k = H.esc(ch.key + '|' + g); return `<div class="dg-tipus${DG.db[ch.key + '|' + g] ? ' on' : ''}"><input type="number" min="0" max="26" data-db="${k}" value="${DG.db[ch.key + '|' + g] || 0}" title="részfeladatok száma" aria-label="részfeladatok száma"><span class="dg-tnev">${H.esc(ch.feladatok[g].nev || g)} ${H.szintCimke(ch.genSzint[g], K)}</span><label class="dg-fpl">feladat<input type="number" min="1" max="99" data-fsz="${k}" value="${DG.fsz[ch.key + '|' + g] || ''}" placeholder="–" title="melyik feladatba kerüljön (üresen: külön feladat)"></label><label class="dg-fpl">pont<input type="number" min="1" max="100" data-rp="${k}" value="${DG.rp[ch.key + '|' + g] || ''}" placeholder="${DG.pont}" title="egy részfeladat pontszáma (üresen: alap pont)"></label></div>`; }).join('')}</div>`).join('')}
   </details>`).join('');
 }
 function kivalasztott(K) {
   const out = [];
-  K.temakorok.forEach(t => t.fejezetek.forEach(ch => ch.gens.forEach(g => { const k = ch.key + '|' + g, n = DG.db[k]; if (n) out.push({ t, ch, g, n, p: feladatPont(k, n) }); })));
+  K.temakorok.forEach(t => t.fejezetek.forEach(ch => ch.gens.forEach(g => { const k = ch.key + '|' + g, n = DG.db[k]; if (n) out.push({ t, ch, g, k, n, rp: reszPont(k), p: n * reszPont(k) }); })));
+  // feladatba sorolás: a megadott sorszám, különben a típus saját helye a listában
+  out.forEach((x, i) => { x.szam = DG.fsz[x.k] || (i + 1); x.sajat = !DG.fsz[x.k]; x.poz = i; });
+  const sorrend = [...new Set(out.slice().sort((a, b) => a.szam - b.szam || a.poz - b.poz).map(x => x.szam))];
+  out.forEach(x => { x.feladat = sorrend.indexOf(x.szam) + 1; });
   return out;
+}
+/* A kiválasztott típusok feladatokba csoportosítva: [[típus, …], …] */
+function csoportosit(l) {
+  const m = new Map();
+  l.slice().sort((a, b) => a.feladat - b.feladat || a.poz - b.poz).forEach(x => { if (!m.has(x.feladat)) m.set(x.feladat, []); m.get(x.feladat).push(x); });
+  return [...m.values()];
 }
 function osszesit() {
   const K = H.KS().find(k => k.id === DG.kid), l = kivalasztott(K);
   const resz = l.reduce((a, x) => a + x.n, 0);
   const ossz = l.reduce((a, x) => a + x.p, 0);
-  const el = $('#dgossz'); if (el) el.textContent = l.length ? `${l.length} feladat · ${resz} részfeladat · ${ossz} pont` : 'még nincs kiválasztva';
+  const fdb = new Set(l.map(x => x.feladat)).size;
+  const el = $('#dgossz'); if (el) el.textContent = l.length ? `${fdb} feladat · ${l.length} típus · ${resz} részfeladat · ${ossz} pont` : 'még nincs kiválasztva';
+  // a „feladat” mezők helykitöltője: hányadik feladatba kerül most a típus
+  const hol = {}; l.forEach(x => { hol[x.k] = x.feladat; });
+  document.querySelectorAll('[data-fsz]').forEach(i => { i.placeholder = hol[i.dataset.fsz] ? `${hol[i.dataset.fsz]}.` : '–'; });
   const pv = $('#dghprev');
   if (pv) {
     const L = alsoHatarok(ossz, DG), rossz = L.slice(0, 4).some((v, i) => i < 3 && v <= L[i + 1]);
@@ -138,7 +165,7 @@ function osszesit() {
   }
 }
 function temazaro(t, db, csakKozep) {
-  Object.keys(DG.db).forEach(k => { if (t.fejezetek.some(ch => k.startsWith(ch.key + '|'))) delete DG.db[k]; });
+  nullaz(t.fejezetek);
   t.fejezetek.forEach(ch => ch.gens.forEach(g => {
     if (ch.feladatok[g].proba === false) return;
     if (csakKozep && ch.genSzint[g] === 'emelt') return;
@@ -155,7 +182,7 @@ const tisztit = html => {
   return d.innerHTML.trim();
 };
 const elsoP = html => { const m = /^\s*(<p>[\s\S]*?<\/p>)/.exec(html); return m ? m[1] : null; };
-function feladat(x) {
+function feladatResz(x) {
   const items = [], seen = new Set();
   for (let guard = 0; items.length < x.n && guard < x.n * 25; guard++) {
     let it; try { it = H.feladatKeszit(x.ch, x.g); } catch (e) { break; }
@@ -167,14 +194,25 @@ function feladat(x) {
   let utasitas = '';
   const e0 = items.length ? elsoP(items[0].kerdes) : null;
   if (e0 && items.every(i => elsoP(i.kerdes) === e0)) { utasitas = e0.replace(/^<p>|<\/p>$/g, ''); items.forEach(i => { i.kerdes = i.kerdes.replace(e0, '').trim(); }); }
-  // ha a generátor kevesebb különböző feladatot tudott adni, az alap pontozás arányosan csökken
-  const pont = DG.fp[x.ch.key + '|' + x.g] || items.length * DG.pont;
-  return { nev: x.ch.feladatok[x.g].nev || x.g, utasitas, items, pont, szint: x.ch.genSzint[x.g], ch: x.ch };
+  items.forEach(i => { i.rp = x.rp; });
+  return { nev: x.ch.feladatok[x.g].nev || x.g, utasitas, items, rp: x.rp, ch: x.ch };
+}
+/* Egy feladat egy vagy több típusból: a részfeladatok betűjele folytatólagos, mindegyiknél a saját pontja. */
+function feladat(tipusok) {
+  const reszek = tipusok.map(feladatResz).filter(r => r.items.length);
+  if (!reszek.length) return null;
+  let utasitas = '';
+  if (reszek.length === 1) utasitas = reszek[0].utasitas || H.esc(reszek[0].nev);
+  else if (reszek[0].utasitas && reszek.every(r => r.utasitas === reszek[0].utasitas)) utasitas = reszek[0].utasitas;
+  else reszek.forEach(r => { if (r.utasitas) r.items[0].elo = r.utasitas; });   // a típus saját utasítása az első részfeladata előtt
+  const items = [].concat(...reszek.map(r => r.items));
+  return { utasitas, items, pont: items.reduce((a, i) => a + i.rp, 0) };
 }
 function generalas(K) {
   const l = kivalasztott(K);
   if (!l.length) { H.toast('Előbb adj meg darabszámot legalább egy feladattípusnál.'); return; }
-  const valtozatok = Array.from({ length: DG.valt }, (_, v) => ({ betu: DG.valt > 1 ? CSOPORT[v] : '', feladatok: l.map(feladat).filter(f => f.items.length) }));
+  const cs = csoportosit(l);
+  const valtozatok = Array.from({ length: DG.valt }, (_, v) => ({ betu: DG.valt > 1 ? CSOPORT[v] : '', feladatok: cs.map(feladat).filter(Boolean) }));
   EREDMENY = { opt: Object.assign({}, DG), K, valtozatok };
   const out = $('#dgout');
   out.innerHTML = `<section class="blk"><h3>Előnézet</h3>
@@ -196,8 +234,8 @@ function nyomtatHtml(E) {
     return `<div class="dg-lap" data-v="${vi}">
       <div class="dg-fejlec"><div class="dg-cim">${H.esc(o.cim)}${V.betu ? ` <span class="dg-csop">${V.betu} csoport</span>` : ''}</div>
       ${o.nev ? '<div class="dg-nevsor"><span>Név: ______________________________</span><span>Osztály: ________</span><span>Dátum: ____________</span></div>' : ''}</div>
-      ${V.feladatok.map((f, fi) => `<div class="dg-f"><div class="dg-fcim" data-u="${vi}-${fi}"><b>${fi + 1}.</b> <span class="dg-ut">${f.utasitas || H.esc(f.nev)}</span><span class="dg-pont">…… / ${f.pont} pont</span></div>
-        ${f.items.map((it, ii) => `<div class="dg-r" data-k="${vi}-${fi}-${ii}"><span class="dg-betu">${f.items.length > 1 ? BETUK[ii] + ')' : ''}</span><div class="dg-rt">${it.kerdes}${valasztasHtml(it.valasz)}</div></div>${o.hely ? `<div class="dg-hely" style="height:${helyPx(o.hely)}px"></div>` : ''}`).join('')}</div>`).join('')}
+      ${V.feladatok.map((f, fi) => `<div class="dg-f"><div class="dg-fcim" data-u="${vi}-${fi}"><b>${fi + 1}.</b> <span class="dg-ut">${f.utasitas}</span><span class="dg-pont">…… / ${f.pont} pont</span></div>
+        ${f.items.map((it, ii) => `${it.elo ? `<div class="dg-elo" data-e="${vi}-${fi}-${ii}">${it.elo}</div>` : ''}<div class="dg-r" data-k="${vi}-${fi}-${ii}"><span class="dg-betu">${f.items.length > 1 ? BETUK[ii] + ')' : ''}</span><div class="dg-rt">${it.kerdes}${valasztasHtml(it.valasz)}</div>${f.items.length > 1 ? `<span class="dg-rpont">(${it.rp} p)</span>` : ''}</div>${o.hely ? `<div class="dg-hely" style="height:${helyPx(o.hely)}px"></div>` : ''}`).join('')}</div>`).join('')}
       ${o.ptab ? ponttablazat(V.feladatok, ossz).map(sorok => `<table class="dg-ptab">${sorok.map((r, ri) => `<tr>${r.map((c, ci) => ci === 0 ? `<th>${c}</th>` : ri === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>`).join('') : `<div class="dg-ossz">Összesen: …… / ${ossz} pont</div>`}
       ${o.jegy ? `<table class="dg-jegy"><tr><th>Jegy</th>${JEGYEK.map(j => `<td>${j}</td>`).join('')}</tr><tr><th>Pont</th>${hatarok(ossz, o).map(h => `<td>${h}</td>`).join('')}</tr></table>` : ''}
     </div>`;
@@ -270,11 +308,14 @@ async function docx() {
       const fr = await inline(fej, skala);
       B.push({ t: 'p', keepNext: true, before: 200, after: 80, tabs: [-TW], runs: [{ text: `${fi + 1}. `, b: true }, ...fr, { tab: true }, { text: `…… / ${f.pont} pont` }] });
       for (let ii = 0; ii < f.items.length; ii++) {
+        const eloEl = f.items[ii].elo && root.querySelector(`[data-e="${vi}-${fi}-${ii}"]`);
+        if (eloEl) B.push({ t: 'p', keepNext: true, before: 80, after: 40, indent: { left: 340 }, runs: (await inline(eloEl, skala)).map(r => Object.assign({ i: !r.img }, r)) });
         const el = root.querySelector(`[data-k="${vi}-${fi}-${ii}"] .dg-rt`);
         const bl = await blokkok(el, skala, { left: 567 }, true);
         const betu = f.items.length > 1 ? BETUK[ii] + ')' : '';
-        if (bl.length && bl[0].t === 'p' && betu) { bl[0].runs.unshift({ text: betu }, { tab: true }); bl[0].indent = { left: 567, hanging: 340 }; bl[0].tabs = [567]; }
-        else if (betu) bl.unshift({ t: 'p', runs: [{ text: betu }], indent: { left: 567, hanging: 340 } });
+        if (bl.length && bl[0].t === 'p' && betu) { bl[0].runs.unshift({ text: betu }, { tab: true }); bl[0].indent = { left: 567, hanging: 340 }; bl[0].tabs = [567, -TW]; }
+        else if (betu) bl.unshift({ t: 'p', runs: [{ text: betu }], indent: { left: 567, hanging: 340 }, tabs: [567, -TW] });
+        if (betu && bl.length) bl[0].runs.push({ tab: true }, { text: `(${f.items[ii].rp} p)`, color: '555555' });
         if (o.hely && bl.length) bl[bl.length - 1].after = [0, 600, 1300, 2300][o.hely];
         B.push(...bl);
       }
