@@ -1,5 +1,5 @@
 /*
- * 7. évfolyam – tananyag-leíró (Sokszínű matematika 7., Mozaik, 1–4. lecke)
+ * 7. évfolyam – tananyag-leíró (Sokszínű matematika 7., Mozaik, I. fejezet 1–10. lecke)
  * A fájl elején a 7.-es fejezetek közös segédfüggvényei vannak (window.M7), alatta a tananyag leírása.
  * A fejezetek SORRENDJE egyben a megnyitási sorrend is.
  */
@@ -54,7 +54,10 @@ function conv(p) {
   else { valasz = { ertekek: a.vals }; if (a.tol) valasz.tol = a.tol; if (a.form === 'dec') valasz.forma = 'tizedes'; if (a.form === 'frac') valasz.forma = 'tort'; }
   return { kerdes: p.q, valasz, formatum: p.fmt, tipp: p.hint, megoldas: p.sol };
 }
-function wrap(G) { const out = {}; for (const [id, g] of Object.entries(G)) out[id] = { nev: g.name, general() { return conv(g.make()); } }; return out; }
+function wrap(G) { const out = {}; for (const [id, g] of Object.entries(G)) { out[id] = { nev: g.name, general() { return conv(g.make()); } };
+  if (g.szint) out[id].szint = g.szint;            // pl. szint: 'emelt'
+  if (g.proba === false) out[id].proba = false; }  // ne kerüljön a próba-témazáróba
+  return out; }
 /* a 7.-es interaktív elemek stílusa (egyszer kerül be az oldalba) */
 if (!document.getElementById('m7-stilus')) { const st = document.createElement('style'); st.id = 'm7-stilus'; st.textContent = `
 .choices .btn{min-width:0}
@@ -75,14 +78,14 @@ window.M7 = { fsub, fmul, fdiv, fp, fmix, fmixp, ntp, fplain, fmixplain, finDen,
 Tananyag.kurzus({
   cim: 'Matek 7',
   alcim: '7. évfolyam · Sokszínű matematika 7. (Mozaik)',
-  jelek: 'a/b · 0,375 · 0,3̇ · x : y · p%',   // a fejléc fölötti jelsor (elhagyható)
+  jelek: 'a/b · 0,375 · 0,3̇ · x : y · p% · aⁿ',   // a fejléc fölötti jelsor (elhagyható)
   // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
   // joValaszCukorkahoz: 10,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
   // streakNapiMin: 1,         // napi sorozathoz ennyi új feladat kell aznap
   temakorok: [
     {
       id: 'rac',
-      cim: 'Racionális számok, arányosság, százalék',
+      cim: 'Természetes számok, racionális számok',
       mappa: 'racionalis-arany-szazalek',
       cukorkaNyitashoz: 3,          // ennyi cukorkába kerül egy fejezet; elhagyható (akkor az évfolyam / config.js értéke)
       proba: { feladatszam: 12 },   // próba-témazáró: ennyi feladat; nyitási ára: proba: { feladatszam: 12, cukorka: 2 }
@@ -93,7 +96,14 @@ Tananyag.kurzus({
         '03-muveletek.js',
         '04-sorrend.js',
         '05-aranyossag.js',
-        '06-szazalek.js'
+        '06-szazalek.js',
+        '07-kamat.js',
+        '08-hatvanyozas.js',
+        '09-azonos-alap.js',
+        '10-azonos-kitevo.js',
+        '11-oszthatosag-prim.js',
+        '12-lnko-lkkt.js',
+        '13-normalalak.js'
       ]
     }
   ]
