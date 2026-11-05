@@ -43,7 +43,7 @@ felhasznalok_minta.xlsx    minta a felhasználói listához
    - Csak az léphet be, aki ezen a lapon szerepel. Ha valakit törölsz, vagy megváltoztatod a jelszavát, azonnal kijelentkezik.
    - Több „Felhasználók…” kezdetű lap is lehet, például „Felhasználók 11.A” vagy „Felhasználók 11.B”.
    - A Tananyag oszlopba több évfolyam is írható vesszővel, például `11, 10`. Az első a diák saját anyaga, ez nyílik meg alapból. A többit a kezdőlapon választhatja ki gyakorláshoz. Minden évfolyam haladása (cukorka, nyitott fejezetek) külön számít, a napi sorozat közös.
-   - A tanárok **minden csoportot** látnak a Tanári felületen (a Csoport oszlopuk nem számít). A tanár Tananyag oszlopa adja meg, mely évfolyamokból készíthet dolgozatot.
+   - A tanár **csak a saját csoportjait** látja: a Csoport oszlopába a csoportjai kerülnek vesszővel elválasztva, például `11.A, 11.B`. `*` = minden csoport (pl. munkaközösség-vezetőnek). Üres Csoport oszloppal a tanár egy csoportot sem lát. A tanár Tananyag oszlopa adja meg, mely évfolyamokból készíthet dolgozatot.
    - A **Matek gyakorló → Felhasználók ellenőrzése** menüpont összesíti, hány diák van csoportonként, és kinek hiányzik a jelszava.
 3. **Webalkalmazás.** Válaszd a **Telepítés → Új telepítés → Webalkalmazás** lehetőséget, ezekkel a beállításokkal:
    - Végrehajtás mint: **Én**

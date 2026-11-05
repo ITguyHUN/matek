@@ -368,7 +368,7 @@ function renderAcct() {
   if (!ENDPOINT || !sess) { el.hidden = true; return; }
   el.hidden = false;
   const lab = { pending: ['mentés…', ''], saving: ['mentés…', ''], saved: ['mentve', 'ok'], error: ['nincs kapcsolat, később újrapróbálom', 'err'], local: ['', ''] }[syncState] || ['', ''];
-  const grp = isTeacher() ? (!profile.group || profile.group.trim() === '*' ? 'minden csoport' : profile.group) : profile.group;
+  const grp = isTeacher() ? (!profile.group || !profile.group.trim() ? 'nincs csoportja' : profile.group.trim() === '*' ? 'minden csoport' : profile.group) : profile.group;
   el.innerHTML = `<span><b>${esc(profile.name)}</b>${grp ? ' · ' + esc(grp) : ''}</span>${lab[0] && !isTeacher() ? `<span class="sync ${lab[1]}">${lab[0]}</span>` : ''}<button class="linkbtn" id="logout">Kijelentkezés</button>`;
   $('#logout').onclick = logoutClick;
 }
@@ -1061,6 +1061,11 @@ function tCtx() {
 }
 function drawTeacher() {
   const d = TV.data, t = tMod();
+  if (!d.groups || !d.groups.length) {
+    $('#tctrl').innerHTML = '';
+    $('#tbody').innerHTML = '<p>Nincs hozzád rendelt csoport. A táblázat Felhasználók lapján a saját sorod <b>Csoport</b> oszlopába írd be a csoportjaidat vesszővel elválasztva (pl. <code>11.A, 11.B</code>), vagy <code>*</code>-ot, ha minden csoportot látnod kell.</p>';
+    return;
+  }
   $('#tctrl').innerHTML = `<label for="tg">Csoport<select id="tg">${d.groups.map(g => `<option ${g === TV.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></label>
     ${(d.courses || []).length > 1 ? `<label for="tk">Tananyag<select id="tk">${d.courses.map(c => `<option value="${esc(c)}" ${c === TV.courseId ? 'selected' : ''}>${esc(c)}. évfolyam</option>`).join('')}</select></label>` : ''}
     <label for="tm">Témakör<select id="tm">${TV.course.temakorok.map(x => `<option value="${esc(x.id)}" ${x.id === TV.mod ? 'selected' : ''}>${esc(x.cim)}</option>`).join('')}</select></label>

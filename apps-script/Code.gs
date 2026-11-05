@@ -422,7 +422,10 @@ function lathatoCsoportok_(u, users) {
   const mind = {};
   Object.keys(users).forEach(function (k) { const x = users[k]; if (x.role === 'diak' && x.group) mind[x.group] = true; });
   const all = Object.keys(mind).sort();
-  return all;   // a tanárok minden csoportot látnak
+  // a tanár csak a saját csoportjait látja (Felhasználók lap → Csoport oszlop); „*” = minden csoport
+  const sajat = csoportLista_(u.group);
+  if (sajat.indexOf('*') >= 0) return all;
+  return all.filter(function (g) { return sajat.some(function (s) { return egyezik_(s, g); }); });
 }
 function tanarAttekintes_(u, d) {
   const users = felhasznalok_();
