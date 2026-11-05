@@ -1,6 +1,6 @@
 /*
  * 2. fejezet – Összehasonlítás, számegyenes
- * Témakör: Racionális számok, arányosság, százalék (7. évfolyam, TK 1. lecke)
+ * Témakör: Természetes számok, racionális számok (7. évfolyam, TK 1. lecke)
  * A fájl szerkezetét lásd: tananyag/README.md. A közös segédfüggvények a 7/kurzus.js elején vannak (M7).
  */
 (function () {
@@ -97,6 +97,65 @@
     read();
   }
 
+  /* ---- Bővítés (2026. november): további feladattípusok ---- */
+
+  G.tavolsag = { ch: 'rend', name: 'Két szám távolsága', make() {
+    const t = R(0, 2); let a, b, A, B;
+    if (t === 0) { a = R(-15, 15); do { b = R(-15, 15); } while (b === a); A = String(a); B = String(b); }
+    else if (t === 1) { a = R(-60, 60) / 10; do { b = R(-60, 60) / 10; } while (b === a || Number.isInteger(a) && Number.isInteger(b)); A = nt(a); B = nt(b); }
+    else { const d = P([2, 3, 4, 5, 6]); fa = F(R(-3 * d, 3 * d), d); do { fb = F(R(-3 * d, 3 * d), d); } while (fb.n * fa.d === fa.n * fb.d); a = fv(fa); b = fv(fb); A = ft(fa); B = ft(fb); }
+    const dist = Math.abs(a - b); const dF = t === 2 ? (a > b ? fsub(fa, fb) : fsub(fb, fa)) : null;
+    const ctx = R(0, 2) === 0 && t < 2 ? `<p>Egy téli napon reggel ${hu(a)} °C, délután ${hu(b)} °C volt. Hány fokkal ${b > a ? 'emelkedett' : 'csökkent'} a hőmérséklet?</p>` : null;
+    return { q: ctx || T`<p>Milyen messze van egymástól a számegyenesen a két szám?</p>\[${A}\quad\text{és}\quad ${B}\]`, ans: { vals: [t === 2 ? fv(dF) : +dist.toFixed(9)] }, ansText: t === 2 ? fplain(dF) : hu(+dist.toFixed(6)), fmt: t === 2 ? FMT.frac : 'szám',
+      hint: 'A távolság a nagyobb és a kisebb szám különbsége. Ha az egyik negatív, a másik pozitív, a két szám 0-tól mért távolságát összeadjuk.',
+      sol: [T`Nagyobb mínusz kisebb: \(${a > b ? A : B}-${(a > b ? b : a) < 0 ? T`\left(${a > b ? B : A}\right)` : (a > b ? B : A)}=${t === 2 ? ft(dF) : nt(+dist.toFixed(6))}\).`] };
+  } };
+
+  G.felezo = { ch: 'rend', name: 'Felezőpont (két szám átlaga)', make() {
+    const t = R(0, 1); let fa, fb;
+    if (t === 0) { const d = P([1, 2, 10]); fa = F(R(-40, 40), d); do { fb = F(R(-40, 40), d); } while (fb.n === fa.n); }
+    else { fa = smallFrac(8); do { fb = smallFrac(8); } while (fv(fa) === fv(fb)); }
+    const m = F(fa.n * fb.d + fb.n * fa.d, 2 * fa.d * fb.d);
+    const sh = f => t === 0 && f.d > 1 ? nt(fv(f)) : ft(f);
+    return { q: T`<p>Melyik szám van a számegyenesen pontosan középen a két szám között?</p>\[${sh(fa)}\quad\text{és}\quad ${sh(fb)}\]`, ans: { vals: [fv(m)] }, ansText: fplain(m), fmt: FMT.frac,
+      hint: 'A felezőpont a két szám átlaga: add össze őket, és oszd el 2-vel!',
+      sol: [T`\[\frac{${sh(fa)}+${fb.n < 0 ? T`\left(${sh(fb)}\right)` : sh(fb)}}{2}=\frac{${ft(fadd(fa, fb))}}{2}=${ft(m)}${finDen(m.d) && m.d > 1 ? '=' + nt(fv(m)) : ''}\]`] };
+  } };
+
+  G.abszolut = { ch: 'rend', name: 'Abszolút érték', make() {
+    const t = R(0, 2);
+    if (t === 0) { const a = P([R(1, 12), R(1, 40) / 10, R(1, 9) + 0.5]); const A = nt(a);
+      return { q: T`<p>Mely számokra igaz? Add meg az összeset, pontosvesszővel elválasztva!</p>\[|x|=${A}\]`, ans: { vals: [a, -a] }, ansText: `${hu(a)}; ${hu(-a)}`, fmt: 'egy vagy több szám, pl. 3; −3',
+        hint: 'Melyik számok vannak a 0-tól pontosan ekkora távolságra? Két irányba is mehetsz!', sol: [T`A 0-tól \(${A}\) távolságra két szám van: \(x=${A}\) és \(x=-${A}\).`] }; }
+    if (t === 1) { const a = P([R(2, 9) + 0.5, R(2, 9) + 0.3, R(2, 9) + 0.7, R(2, 9)]); const strict = R(0, 1) === 1; const k = Number.isInteger(a) && strict ? a - 1 : Math.floor(a); const cnt = 2 * k + 1;
+      return { q: T`<p>Hány olyan egész szám van, amelyre igaz?</p>\[|x|${strict ? '<' : T`\le`}${nt(a)}\]`, ans: { vals: [cnt] }, ansText: String(cnt), fmt: 'egész szám',
+        hint: 'A 0-tól legfeljebb ekkora távolságra lévő egészeket keresed – a pozitívakat, a negatívakat és a 0-t is számold!',
+        sol: [T`A megfelelő egészek: \(-${k},\ldots,-1,0,1,\ldots,${k}\).`, T`Ez \(${k}+${k}+1=${cnt}\) darab.`] }; }
+    const a = R(-9, 9) || 4, b = R(-9, 9) || -3; const op = P(['+', '-', T`\cdot`]); const v = op === '+' ? Math.abs(a) + Math.abs(b) : op === '-' ? Math.abs(a) - Math.abs(b) : Math.abs(a) * Math.abs(b);
+    return { q: T`<p>Számítsd ki!</p>\[|${a}|${op}|${b}|\]`, ans: { vals: [v] }, ansText: hu(v), fmt: 'egész szám',
+      hint: 'Előbb az abszolút értékeket számold ki (ezek sosem negatívak), utána végezd el a műveletet!', sol: [T`\(|${a}|=${Math.abs(a)}\), \(|${b}|=${Math.abs(b)}\).`, T`\(${Math.abs(a)}${op}${Math.abs(b)}=${v}\)`] };
+  } };
+
+  G.kerekit = { ch: 'rend', name: 'Kerekítés', make() {
+    const hely = R(0, 2); const nev = ['egészekre', 'tizedekre', 'századokra'][hely];
+    const t = R(0, 2); let x, X, sol0;
+    if (t === 0) { const d = P([3, 6, 7, 9, 11, 12, 13, 14]); let n; do { n = R(1, 5 * d); } while (n % d === 0); const f = F(R(0, 3) ? n : -n, d); x = fv(f); X = ft(f); sol0 = T`\(${X}=${decLong(f).replace('−', '-').replace(/,/g, '{,}')}\)`; }
+    else { x = (R(0, 3) ? 1 : -1) * R(1, 99999) / 1000; X = nt(x); sol0 = null; }
+    const m = 10 ** hely; const r = Math.sign(x) * Math.round(Math.abs(x) * m + 1e-9) / m;
+    return { q: T`<p>Kerekítsd ${nev}!</p>\[${X}\]`, ans: { vals: [r], form: hely > 0 ? 'dec' : undefined }, ansText: hu(r), fmt: hely ? 'tizedes tört' : 'egész szám',
+      hint: 'Nézd meg a kerekítés helye utáni első jegyet: ha 5 vagy nagyobb, felfelé kerekítünk (negatív számnál a 0-tól távolodva), különben lefelé.',
+      sol: [sol0, T`${['A tizedek', 'A századok', 'Az ezredek'][hely]} helyén álló jegy dönt: \(${X}\approx${nt(r)}\).`].filter(Boolean) };
+  } };
+
+  G.sorba = { ch: 'rend', name: 'Hányadik a sorban?', make() {
+    let fs; do { fs = [randRat(), randRat(), randRat(), randRat(), randRat()]; } while (new Set(fs.map(fv)).size < 5);
+    const st = fs.map((f, i) => showRat(f, i % 3)); const k = R(0, 4); const asc = R(0, 1) === 1;
+    const sorted = fs.map((f, i) => i).sort((i, j) => asc ? fv(fs[i]) - fv(fs[j]) : fv(fs[j]) - fv(fs[i])); const pos = sorted.indexOf(k) + 1;
+    return { q: T`<p>Ha ${asc ? 'növekvő' : 'csökkenő'} sorrendbe rendezzük a számokat, hányadik helyre kerül a \(${st[k].tex}\)?</p>\[${st.map(s => s.tex).join(T`;\quad `)}\]`, ans: { vals: [pos] }, ansText: String(pos), fmt: 'egész szám (1–5)',
+      hint: 'Írd át mindegyiket tizedes tört alakba, és így hasonlítsd össze őket!',
+      sol: [T`Tizedes tört alakban: ${fs.map((f, i) => T`\(${st[i].tex}${finDen(f.d) ? '=' : T`\approx`}${decApprox(f)}\)`).join(', ')}.`, T`${asc ? 'Növekvő' : 'Csökkenő'} sorrend: \(${sorted.map(i => st[i].tex).join(asc ? '<' : '>')}\)`, T`A \(${st[k].tex}\) a <b>${pos}.</b> helyen áll.`] };
+  } };
+
   Tananyag.fejezet({
     id: 'rend',
     cim: 'Összehasonlítás, számegyenes',
@@ -109,13 +168,22 @@
 <p><b>Két szám között mindig van újabb racionális szám</b>, például a két szám átlaga:</p></div>
 <div class="mathbox">\[\frac23<\frac{\frac23+\frac34}{2}=\frac{17}{24}<\frac34\]</div>
 <div class="prose"><p>Ezért két racionális szám között <b>végtelen sok</b> racionális szám van. Egész számokból viszont csak véges sok: \(-\frac73\) és \(\frac{11}{4}\) között a \(-2,-1,0,1,2\) – öt darab.</p>
-<p><b>Ellentett</b>: a 0-ra tükrözött szám (\(\frac23\) ellentettje \(-\frac23\)). <b>Abszolút érték</b>: a szám távolsága a 0-tól (\(|-1{,}5|=1{,}5\)).</p></div>`,
+<p><b>Ellentett</b>: a 0-ra tükrözött szám (\(\frac23\) ellentettje \(-\frac23\)). <b>Abszolút érték</b>: a szám távolsága a 0-tól (\(|-1{,}5|=1{,}5\)).</p></div>
+<div class="prose"><p><b>Két szám távolsága</b> a számegyenesen a nagyobb és a kisebb különbsége: \(-3\) és \(5\) távolsága \(5-(-3)=8\). A két szám <b>felezőpontja</b> az átlaguk: \(\frac{-3+5}{2}=1\).</p>
+<p><b>Abszolút érték:</b> \(|x|=4\) két számra igaz: \(4\) és \(-4\). \(|x|<2{,}5\) egészekre: \(-2,-1,0,1,2\).</p>
+<p><b>Kerekítés:</b> a kerekítés helye utáni jegy dönt (0–4 lefelé, 5–9 felfelé): \(3{,}146\approx3{,}15\) (századokra), \(\frac23=0{,}666\ldots\approx0{,}7\) (tizedekre).</p></div>`,
     igazHamis: [
       { allitas: T`\(-\frac12<-\frac13\)`, igaz: true, miert: T`\(-0{,}5<-0{,}333\ldots\): a \(-\frac12\) van messzebb a 0-tól, ezért kisebb.` },
       { allitas: T`\(\frac23<0{,}67\)`, igaz: true, miert: T`\(\frac23=0{,}666\ldots\), és a századok helyén \(6<7\).` },
       { allitas: T`\(\frac14\) és \(\frac13\) között nincs racionális szám, mert a nevezők szomszédos számok.`, igaz: false, miert: T`Például \(0{,}3\) vagy az átlaguk, \(\frac{7}{24}\) is közéjük esik. Két racionális szám között végtelen sok van.` },
       { allitas: T`\(-0{,}7>-0{,}65\)`, igaz: false, miert: T`\(-0{,}7\) messzebb van a 0-tól, ezért kisebb: \(-0{,}7<-0{,}65\).` },
-      { allitas: T`Ha \(a>b>0\), akkor \(\frac1a<\frac1b\).`, igaz: true, miert: T`Pozitív számoknál a nagyobb szám reciproka a kisebb: pl. \(4>2\), de \(\frac14<\frac12\).` }
+      { allitas: T`Ha \(a>b>0\), akkor \(\frac1a<\frac1b\).`, igaz: true, miert: T`Pozitív számoknál a nagyobb szám reciproka a kisebb: pl. \(4>2\), de \(\frac14<\frac12\).` },
+      { allitas: T`\(|-7|=-7\)`, igaz: false, miert: T`Az abszolút érték távolság, nem lehet negatív: \(|-7|=7\).` },
+      { allitas: T`A \(-2\) és a \(3\) távolsága a számegyenesen 5.`, igaz: true, miert: T`\(3-(-2)=5\).` },
+      { allitas: T`\(0{,}649\) tizedekre kerekítve \(0{,}7\).`, igaz: false, miert: T`A századok helyén 4 áll, ezért lefelé kerekítünk: \(0{,}6\). (Nem lépcsőzetesen kerekítünk!)` },
+      { allitas: T`Ha \(|a|=|b|\), akkor \(a=b\).`, igaz: false, miert: T`Ellenpélda: \(|3|=|-3|\), de \(3\ne-3\).` },
+      { allitas: T`Minden negatív szám kisebb a reciprokánál.`, igaz: false, miert: T`Ellenpélda: \(-\frac12<-2\)? Nem: \(-\frac12>-2\). A \(-\frac12\) nagyobb a reciprokánál.`, szint: 'emelt' },
+      { general() { const a = R(-9, 9), b = R(-9, 9); return { allitas: T`\(${a}\) és \(${b}\) közül a(z) \(${a}\) van közelebb a 0-hoz.`, igaz: Math.abs(a) < Math.abs(b), miert: T`\(|${a}|=${Math.abs(a)}\), \(|${b}|=${Math.abs(b)}\); ${Math.abs(a) === Math.abs(b) ? 'egyforma messze vannak.' : (Math.abs(a) < Math.abs(b) ? `a(z) ${a} van közelebb.` : `a(z) ${b} van közelebb.`)}` }; } }
     ],
     mintapelda: {
       feladat: T`Rendezzük növekvő sorrendbe: \(0{,}3;\ -\frac{7}{10};\ \frac38;\ -0{,}\dot{6};\ 0{,}\dot{6}\)`,
