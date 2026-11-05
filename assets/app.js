@@ -383,7 +383,7 @@ function renderToc(active) {
   }
   const hk = jatek() ? diakHazik() : [];
   if (hk.length) { const nyitott = hk.filter(h => !haziAllas(h).kesz).length;
-    h += `<a href="#hazi" class="tmenu hazimenu" ${String(active).startsWith('hazi') ? 'aria-current="page"' : ''}><span class="n">✍</span><span>Házi feladat</span><span class="p ${nyitott ? 'cur' : 'done'}">${nyitott ? nyitott : ICON.check}</span></a><div class="sep"></div>`; }
+    h += `<a href="#hazi" class="tmenu hazimenu" ${String(active).startsWith('hazi') ? 'aria-current="page"' : ''}><span class="n">✍</span><span>Házi feladat</span><span class="p ${hk.some(lejartHazi) ? 'hzpiros' : nyitott ? 'cur' : 'done'}">${nyitott ? nyitott : ICON.check}</span></a><div class="sep"></div>`; }
   h += `<a href="#start" ${active === 'start' ? 'aria-current="page"' : ''}><span class="n">◦</span><span>Kezdőlap</span><span></span></a>`;
   const tt = aktivTema();
   if (KS.length > 1) h += `<a href="#start" class="modsw" title="Évfolyam váltása a kezdőlapon"><span class="n">⇄</span><span>${esc(K.cim)}</span><span class="p">váltás</span></a>`;
@@ -935,15 +935,15 @@ function haziSav() {
   const nyitott = diakHazik().filter(h => !haziAllas(h).kesz);
   if (!nyitott.length || currentId() === 'start') return;
   const h = nyitott[0], a = haziAllas(h);
-  $('#main').insertAdjacentHTML('afterbegin', `<a class="hazisav" href="#hazi/${esc(h.id)}"><span class="hs-i">✍</span><span><b>Házi feladat: ${esc(h.cim)}</b> · ${a.van}/${a.kell} kész · határidő: ${esc(hataridoSzoveg(h.hatarido))}${nyitott.length > 1 ? ` · és még ${nyitott.length - 1}` : ''}</span><span class="hs-g">Megoldom →</span></a>`);
+  $('#main').insertAdjacentHTML('afterbegin', `<a class="hazisav${lejartHazi(h) ? ' lejart' : ''}" href="#hazi/${esc(h.id)}"><span class="hs-i">✍</span><span><b>Házi feladat: ${esc(h.cim)}</b> · ${a.van}/${a.kell} kész · határidő: ${esc(hataridoSzoveg(h.hatarido))}${nyitott.length > 1 ? ` · és még ${nyitott.length - 1}` : ''}</span><span class="hs-g">Megoldom →</span></a>`);
 }
 function haziKartyak() {
   const hk = jatek() ? diakHazik() : [];
   if (!hk.length) return '';
   return `<section class="blk hazik"><h3>Házi feladat <span class="tag">a tanárodtól</span></h3>${hk.map(h => { const a = haziAllas(h);
-    return `<a class="hazikartya${a.kesz ? ' kesz' : ''}" href="#hazi/${esc(h.id)}"><div class="hk-fej"><b>${esc(h.cim)}</b><span class="small">határidő: ${esc(hataridoSzoveg(h.hatarido))}</span></div>
+    return `<a class="hazikartya${a.kesz ? ' kesz' : lejartHazi(h) ? ' lejart' : ''}" href="#hazi/${esc(h.id)}"><div class="hk-fej"><b>${esc(h.cim)}</b><span class="small">határidő: ${esc(hataridoSzoveg(h.hatarido))}</span></div>
       <div class="hk-tetel">${a.tetel.map(t => `<span class="${t.van >= t.db ? 'ok' : ''}">${t.van >= t.db ? ICON.check + ' ' : ''}${esc(tetelNev(t))} ${t.van}/${t.db}</span>`).join('')}</div>
-      <div class="hk-lab">${a.kesz ? `${ICON.check} Kész${a.keszNap ? ` (${datumSzoveg(a.keszNap)})` : ''}` : `${a.van}/${a.kell} helyes megoldás · Megoldom →`}</div></a>`; }).join('')}
+      <div class="hk-lab">${a.kesz ? `${ICON.check} Teljesítve${a.keszNap ? ` (${datumSzoveg(a.keszNap)})` : ''}` : lejartHazi(h) ? `Lejárt, nincs kész: ${a.van}/${a.kell} · Befejezem →` : `${a.van}/${a.kell} helyes megoldás · Megoldom →`}</div></a>`; }).join('')}
     <p class="small">A házi feladat nem számít bele a cukorkába és a sorozatokba – itt a megadott számú helyes megoldás a cél.</p></section>`;
 }
 function renderHazi(hid) {
@@ -951,28 +951,46 @@ function renderHazi(hid) {
   if (!jatek()) { m.innerHTML = '<p>A házi feladatot bejelentkezett diákként látod.</p>'; return; }
   const h = diakHazik().find(x => x.id === hid);
   if (!h) { m.innerHTML = `<div class="eyebrow">Házi feladat</div><h2 class="ch">Házi feladatok</h2>${haziKartyak() || '<p>Most nincs kiadott házi feladat.</p>'}`; return; }
-  const rajz = () => {
+  const a0 = haziAllas(h);
+  /* Egy rész: amíg nincs kész, gyakorolható; ha kész, zöld és lezárt (a fejezetben lehet tovább gyakorolni). */
+  const reszHtml = (t, i) => {
+    const n = FEJ[t.k.split('|')[0]], kesz = t.van >= t.db;
+    const fej = `<h3>${esc(tetelNev(t))} <span class="tag">${n ? esc(n.ch.rovid) : esc(t.chCim || '')}</span> <span class="hz-db">${kesz ? ICON.check + ' ' : ''}${t.van}/${t.db}</span></h3>`;
+    if (!n) return fej + '<p class="err">Ez a feladattípus nem található a tananyagban.</p>';
+    if (kesz) return fej + `<div class="hz-kesz">${ICON.check} <b>Ez a rész kész.</b> Itt már nem kell tovább dolgoznod. ${chStatus(n.ch) !== 'locked' ? `<a href="${chHref(n.ch)}">Tovább gyakorolok a fejezetben →</a>` : ''}</div>`;
+    return fej + `<div class="practice" id="hzp${i}" hidden></div><button class="btn" data-hzny="${i}">Gyakorlás</button>`;
+  };
+  const fejlec = a => {
+    if (a.kesz) return `<div class="hz-allapot ok">${ICON.check} <b>Teljesítetted a házi feladatot!</b>${a.keszNap ? ` (${datumSzoveg(a.keszNap)}${h.hatarido && a.keszNap > h.hatarido ? ', a határidő után' : ''})` : ''}<br>
+      <span>A házi lezárult. A gyakorlást a fejezetekben folytathatod – ott a cukorka is gyűlik.</span> <a href="#start">Kezdőlap →</a></div>`;
+    if (lejartHazi(h)) return `<div class="hz-allapot no"><b>Lejárt a határidő (${datumSzoveg(h.hatarido)}), és még nem teljesítetted.</b><br><span>Most is befejezheted, de a tanárod késve beadottként látja. Eddig: ${a.van}/${a.kell} helyes megoldás.</span></div>`;
+    return `<div class="hz-allapot">${a.van}/${a.kell} helyes megoldás · határidő: ${esc(hataridoSzoveg(h.hatarido))}</div>`;
+  };
+  m.innerHTML = `<div class="eyebrow">Házi feladat</div><h2 class="ch">${esc(h.cim)}</h2>
+    <div id="hzo">${fejlec(a0)}</div>
+    ${a0.kesz ? '' : '<p class="small">Minden feladattípusból a megadott számú <b>helyes</b> megoldás kell. Csak a még meg nem oldott feladatok számítanak, és ha előtte megnézed a megoldást, az nem számít bele. A házi nem számít bele a cukorkába és a sorozatokba.</p>'}
+    <div class="hazi-oldal${a0.kesz ? ' kesz' : lejartHazi(h) ? ' lejart' : ''}" id="hzlap">${a0.tetel.map((t, i) => `<section class="blk hazi-resz${t.van >= t.db ? ' kesz' : lejartHazi(h) ? ' lejart' : ''}" id="hzs${i}">${reszHtml(t, i)}</section>`).join('')}</div>`;
+  /* megoldás után: a darabszám frissül; ha egy rész elkészült, rövid szünet után lezárul (a visszajelzés látszik addig) */
+  const frissit = () => {
     const a = haziAllas(h);
-    a.tetel.forEach((t, i) => { const el = $(`#hzt${i}`); if (el) el.innerHTML = `${t.van >= t.db ? ICON.check + ' ' : ''}${t.van}/${t.db}`; const sec = $(`#hzs${i}`); if (sec) sec.classList.toggle('kesz', t.van >= t.db); });
-    const o = $('#hzo'); if (o) o.innerHTML = a.kesz ? `${ICON.check} <b>Kész!</b> Minden részt megoldottál.` : `${a.van}/${a.kell} helyes megoldás`;
+    a.tetel.forEach((t, i) => {
+      const sec = $(`#hzs${i}`); if (!sec) return;
+      const db = sec.querySelector('.hz-db'); if (db) db.innerHTML = `${t.van >= t.db ? ICON.check + ' ' : ''}${t.van}/${t.db}`;
+      if (t.van >= t.db && !sec.classList.contains('kesz')) setTimeout(() => { sec.className = 'blk hazi-resz kesz'; sec.innerHTML = reszHtml(t, i); }, 1600);
+    });
+    if (a.kesz) setTimeout(() => { if (currentId() === 'hazi/' + h.id) renderHazi(h.id); }, 1700);
+    else $('#hzo').innerHTML = fejlec(a);
     renderToc(currentId());
   };
-  const a0 = haziAllas(h);
-  m.innerHTML = `<div class="eyebrow">Házi feladat · határidő: ${esc(hataridoSzoveg(h.hatarido))}</div><h2 class="ch">${esc(h.cim)}</h2>
-    <p class="lead" id="hzo"></p>
-    <p class="small">Minden feladattípusból a megadott számú <b>helyes</b> megoldás kell. Csak a még meg nem oldott feladatok számítanak, és ha előtte megnézed a megoldást, az nem számít bele. A házi nem számít bele a cukorkába és a sorozatokba.</p>
-    ${a0.tetel.map((t, i) => { const n = FEJ[t.k.split('|')[0]];
-      return `<section class="blk hazi-resz" id="hzs${i}"><h3>${esc(tetelNev(t))} <span class="tag">${n ? esc(n.ch.rovid) : esc(t.chCim || '')}</span> <span class="hz-db" id="hzt${i}"></span></h3>
-        ${n ? `<div class="practice" id="hzp${i}" hidden></div><button class="btn" data-hzny="${i}">Gyakorlás</button>` : '<p class="err">Ez a feladattípus nem található a tananyagban.</p>'}</section>`; }).join('')}`;
-  rajz();
   m.onclick = e => {
     const b = e.target.closest('[data-hzny]'); if (!b) return;
     const i = +b.dataset.hzny, t = a0.tetel[i], n = FEJ[t.k.split('|')[0]], box = $(`#hzp${i}`);
     b.remove(); box.hidden = false;
-    makePractice(box, n.ch, { id: 'hz' + i, gens: [t.k.split('|')[1]], emeltResz: false, hazi: h.id, frissit: rajz });
+    makePractice(box, n.ch, { id: 'hz' + i, gens: [t.k.split('|')[1]], emeltResz: false, hazi: h.id, frissit });
     typeset(box);
   };
 }
+const lejartHazi = h => !!h.hatarido && dayKey() > h.hatarido && !haziAllas(h).kesz;
 /* Tanári felület – Házi feladat fül */
 function tanarHazi(v) {
   const d = TV.data, K0 = TV.course, hk = (d.hazik || []).filter(h => h.kurzus === K0.id);
@@ -980,7 +998,7 @@ function tanarHazi(v) {
   const tabla = h => { const tet = h.tetel || [];
     return `<div class="tbl"><table class="hzt"><thead><tr><th>Név</th>${tet.map(t => `<th title="${esc(t.chCim || '')}">${esc(tetelNev(t))}<br><span class="small">${t.db} db</span></th>`).join('')}<th>Állapot</th></tr></thead><tbody>
       ${d.students.map(s => { const a = haziAllas(h, Szabalyok.normal(s.state));
-        const allapot = a.kesz ? (h.hatarido && a.keszNap > h.hatarido ? `<span class="hz-keso">kész, késve (${datumSzoveg(a.keszNap)})</span>` : `<span class="hz-ok">${ICON.check} kész (${datumSzoveg(a.keszNap)})</span>`) : `${a.van}/${a.kell}`;
+        const allapot = a.kesz ? (h.hatarido && a.keszNap > h.hatarido ? `<span class="hz-keso">kész, késve (${datumSzoveg(a.keszNap)})</span>` : `<span class="hz-ok">${ICON.check} kész (${datumSzoveg(a.keszNap)})</span>`) : h.hatarido && dayKey() > h.hatarido ? `<span class="hz-nincs">nincs kész: ${a.van}/${a.kell}</span>` : `${a.van}/${a.kell}`;
         return `<tr><td><b>${esc(s.name)}</b></td>${a.tetel.map(t => `<td class="num ${t.van >= t.db ? 'hz-ok' : ''}">${t.van}/${t.db}</td>`).join('')}<td>${allapot}</td></tr>`; }).join('')}</tbody></table></div>`; };
   v.innerHTML = `${hk.length ? hk.map(h => `<div class="hzkiadott"><div class="row"><b>${esc(h.cim)}</b><span class="small">határidő: ${esc(hataridoSzoveg(h.hatarido))} · kiadta: ${esc(h.letrehozta || '')}</span><button class="btn sm ghost" data-hztorol="${esc(h.id)}">Törlés</button></div>${tabla(h)}</div>`).join('') : '<p>Ennek a csoportnak ebben a tananyagban nincs kiadott házi feladata.</p>'}
     <section class="blk"><h3>Új házi feladat</h3>
