@@ -16,7 +16,7 @@ window.BEALLITAS = {
 
   // ALAPÉRTÉKEK – mindhárom felülírható évfolyamonként a tananyag/<évfolyam>/kurzus.js-ben.
 
-  // Ennyi egymás utáni jó megoldás (új feladat, a legutolsó nyitott fejezetben) ér 1 cukorkát.
+  // Egy cukorkához a legutolsó nyitott fejezet MINDEN feladattípusából ennyi jó megoldás (új feladat) kell.
   // (kurzus.js: joValaszCukorkahoz)
   joValaszCukorkahoz: 10,
 
@@ -34,5 +34,5 @@ window.BEALLITAS = {
 
   // Ha bármelyik tananyagfájlt módosítod, írd át ezt (pl. a mai dátumra),
   // hogy a diákok böngészője biztosan az új változatot töltse le.
-  verzio: '2026-11-05'
+  verzio: '2026-11-05b'
 };

@@ -34,7 +34,7 @@ A `kurzus.js` `temakorok` listájához adj hozzá egy új elemet:
   proba: { feladatszam: 12 }, fejezetek: ['01-szogfuggvenyek.js', '02-…'] }
 ```
 
-Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott. A jó válaszok sorozata is témakörönként számolódik; a cukorkához szükséges darabszám témakörönként is megadható: `joValaszCukorkahoz: 8`.
+Minden témakörnek külön nyitási lánca van, és mindegyiknek az első fejezete nyitott. Egy cukorkához a legutolsó nyitott fejezet minden feladattípusából `joValaszCukorkahoz` jó megoldás kell; ez a szám témakörönként is megadható: `joValaszCukorkahoz: 8`.
 
 ## Cukorka és streak évfolyamonként, fejezetenként
 
@@ -132,7 +132,7 @@ Közép szintű csoportnál az **emelt fejezetek kimaradnak a nyitási láncból
 
 A csoport szintjét lehetőleg a témakör elején állítsd be: a nyitott fejezetek sorszáma a lánchoz igazodik, ezért menet közbeni váltásnál a diákok nyitott fejezetei eltolódhatnak. A feleletválasztós típusok eleve kimaradnak belőle.
 
-**Cukorka és streak.** Egy feladat attól számít „újnak”, hogy a kérdés szövege (`kerdes`) más, mint a korábban megoldottaké. Egy fejezet teljesítéséhez (ár × `joValaszCukorkahoz`) új feladat kell, például 3 × 10 = 30, ezért a fejezet feladattípusainak együtt bőven ennél több különböző feladatot kell tudniuk adni. Egy 3–4 változatos típus hamar „kifogy”.
+**Cukorka és streak.** Egy feladat attól számít „újnak”, hogy a kérdés szövege (`kerdes`) más, mint a korábban megoldottaké. Egy fejezet teljesítéséhez (ár × feladattípusok száma × `joValaszCukorkahoz`) új feladat kell, például 1 × 3 × 10 = 30, ezért a fejezet feladattípusainak együtt bőven ennél több különböző feladatot kell tudniuk adni. Egy 3–4 változatos típus hamar „kifogy”.
 
 ## Segédfüggvények (assets/mathlib.js)
 

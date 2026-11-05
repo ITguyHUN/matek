@@ -10,7 +10,7 @@ Tananyag.kurzus({
   jelek: 'aⁿ · ⁿ√a · logₐ b',
   // alapTemakor: 'hgl',   // melyik témakör legyen kiválasztva, amíg a diák nem választ mást (elhagyható)
   // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
-  // joValaszCukorkahoz: 10,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
+  // joValaszCukorkahoz: 10,   // egy cukorkához minden feladattípusból ennyi új jó megoldás kell (témakörnél is megadható)
   // cukorkaNyitashoz: 1,      // egy fejezet nyitási ára ebben az évfolyamban
   // streakNapiMin: 1,         // napi sorozathoz ennyi új feladat kell aznap
   temakorok: [

@@ -7,7 +7,11 @@
  *  - Jó-válasz-sorozat: a témakör LEGUTOLSÓ NYITOTT fejezetében minden olyan helyes megoldás számít,
  *    amelyet a tanuló korábban még nem oldott meg, és nem nézte meg előtte a megoldást.
  *    Hibás válasz vagy a megoldás megnézése (ebben a fejezetben) nullázza a sorozatot.
- *  - `kombo` (alapból 10) egymás utáni jó megoldás = 1 cukorka (témakörönkénti „pénztárcába”).
+ *  - Cukorka: a legutolsó nyitott fejezet MINDEN feladattípusából (ctx.tipusok[fejezet]) össze kell
+ *    gyűlnie `kombo` (alapból 10) jó megoldásnak; ekkor jár 1 cukorka (témakörönkénti „pénztárcába”),
+ *    és minden típus számlálója újraindul (egy típus számlálója legfeljebb `kombo`). Hibás válasz vagy a megoldás megnézése
+ *    csak annak a típusnak a számlálóját nullázza. (Ha a ctx nem adja meg a típusokat: egyetlen
+ *    közös számláló, a régi szabály szerint.)
  *  - A következő fejezetet a tanuló GOMBBAL nyitja meg ('nyitas' esemény), ha van elég cukorkája;
  *    a nyitás levonja az árát a pénztárcából. Az ár fejezetenként eltérhet (need[témakör][i] =
  *    az i. fejezetről továbblépés ára). Az utolsó fejezet után ugyanígy a próba-témazáró nyílik meg
@@ -15,7 +19,8 @@
  *  - Kulcsok: témakör = 'évfolyam/témakör' (pl. '11/hgl'), fejezet = 'évfolyam/fejezet' (pl. '11/hatvany'),
  *    így egy tanuló több évfolyam anyagát is gyakorolhatja ütközés nélkül.
  *  - Szintek: ha a csoport beállított szintje KÖZÉP (ctx.szint[évfolyam] = 'kozep'), az emelt szintű
- *    feladat (ev.emelt) helyes megoldása 2 jó válasznak számít; az első hibás válasz egy feladatra
+ *    feladat (ev.emelt) helyes megoldása 2 jó válasznak számít, és a leghátrébb álló kötelező
+ *    típus számlálójához adódik; az első hibás válasz egy feladatra
  *    még nem nullázza a sorozatot, csak a második (ugyanarra a feladatra), illetve a megoldás megnézése.
  *    Az emelt szintű fejezetek ilyenkor nem részei a nyitási láncnak: ctx.kieg[fejezet] = az a láncbeli
  *    fejezet, amelyhez tartoznak; akkor gyűlik bennük cukorka, ha az a legutolsó nyitott fejezet.
@@ -26,11 +31,11 @@
  * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index},
  *         need: {temakorId: db | [db, …]}   (tömb: i. elem = az i. fejezet utáni nyitás ára),
  *         kombo: db | {évfolyam: db, 'évfolyam/témakör': db}, streakMin: db | {évfolyam: db}, szint: {évfolyam: 'kozep'|'emelt'},
- *         kieg: {fejezetId: láncbeli fejezetId}, today: 'ÉÉÉÉ-HH-NN' }
+ *         kieg: {fejezetId: láncbeli fejezetId}, tipusok: {fejezetId: [feladattípus, …]}, today: 'ÉÉÉÉ-HH-NN' }
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {},
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {}, tc: {},
              streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, napi: {}, fagy: '' }, candy: 0, seen: [] };
   }
 
@@ -54,6 +59,10 @@ var Szabalyok = (function () {
     }
     ['purse', 'combo'].forEach(function (f) {
       if (s[f] && typeof s[f] === 'object') Object.keys(s[f]).forEach(function (k) { u[f][k] = egesz(s[f][k], 0, 1e6); });
+    });
+    if (s.tc && typeof s.tc === 'object') Object.keys(s.tc).slice(0, 100).forEach(function (m) {
+      var o = s.tc[m]; if (!o || typeof o !== 'object') return;
+      u.tc[m] = {}; Object.keys(o).slice(0, 60).forEach(function (g) { u.tc[m][String(g).slice(0, 60)] = egesz(o[g], 0, 1e6); });
     });
     if (s.hiba && typeof s.hiba === 'object') Object.keys(s.hiba).slice(0, 100).forEach(function (k) { u.hiba[k] = String(s.hiba[k]).slice(0, 20); });
     var st = s.streak || {};
@@ -117,7 +126,7 @@ var Szabalyok = (function () {
   function migral(st, kurzus) {
     if (st.v >= 3) return st;
     var p = function (o) { var n = {}; Object.keys(o || {}).forEach(function (k) { n[k.indexOf('/') >= 0 ? k : kurzus + '/' + k] = o[k]; }); return n; };
-    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo); st.hiba = {};
+    st.ch = p(st.ch); st.solved = p(st.solved); st.unlock = p(st.unlock); st.purse = p(st.purse); st.combo = p(st.combo); st.hiba = {}; st.tc = {};
     st.v = 3;
     return st;
   }
@@ -168,7 +177,7 @@ var Szabalyok = (function () {
       if (!kov || !kov.eleg || (kov.proba ? ev.ch !== 'proba' : ev.ch !== kov.ch)) return fx;
       st.unlock[ev.mod] = kov.idx;
       st.purse[ev.mod] = (st.purse[ev.mod] || 0) - kov.ar;
-      st.combo[ev.mod] = 0;
+      st.combo[ev.mod] = 0; st.tc[ev.mod] = {};
       if (kov.proba) fx.proba = true; else fx.nyitott = kov.ch;
       fx.ar = kov.ar;
       frissit(st, ctx);
@@ -178,16 +187,36 @@ var Szabalyok = (function () {
     var anchor = ctx.kieg && ctx.kieg[ev.ch];
     var frontban = f >= 0 && ((idx >= 0 && idx === f) || (idx < 0 && !!anchor && anchor === order[f]));
     var bonusz = !!ev.emelt && kozepSzint(ctx, ev.mod);
-    var nullaz = function () { if (frontban) { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; } delete st.hiba[ev.mod]; };
-    fx.kombo = st.combo[ev.mod] || 0;
-    if (ev.kind === 'megoldas') { nullaz(); fx.kombo = st.combo[ev.mod] || 0; return fx; }
+    var kb = kombo(ctx, ev.mod);
+    // típusonkénti számlálás: a legutolsó nyitott fejezet kötelező feladattípusai
+    var req = f >= 0 && ctx.tipusok && ctx.tipusok[order[f]];
+    req = Array.isArray(req) && req.length ? req : null;
+    var tc = req ? (st.tc[ev.mod] || (st.tc[ev.mod] = {})) : null;
+    var cel = null;   // melyik típus számlálója érintett
+    if (req && frontban) {
+      if (!bonusz && req.indexOf(ev.gen) >= 0) cel = ev.gen;
+      else { cel = req[0]; req.forEach(function (g) { if ((tc[g] || 0) < (tc[cel] || 0)) cel = g; }); }   // a leghátrébb álló típus
+    }
+    var allas = function () {
+      if (req) { fx.tipus = cel; fx.kombo = cel ? (tc[cel] || 0) : 0; fx.keszTipus = req.filter(function (g) { return (tc[g] || 0) >= kb; }).length; fx.osszTipus = req.length; }
+      else fx.kombo = st.combo[ev.mod] || 0;
+    };
+    var nullaz = function () {
+      if (frontban) {
+        if (req) { fx.nullazva = (tc[cel] || 0) > 0; tc[cel] = 0; }
+        else { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; }
+      }
+      delete st.hiba[ev.mod];
+    };
+    allas();
+    if (ev.kind === 'megoldas') { nullaz(); allas(); return fx; }
     var c = st.ch[ev.ch] || (st.ch[ev.ch] = { ok: 0, tried: 0, candy: 0 });
     c.tried++;
     if (!ev.ok) {
       // emelt feladat közép szinten: az első hibás válasz még nem nulláz (csak a második ugyanarra a feladatra)
       if (bonusz && frontban && st.hiba[ev.mod] !== ev.sig) { st.hiba[ev.mod] = ev.sig; fx.elsoHiba = true; }
       else nullaz();
-      fx.kombo = st.combo[ev.mod] || 0; return fx;
+      allas(); return fx;
     }
     delete st.hiba[ev.mod];
     c.ok++;
@@ -210,16 +239,19 @@ var Szabalyok = (function () {
       if (s.cur > s.best) s.best = s.cur;
       fx.streak = true;
     }
-    // jó-válasz-sorozat → cukorka
-    var kb = kombo(ctx, ev.mod);
+    // jó megoldások → cukorka
     fx.ertek = bonusz ? 2 : 1;   // emelt feladat közép szinten: 2 jó válasznak számít
-    st.combo[ev.mod] = (st.combo[ev.mod] || 0) + fx.ertek;
-    while (st.combo[ev.mod] >= kb) {
-      st.combo[ev.mod] -= kb;
-      c.candy++; st.candy++; st.purse[ev.mod] = (st.purse[ev.mod] || 0) + 1;
-      fx.cukorka = true; fx.cukorkaDb = (fx.cukorkaDb || 0) + 1;
+    var kap = function () { c.candy++; st.candy++; st.purse[ev.mod] = (st.purse[ev.mod] || 0) + 1; fx.cukorka = true; fx.cukorkaDb = (fx.cukorkaDb || 0) + 1; };
+    if (req) {
+      if ((tc[cel] || 0) >= kb) fx.tele = true;   // ebből a típusból már megvan a szükséges szám
+      tc[cel] = Math.min(kb, (tc[cel] || 0) + fx.ertek);   // egy típus számlálója legfeljebb kb (nem lehet előre gyűjteni)
+      // minden típusból megvan a szükséges szám → cukorka, és minden számláló újraindul
+      if (req.every(function (g) { return (tc[g] || 0) >= kb; })) { req.forEach(function (g) { tc[g] = 0; }); kap(); }
+    } else {
+      st.combo[ev.mod] = (st.combo[ev.mod] || 0) + fx.ertek;
+      while (st.combo[ev.mod] >= kb) { st.combo[ev.mod] -= kb; kap(); }
     }
-    fx.kombo = st.combo[ev.mod];
+    allas();
     // a fejezetnyitás nem automatikus: jelezzük, ha már van rá elég cukorka (a gombbal nyitható)
     var kv = kovetkezo(st, ctx, ev.mod);
     if (fx.cukorka && kv && kv.eleg) fx.nyithato = kv;

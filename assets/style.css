@@ -321,3 +321,14 @@ h2.ch .lvl{font-size:.8rem;vertical-align:.35em}
   body.dg-print .toasts{display:none}
   @page{size:A4;margin:16mm}
 }
+
+/* típusonkénti állás a fejezet tetején */
+.tipusok{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;margin:8px 0 6px}
+.tip{display:grid;grid-template-columns:minmax(0,1fr) 70px auto;gap:8px;align-items:center;font-size:.86rem}
+.tip .tn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tip .tb{height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+.tip .tb span{display:block;height:100%;background:var(--candy)}
+.tip .tv{font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.tip.ok .tn,.tip.ok .tv{color:var(--green);font-weight:600}
+.tip.ok .tb span{background:var(--green)}
+.tip .tn svg{width:12px;height:12px;vertical-align:-1px}

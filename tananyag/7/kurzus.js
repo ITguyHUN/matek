@@ -77,7 +77,7 @@ Tananyag.kurzus({
   alcim: '7. évfolyam · Sokszínű matematika 7. (Mozaik)',
   jelek: 'a/b · 0,375 · 0,3̇ · x : y · p%',   // a fejléc fölötti jelsor (elhagyható)
   // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
-  // joValaszCukorkahoz: 10,   // ennyi egymás utáni új jó megoldás ér 1 cukorkát
+  // joValaszCukorkahoz: 10,   // egy cukorkához minden feladattípusból ennyi új jó megoldás kell (témakörnél is megadható)
   // streakNapiMin: 1,         // napi sorozathoz ennyi új feladat kell aznap
   temakorok: [
     {
