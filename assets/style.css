@@ -223,6 +223,8 @@ nav.toc a .p.cur{color:var(--candy);font-weight:700}
 .tctrl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}
 .tctrl label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted)}
 select{font:inherit;font-size:.95rem;padding:7px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);max-width:100%}
+.tctrl input[type=text],.tctrl input[type=number]{font:inherit;font-size:.95rem;padding:7px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);max-width:100%}
+#dgc{width:min(320px,100%)}
 .ttbl table{min-width:640px}
 .ttbl td,.ttbl th{white-space:nowrap}
 .ttbl td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:.85rem}
@@ -269,3 +271,64 @@ nav.toc a.modsw .p{color:var(--pen);font-family:var(--f-body);font-size:.75rem;t
 h2.ch .lvl{font-size:.8rem;vertical-align:.35em}
 .blk h4.sub{margin:16px 0 8px;font-size:.95rem;display:flex;gap:8px;align-items:center}
 .emeltresz{border-top:2px dashed var(--line);padding-top:6px}
+
+/* tanári menü */
+.toc a.tmenu{font-weight:600}
+/* dolgozatkészítő */
+.dg-chk{margin-top:8px}
+.dg-chk .chk{flex-direction:row;align-items:center;gap:6px}
+.dg-tema{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0;background:var(--card)}
+.dg-tema summary{cursor:pointer;padding:4px 0}
+.dg-tzrow{margin:6px 0 10px;align-items:flex-end}
+.dg-fej{margin:10px 0 4px}
+.dg-fejcim{font-weight:600;margin-bottom:4px}
+.dg-tipus{display:flex;align-items:center;gap:8px;padding:3px 0 3px 12px;font-size:.95rem}
+.dg-tipus input{width:4.2em;font-family:var(--f-mono);padding:4px 6px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.dg-gombok{margin-bottom:6px}
+#dgnyomtat{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:8px 0;overflow-x:auto}
+#dgnyomtat .lvl{display:none}
+.dg-lap{padding:24px 28px;font-size:15px;line-height:1.45}
+.dg-lap + .dg-lap{border-top:2px dashed #bbb}
+.dg-cim{font-size:1.35rem;font-weight:800;margin-bottom:6px}
+.dg-csop{font-weight:600;font-size:1rem;border:1.5px solid #111;border-radius:4px;padding:1px 8px;margin-left:8px}
+.dg-nevsor{display:flex;flex-wrap:wrap;gap:6px 24px;margin:8px 0 16px}
+.dg-f{margin:14px 0 4px}
+.dg-fcim{break-after:avoid-page}
+.dg-r{break-inside:avoid-page}
+.dg-fcim{display:flex;gap:6px;align-items:baseline;margin-bottom:4px}
+.dg-fcim .dg-ut{flex:1}
+.dg-fcim .dg-ut p{display:inline;margin:0}
+.dg-pont{white-space:nowrap;color:#444}
+.dg-r{display:flex;gap:8px;padding-left:18px;margin:4px 0}
+.dg-betu{min-width:1.4em;font-weight:600}
+.dg-rt{flex:1;min-width:0}
+.dg-rt p{margin:2px 0}
+.dg-rt mjx-container[display="true"]{text-align:left !important;margin:.2em 0 !important}
+.dg-val span{display:inline-block;margin-right:22px}
+.dg-ossz{text-align:right;font-weight:700;margin-top:16px}
+.dg-jegy{border-collapse:collapse;margin:10px 0 0 auto;font-size:.9rem}
+.dg-jegy th,.dg-jegy td{border:1px solid #888;padding:3px 10px;text-align:center}
+.dg-kf{margin:6px 0}
+.dg-kv{margin-right:16px;display:inline-block}
+.dg-reszl{padding-left:18px;font-size:.92rem;color:#333}
+.dg-reszl p{margin:2px 0}
+@media print{
+  body.dg-print > *:not(#dgnyomtat){display:none !important}
+  body.dg-print{background:#fff !important}
+  body.dg-print #dgnyomtat{border:0;padding:0;overflow:visible}
+  body.dg-print .dg-lap{padding:0;font-size:11.5pt}
+  body.dg-print .dg-lap + .dg-lap{border-top:0;break-before:page}
+  body.dg-print .toasts{display:none}
+  @page{size:A4;margin:16mm}
+}
+
+/* típusonkénti állás a fejezet tetején */
+.tipusok{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;margin:8px 0 6px}
+.tip{display:grid;grid-template-columns:minmax(0,1fr) 70px auto;gap:8px;align-items:center;font-size:.86rem}
+.tip .tn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tip .tb{height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+.tip .tb span{display:block;height:100%;background:var(--candy)}
+.tip .tv{font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.tip.ok .tn,.tip.ok .tv{color:var(--green);font-weight:600}
+.tip.ok .tb span{background:var(--green)}
+.tip .tn svg{width:12px;height:12px;vertical-align:-1px}
