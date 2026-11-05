@@ -83,7 +83,9 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 - Évfolyamonként, témakörönként és fejezetenként felsorolja a feladattípusokat; mindegyiknél megadhatod, hány részfeladatot kérsz belőle.
 - Egy feladattípus egy számozott feladat lesz a), b), c)… részfeladatokkal. Ha minden részfeladat ugyanazzal az utasítással kezdődik, az a feladat fejlécébe kerül.
 - **Témazáró ebből a témakörből:** a témakör minden feladattípusát kitölti a megadott darabszámmal (a próba-témazáróból kizárt, `proba: false` típusok kivételével), igény szerint csak a közép szintűekkel.
-- Beállítható: cím, csoportok száma (A, B, C, D – mindegyik más feladatokat kap), hely a megoldásnak, pont/részfeladat, név-osztály-dátum sor, ponthatárok (85/70/55/40%), megoldókulcs (részletes megoldásokkal is).
+- **Pontozás:** minden feladatnál (feladattípusnál) megadható a feladat pontszáma; ha üresen marad, részfeladatok száma × alap pont/részfeladat. Ebből készül a **ponttáblázat** (Feladat / Max. pont / Elért pont, összesen).
+- **Ponthatárok:** az 5-ös, 4-es, 3-as, 2-es alsó határa megadható **százalékban** (alapból 85/70/55/40%) vagy **pontban**; váltáskor az értékek átszámolódnak. Az előnézet a pontsávokat is mutatja, és szól, ha a határok nem csökkenőek.
+- Beállítható még: cím, csoportok száma (A, B, C, D – mindegyik más feladatokat kap), hely a megoldásnak, név-osztály-dátum sor, megoldókulcs (részletes megoldásokkal is).
 - **Letöltés:** Word (.docx) – a képletek képként, a szöveg szerkeszthető; PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”.
 
 ## Táblázat lapjai
