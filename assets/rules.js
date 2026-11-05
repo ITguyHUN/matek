@@ -24,6 +24,11 @@
  *    még nem nullázza a sorozatot, csak a második (ugyanarra a feladatra), illetve a megoldás megnézése.
  *    Az emelt szintű fejezetek ilyenkor nem részei a nyitási láncnak: ctx.kieg[fejezet] = az a láncbeli
  *    fejezet, amelyhez tartoznak; akkor gyűlik bennük cukorka, ha az a legutolsó nyitott fejezet.
+ *  - Nyitási korlát: ctx.limit[témakör] = az a láncpozíció, ameddig a tanuló cukorkával nyithat
+ *    (a tanár állítja, hogy ne haladjon az óra elé); a csoportnyitás ettől függetlenül érvényes.
+ *  - Házi feladat ('hazi' esemény): csak a házi saját számlálóját növeli (st.hazi[azonosító]),
+ *    semmilyen gyűjthető dologba (cukorka, sorozat, napi sorozat, megoldott feladatok) nem számít bele.
+ *    ctx.hazi = { azonosító: { tetel: { 'fejezet|típus': db } } }
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
  *    old meg egy évfolyam legutolsó nyitott fejezetében (a `streakMin` évfolyamonként eltérhet). Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
@@ -35,7 +40,7 @@
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {}, tc: {},
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {}, tc: {}, hazi: {},
              streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, napi: {}, fagy: '' }, candy: 0, seen: [] };
   }
 
@@ -63,6 +68,13 @@ var Szabalyok = (function () {
     if (s.tc && typeof s.tc === 'object') Object.keys(s.tc).slice(0, 100).forEach(function (m) {
       var o = s.tc[m]; if (!o || typeof o !== 'object') return;
       u.tc[m] = {}; Object.keys(o).slice(0, 60).forEach(function (g) { u.tc[m][String(g).slice(0, 60)] = egesz(o[g], 0, 1e6); });
+    });
+    if (s.hazi && typeof s.hazi === 'object') Object.keys(s.hazi).slice(-15).forEach(function (h) {
+      var o = s.hazi[h]; if (!o || typeof o !== 'object') return;
+      // a kész házinál már nem kell a megoldott feladatok listája (kisebb marad a táblázatcella)
+      var x = { db: {}, s: Array.isArray(o.s) && !o.kesz ? o.s.map(String).slice(-200) : [], kesz: String(o.kesz || '') };
+      if (o.db && typeof o.db === 'object') Object.keys(o.db).slice(0, 60).forEach(function (k) { x.db[String(k).slice(0, 140)] = egesz(o.db[k], 0, 1000); });
+      u.hazi[String(h).slice(0, 40)] = x;
     });
     if (s.hiba && typeof s.hiba === 'object') Object.keys(s.hiba).slice(0, 100).forEach(function (k) { u.hiba[k] = String(s.hiba[k]).slice(0, 20); });
     var st = s.streak || {};
@@ -110,8 +122,9 @@ var Szabalyok = (function () {
     var order = (ctx.order && ctx.order[mod]) || [];
     var eff = szint(st, ctx, mod);
     if (!order.length || eff >= order.length) return null;
-    var a = ar(ctx, mod, eff);
-    return { idx: eff + 1, ar: a, eleg: (st.purse[mod] || 0) >= a, proba: eff + 1 >= order.length, ch: eff + 1 < order.length ? order[eff + 1] : '' };
+    var a = ar(ctx, mod, eff), lim = ctx.limit && ctx.limit[mod];
+    return { idx: eff + 1, ar: a, eleg: (st.purse[mod] || 0) >= a, proba: eff + 1 >= order.length, ch: eff + 1 < order.length ? order[eff + 1] : '',
+             korlat: lim != null && eff + 1 > lim };   // a tanár még nem engedi ennyire előre
   }
 
   /* A témakör legutolsó nyitott fejezetének sorszáma (0-tól). */
@@ -170,11 +183,12 @@ var Szabalyok = (function () {
       st.seen.push(ev.eid);
       if (st.seen.length > 300) st.seen.splice(0, st.seen.length - 300);
     }
+    if (ev.kind === 'hazi') return hazi(st, ev, ctx, fx);
     frissit(st, ctx);
     var order = (ctx.order && ctx.order[ev.mod]) || [];
     if (ev.kind === 'nyitas') {
       var kov = kovetkezo(st, ctx, ev.mod);
-      if (!kov || !kov.eleg || (kov.proba ? ev.ch !== 'proba' : ev.ch !== kov.ch)) return fx;
+      if (!kov || !kov.eleg || kov.korlat || (kov.proba ? ev.ch !== 'proba' : ev.ch !== kov.ch)) return fx;
       st.unlock[ev.mod] = kov.idx;
       st.purse[ev.mod] = (st.purse[ev.mod] || 0) - kov.ar;
       st.combo[ev.mod] = 0; st.tc[ev.mod] = {};
@@ -254,7 +268,26 @@ var Szabalyok = (function () {
     allas();
     // a fejezetnyitás nem automatikus: jelezzük, ha már van rá elég cukorka (a gombbal nyitható)
     var kv = kovetkezo(st, ctx, ev.mod);
-    if (fx.cukorka && kv && kv.eleg) fx.nyithato = kv;
+    if (fx.cukorka && kv && kv.eleg && !kv.korlat) fx.nyithato = kv;
+    return fx;
+  }
+
+  /* Házi feladat: csak a házi számlálója változik (új, segítség nélküli helyes megoldás típusonként). */
+  function hazi(st, ev, ctx, fx) {
+    fx.hazi = true;
+    var h = ctx.hazi && ctx.hazi[ev.hid];
+    if (!h || !h.tetel) return fx;
+    var k = ev.ch + '|' + ev.gen, kell = h.tetel[k];
+    if (!kell) return fx;
+    var x = st.hazi[ev.hid] || (st.hazi[ev.hid] = { db: {}, s: [], kesz: '' });
+    fx.haziDb = x.db[k] || 0; fx.haziKell = kell;
+    if (!ev.ok) return fx;
+    if (ev.helped) { fx.ok2 = 'segitseg'; return fx; }
+    if (x.s.indexOf(ev.sig) >= 0) { fx.ok2 = 'ismert'; return fx; }
+    x.s.push(ev.sig); if (x.s.length > 200) x.s.splice(0, x.s.length - 200);
+    x.db[k] = Math.min(kell, (x.db[k] || 0) + 1);
+    fx.haziDb = x.db[k]; fx.uj = true;
+    if (!x.kesz && Object.keys(h.tetel).every(function (t) { return (x.db[t] || 0) >= h.tetel[t]; })) { x.kesz = ev.day || ctx.today; x.s = []; fx.haziKesz = true; }
     return fx;
   }
 
