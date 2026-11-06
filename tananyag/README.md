@@ -64,6 +64,8 @@ Tananyag.kurzus({
 });
 ```
 
+**Macaron:** `macaronProbahoz` (a próba ára) és `macaronEmelthez` (emelt fejezet ára közép szintű csoportnál) évfolyam- és témakörszinten is megadható; a próbánál `proba: { feladatszam: 12, macaron: 3 }` is.
+
 A `joValaszCukorkahoz` a témakörnél is megadható (elsőbbség: témakör → évfolyam → `config.js`).
 
 Elsőbbség (nyitási ár): fejezet `cukorka` → témakör `cukorkaNyitashoz` → évfolyam `cukorkaNyitashoz` → `config.js`. A `cukorka: 0` is megengedett (ingyen nyitható, de a gombra kattintani akkor is kell).

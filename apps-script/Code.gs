@@ -18,7 +18,7 @@
  * Kódmódosítás után: Telepítés → Telepítések kezelése → szerkesztés → Új verzió (így az URL marad).
  */
 
-const LAP = { allapot: 'Állapot', megoldasok: 'Megoldások', probak: 'Próbák', nyitas: 'Csoportnyitás', szint: 'Csoportszint', korlat: 'Csoportkorlát', hazi: 'Házi feladatok' };
+const LAP = { allapot: 'Állapot', megoldasok: 'Megoldások', probak: 'Próbák', nyitas: 'Csoportnyitás', szint: 'Csoportszint', korlat: 'Csoportkorlát', hazi: 'Házi feladatok', proba: 'Próbabeállítás' };
 const FELH_ELOTAG = 'Felhasználók';
 const IDOZONA = 'Europe/Budapest';
 const MAX_HIBAS_BELEPES = 10;   // ennyi hibás jelszó után 15 percre zárol
@@ -26,7 +26,7 @@ const MAX_HIBAS_BELEPES = 10;   // ennyi hibás jelszó után 15 percre zárol
 const FEJLEC = {
   felhasznalok: ['Felhasználónév', 'Jelszó', 'Név', 'Csoport', 'Tananyag', 'Szerep'],
   allapot: ['Felhasználónév', 'Név', 'Csoport', 'Tananyag', 'Utolsó aktivitás', 'Cukorka', 'Összes cukorka', 'Napi sorozat', 'Legjobb sorozat',
-            'Helyes megoldások', 'Próbák száma', 'Utolsó próba (%)', 'adat'],
+            'Helyes megoldások', 'Próbák száma', 'Utolsó próba (%)', 'adat', 'Macaron', 'Házi sorozat'],
   megoldasok: ['Időpont', 'Felhasználónév', 'Név', 'Csoport', 'Témakör', 'Fejezet', 'Feladattípus', 'Feladat', 'Válasz',
                'Helyes válasz', 'Eredmény', 'Új feladat', 'Cukorka', 'fejezet_id', 'temakor_id', 'azonosító', 'Házi'],
   probak: ['Időpont', 'Felhasználónév', 'Név', 'Csoport', 'Témakör', 'Pont', 'Max', 'Százalék', 'Jegy',
@@ -34,7 +34,8 @@ const FEJLEC = {
   nyitas: ['Csoport', 'Tananyag', 'Témakör', 'Nyitva eddig (fejezet sorszáma)', 'Fejezet', 'Módosította', 'Időpont'],
   szint: ['Csoport', 'Tananyag', 'Szint', 'Módosította', 'Időpont'],
   korlat: ['Csoport', 'Tananyag', 'Témakör', 'Cukorkával nyitható legfeljebb (fejezet sorszáma)', 'Fejezet', 'Módosította', 'Időpont'],
-  hazi: ['azonosító', 'Csoport', 'Tananyag', 'Cím', 'Határidő', 'Feladatok', 'adat', 'Létrehozta', 'Időpont', 'Törölve']
+  hazi: ['azonosító', 'Csoport', 'Tananyag', 'Cím', 'Határidő', 'Feladatok', 'adat', 'Létrehozta', 'Időpont', 'Törölve'],
+  proba: ['Csoport', 'Tananyag', 'Témakör', 'Feladatok', 'adat', 'Módosította', 'Időpont']
 };
 
 /* ===================== Webes belépési pontok ===================== */
@@ -46,7 +47,7 @@ function doGet() {
 function doPost(e) {
   let d;
   try { d = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad' }); }
-  const ir = ['sync', 'tUnlock', 'tLevel', 'tLimit', 'tHazi'].indexOf(d.action) >= 0;
+  const ir = ['sync', 'tUnlock', 'tLevel', 'tLimit', 'tHazi', 'tProba'].indexOf(d.action) >= 0;
   const lock = ir ? LockService.getScriptLock() : null;
   if (lock && !lock.tryLock(25000)) return json_({ ok: false, error: 'busy' });
   try { return json_(kezel_(d)); }
@@ -67,6 +68,7 @@ function kezel_(d) {
     case 'tLevel': return u.role === 'tanar' ? tanarSzint_(u, d) : { ok: false, error: 'jog' };
     case 'tLimit': return u.role === 'tanar' ? tanarKorlat_(u, d) : { ok: false, error: 'jog' };
     case 'tHazi': return u.role === 'tanar' ? tanarHazi_(u, d) : { ok: false, error: 'jog' };
+    case 'tProba': return u.role === 'tanar' ? tanarProba_(u, d) : { ok: false, error: 'jog' };
   }
   return { ok: false, error: 'action' };
 }
@@ -142,12 +144,12 @@ function belepes_(d) {
   cache.remove(ck);
   const a = allapotOlvas_(u);
   return { ok: true, token: token_(u), profile: profil_(u), state: kliens_(a.state), groupUnlock: csoportNyitas_(u.group, u.courses), groupLevel: csoportSzint_(u.group, u.courses),
-    groupLimit: csoportKorlat_(u.group, u.courses), hazik: csoportHazik_(u.group, u.courses, false) };
+    groupLimit: csoportKorlat_(u.group, u.courses), hazik: csoportHazik_(u.group, u.courses, false), probaBeall: csoportProba_(u.group, u.courses) };
 }
 function betolt_(u) {
   const a = allapotOlvas_(u);
   return { ok: true, profile: profil_(u), state: kliens_(a.state), groupUnlock: csoportNyitas_(u.group, u.courses), groupLevel: csoportSzint_(u.group, u.courses),
-    groupLimit: csoportKorlat_(u.group, u.courses), hazik: csoportHazik_(u.group, u.courses, false) };
+    groupLimit: csoportKorlat_(u.group, u.courses), hazik: csoportHazik_(u.group, u.courses, false), probaBeall: csoportProba_(u.group, u.courses) };
 }
 
 /* ===================== Szinkronizálás ===================== */
@@ -168,6 +170,11 @@ function ctxTisztit_(c, gu, gl, gk, hazik) {
     return egesz_(v || def, 1, max);
   };
   /* emelt szintű (láncon kívüli) fejezet → láncbeli fejezet, amelyhez tartozik */
+  /* macaronárak: { témakör: { proba: db, emelt: db } } */
+  const macar = {};
+  if (c.macar && typeof c.macar === 'object') Object.keys(c.macar).slice(0, 50).forEach(function (m) {
+    const o = c.macar[m] || {}; macar[szoveg_(m, 60)] = { proba: egesz_(o.proba, 0, 100), emelt: egesz_(o.emelt, 0, 100) };
+  });
   const kieg = {};
   if (c.kieg && typeof c.kieg === 'object') Object.keys(c.kieg).slice(0, 300).forEach(function (k) { kieg[szoveg_(k, 80)] = szoveg_(c.kieg[k], 80); });
   /* fejezet → a cukorkához kötelező feladattípusok */
@@ -176,7 +183,7 @@ function ctxTisztit_(c, gu, gl, gk, hazik) {
     if (Array.isArray(c.tipusok[k])) tipusok[szoveg_(k, 80)] = c.tipusok[k].slice(0, 40).map(function (g) { return szoveg_(g, 60); });
   });
   return { order: order, need: need, kombo: evf(c.kombo, 10, 100), streakMin: evf(c.streakMin, 1, 50), groupUnlock: gu,
-           szint: gl || {}, kieg: kieg, tipusok: tipusok, limit: gk || {}, hazi: haziCtx_(hazik || []), today: ma_() };
+           szint: gl || {}, kieg: kieg, tipusok: tipusok, limit: gk || {}, hazi: haziCtx_(hazik || []), macar: macar, today: ma_() };
 }
 function szinkron_(u, d) {
   const gu = csoportNyitas_(u.group, u.courses), gl = csoportSzint_(u.group, u.courses), gk = csoportKorlat_(u.group, u.courses);
@@ -194,7 +201,7 @@ function szinkron_(u, d) {
     const ev = {
       eid: szoveg_(e0.eid, 40), kind: ['megoldas', 'nyitas', 'hazi'].indexOf(e0.kind) >= 0 ? e0.kind : 'valasz', hid: szoveg_(e0.hid, 40),
       mod: szoveg_(e0.mod, 60), ch: szoveg_(e0.ch, 80), gen: szoveg_(e0.gen, 60), sig: szoveg_(e0.sig, 20),
-      ok: e0.ok === true, helped: e0.helped === true, emelt: e0.emelt === true, day: szoveg_(e0.day, 10)
+      ok: e0.ok === true, helped: e0.helped === true, emelt: e0.emelt === true, megnez: e0.megnez === true, day: szoveg_(e0.day, 10)
     };
     if (!ev.eid || !ev.ch) return;
     if (ev.day !== ctx.today && ev.day !== tegnap) ev.day = ctx.today;
@@ -202,8 +209,8 @@ function szinkron_(u, d) {
     if (fx.dup || ev.kind === 'nyitas') return;   // a fejezetnyitás nem kerül a Megoldások lapra
     naplo.push([most, u.user, u.name, u.group, szoveg_(e0.modCim || ev.mod, 80), szoveg_(e0.chCim, 120), szoveg_(e0.genNev, 80),
       cella_(szoveg_(e0.q, 600)), cella_(szoveg_(e0.a, 120)), cella_(szoveg_(e0.helyes, 120)),
-      ev.kind === 'megoldas' ? 'megnézte a megoldást' : (ev.ok ? (ev.helped ? 'helyes (megoldás után)' : 'helyes') : 'hibás'),
-      ev.kind === 'hazi' ? '' : fx.uj ? (fx.ertek === 2 ? 'igen (emelt: 2×)' : 'igen') : '', fx.cukorka ? (fx.cukorkaDb || 1) : '', ev.ch, ev.mod, ev.eid,
+      ev.kind === 'megoldas' || ev.megnez ? 'megnézte a megoldást' : (ev.ok ? (ev.helped ? 'helyes (megoldás után)' : 'helyes') : 'hibás'),
+      ev.kind === 'hazi' ? '' : fx.uj ? (fx.ertek === 2 ? 'igen (emelt: 2×)' : 'igen') : '', fx.cukorka ? (fx.cukorkaDb || 1) : fx.macaron ? '1 macaron' : '', ev.ch, ev.mod, ev.eid,
       ev.kind === 'hazi' ? (haziCim[ev.hid] || ev.hid) + (fx.uj ? ' (+1)' : '') : '']);
   });
   if (naplo.length) sorokHozzaad_(lap_(LAP.megoldasok), naplo);
@@ -231,7 +238,7 @@ function szinkron_(u, d) {
   }
   Szabalyok.tomorit(st, ctx);
   allapotIr_(u, a.row, st, ctx, probaSzam, utolsoPct);
-  return { ok: true, profile: profil_(u), state: kliens_(st), groupUnlock: gu, groupLevel: gl, groupLimit: gk, hazik: hazik };
+  return { ok: true, profile: profil_(u), state: kliens_(st), groupUnlock: gu, groupLevel: gl, groupLimit: gk, hazik: hazik, probaBeall: csoportProba_(u.group, u.courses) };
 }
 
 /* ===================== Állapot lap ===================== */
@@ -261,6 +268,7 @@ function allapotIr_(u, row, st, ctx, probaPlusz, utolsoPct) {
   tegye('Felhasználónév', u.user); tegye('Név', u.name); tegye('Csoport', u.group); tegye('Tananyag', u.courses.join(', '));
   tegye('Utolsó aktivitás', new Date()); tegye('Cukorka', Szabalyok.penz(st)); tegye('Összes cukorka', st.candy);
   tegye('Napi sorozat', Szabalyok.aktualisStreak(st, ctx.today, ctx)); tegye('Legjobb sorozat', st.streak.best);
+  tegye('Macaron', Object.keys(st.mac || {}).reduce(function (a, k) { return a + st.mac[k]; }, 0)); tegye('Házi sorozat', (st.hs || {}).cur || 0);
   tegye('Helyes megoldások', helyes);
   tegye('Próbák száma', (Number(vals[H['Próbák száma'] - 1]) || 0) + (probaPlusz || 0));
   if (utolsoPct != null) tegye('Utolsó próba (%)', utolsoPct);
@@ -385,7 +393,7 @@ function csoportHazik_(group, courses, mind) {
 }
 function haziCtx_(hazik) {
   const o = {};
-  hazik.forEach(function (h) { const t = {}; (h.tetel || []).forEach(function (x) { if (x && x.k) t[String(x.k)] = egesz_(x.db, 1, 100); }); o[h.id] = { tetel: t }; });
+  hazik.forEach(function (h) { const t = {}; (h.tetel || []).forEach(function (x) { if (x && x.k) t[String(x.k)] = egesz_(x.db, 1, 100); }); o[h.id] = { tetel: t, hatarido: h.hatarido || '' }; });
   return o;
 }
 /* Új házi (d.hazi = { cim, hatarido, tetel: [{ k: 'fejezet|típus', db, nev, chCim }] }) vagy törlés (d.torol = azonosító). */
@@ -404,14 +412,58 @@ function tanarHazi_(u, d) {
     }).filter(function (x) { return x.k.indexOf('|') > 0; });
     if (!tetel.length) return { ok: false, error: 'ures' };
     const hd = /^\d{4}-\d{2}-\d{2}$/.test(String(h.hatarido || '')) ? String(h.hatarido) : '';
-    const sor = new Array(sh.getLastColumn()).fill('');
+    let sorSzam = 0, sor = new Array(sh.getLastColumn()).fill('');
+    if (d.szerk) {   // már kiadott házi módosítása (az azonosító és a diákok eddigi haladása marad)
+      const v = sh.getDataRange().getValues();
+      for (let i = 1; i < v.length; i++) if (String(v[i][H['azonosító'] - 1]) === String(d.szerk) && egyezik_(v[i][H['Csoport'] - 1], g)) { sorSzam = i + 1; sor = v[i].slice(); }
+      if (!sorSzam) return { ok: false, error: 'nincs' };
+    }
     const tegye = function (k, val) { if (H[k]) sor[H[k] - 1] = val; };
-    tegye('azonosító', Utilities.getUuid().slice(0, 8)); tegye('Csoport', g); tegye('Tananyag', course); tegye('Cím', szoveg_(h.cim, 120) || 'Házi feladat');
+    if (!sorSzam) { tegye('azonosító', Utilities.getUuid().slice(0, 8)); tegye('Csoport', g); tegye('Tananyag', course); tegye('Létrehozta', u.name); }
+    else tegye('Létrehozta', String(sor[H['Létrehozta'] - 1] || '') + (String(sor[H['Létrehozta'] - 1] || '').indexOf('mód.') >= 0 ? '' : ' (mód.: ' + u.name + ')'));
+    tegye('Cím', szoveg_(h.cim, 120) || 'Házi feladat');
     tegye('Határidő', hd ? "'" + hd : ''); tegye('Feladatok', tetel.map(function (x) { return x.db + ' × ' + x.nev + ' (' + x.chCim + ')'; }).join('; '));
-    tegye('adat', JSON.stringify(tetel)); tegye('Létrehozta', u.name); tegye('Időpont', new Date());
-    sh.appendRow(sor);
+    tegye('adat', JSON.stringify(tetel)); tegye('Időpont', new Date());
+    if (sorSzam) sh.getRange(sorSzam, 1, 1, sor.length).setValues([sor]); else sh.appendRow(sor);
   }
   return { ok: true, hazik: csoportHazik_(g, [course], true) };
+}
+
+/* ===================== Próba-témazáró összeállítása ===================== */
+
+/* { 'évfolyam/témakör': [{ k: 'fejezet|típus', db }] } – ha egy témakörhöz nincs, a próba az alapértelmezett */
+function csoportProba_(group, courses) {
+  const out = {};
+  if (!group) return out;
+  courses = (courses || []).map(String);
+  const sh = lap_(LAP.proba), H = fejlecTerkep_(sh), v = sh.getDataRange().getValues();
+  for (let i = 1; i < v.length; i++) {
+    const c = String(v[i][H['Tananyag'] - 1]).trim().replace(/\.0+$/, '');
+    if (!egyezik_(v[i][H['Csoport'] - 1], group) || courses.indexOf(c) < 0) continue;
+    let l = []; try { l = JSON.parse(v[i][H.adat - 1] || '[]'); } catch (e) { l = []; }
+    if (Array.isArray(l) && l.length) out[c + '/' + String(v[i][H['Témakör'] - 1]).trim()] = l;
+  }
+  return out;
+}
+function tanarProba_(u, d) {
+  const groups = lathatoCsoportok_(u, felhasznalok_());
+  const g = String(d.group || ''), course = szoveg_(d.course, 20), mod = szoveg_(d.mod, 40);
+  if (groups.indexOf(g) < 0) return { ok: false, error: 'jog' };
+  const l = (Array.isArray(d.tetel) ? d.tetel : []).slice(0, 80).map(function (x) {
+    return { k: szoveg_(x.k, 140), db: egesz_(x.db, 1, 50), nev: szoveg_(x.nev, 80) };
+  }).filter(function (x) { return x.k.indexOf('|') > 0; });
+  const sh = lap_(LAP.proba), H = fejlecTerkep_(sh), v = sh.getDataRange().getValues();
+  const sor = new Array(sh.getLastColumn()).fill('');
+  const tegye = function (k, val) { if (H[k]) sor[H[k] - 1] = val; };
+  tegye('Csoport', g); tegye('Tananyag', course); tegye('Témakör', mod);
+  tegye('Feladatok', l.length ? l.map(function (x) { return x.db + ' × ' + x.nev; }).join('; ') : 'alapértelmezett');
+  tegye('adat', JSON.stringify(l)); tegye('Módosította', u.name); tegye('Időpont', new Date());
+  let found = 0;
+  for (let i = 1; i < v.length; i++) {
+    if (egyezik_(v[i][H['Csoport'] - 1], g) && String(v[i][H['Tananyag'] - 1]).trim().replace(/\.0+$/, '') === course && String(v[i][H['Témakör'] - 1]).trim() === mod) { found = i + 1; break; }
+  }
+  if (found) sh.getRange(found, 1, 1, sor.length).setValues([sor]); else sh.appendRow(sor);
+  return { ok: true, probaBeall: csoportProba_(g, [course]) };
 }
 
 /* ===================== Tanári lekérdezések ===================== */
@@ -462,7 +514,7 @@ function tanarAttekintes_(u, d) {
   return {
     ok: true, groups: groups, group: group, course: course, courses: courseList,
     groupUnlock: csoportNyitas_(group, [course]), groupLevel: csoportSzint_(group, [course]),
-    groupLimit: csoportKorlat_(group, [course]), hazik: csoportHazik_(group, [course], true),
+    groupLimit: csoportKorlat_(group, [course]), hazik: csoportHazik_(group, [course], true), probaBeall: csoportProba_(group, [course]),
     students: diakok.map(function (x) {
       const a = allapot[x.key];
       return { user: x.user, name: x.name, course: x.course, last: a ? iso_(a.last) : '', state: a ? a.state : Szabalyok.ujAllapot(), tests: probak[x.key] || [] };
@@ -561,7 +613,7 @@ function setup() {
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight('bold').setBackground('#e7edfc').setWrap(true);
   });
-  const rejt = { allapot: ['adat'], megoldasok: ['fejezet_id', 'temakor_id', 'azonosító'], probak: ['temakor_id', 'azonosító'], hazi: ['adat', 'azonosító'] };
+  const rejt = { proba: ['adat'], allapot: ['adat'], megoldasok: ['fejezet_id', 'temakor_id', 'azonosító'], probak: ['temakor_id', 'azonosító'], hazi: ['adat', 'azonosító'] };
   Object.keys(rejt).forEach(function (k) {
     const sh = lap_(LAP[k]), H = fejlecTerkep_(sh);
     rejt[k].forEach(function (h) { if (H[h]) sh.hideColumns(H[h]); });
@@ -618,11 +670,19 @@ function ellenoriz() {
  *    még nem nullázza a sorozatot, csak a második (ugyanarra a feladatra), illetve a megoldás megnézése.
  *    Az emelt szintű fejezetek ilyenkor nem részei a nyitási láncnak: ctx.kieg[fejezet] = az a láncbeli
  *    fejezet, amelyhez tartoznak; akkor gyűlik bennük cukorka, ha az a legutolsó nyitott fejezet.
+ *  - Macaron: a TELJESÍTETT fejezetekben (a legutolsó nyitott előttiek, ill. a próba megnyitása után
+ *    mind) típusonként gyűlik: ha egy feladattípusból újra összegyűlik `kombo` jó megoldás (egymás
+ *    után, új feladat), az 1 macaron (témakörönkénti „dobozba”: st.mac). Hibás válasz / a megoldás
+ *    megnézése annak a típusnak a számlálóját nullázza. Macaronnal nyílik a próba-témazáró
+ *    (ctx.macar[témakör].proba), közép szintű csoportnál pedig az emelt (láncon kívüli) fejezetek is
+ *    (ctx.macar[témakör].emelt; st.kiegNy[fejezet]).
  *  - Nyitási korlát: ctx.limit[témakör] = az a láncpozíció, ameddig a tanuló cukorkával nyithat
  *    (a tanár állítja, hogy ne haladjon az óra elé); a csoportnyitás ettől függetlenül érvényes.
  *  - Házi feladat ('hazi' esemény): csak a házi saját számlálóját növeli (st.hazi[azonosító]),
- *    semmilyen gyűjthető dologba (cukorka, sorozat, napi sorozat, megoldott feladatok) nem számít bele.
- *    ctx.hazi = { azonosító: { tetel: { 'fejezet|típus': db } } }
+ *    semmilyen gyűjthető dologba (cukorka, macaron, sorozat, napi sorozat) nem számít bele.
+ *    A db helyes megoldásnak EGYMÁS UTÁN kell meglennie (hibás válasz / a megoldás megnézése nulláz).
+ *    Házi sorozat (st.hs): határidőre kész házi +1; ha egy házi határideje lejár, és nincs kész, nullázódik.
+ *    ctx.hazi = { azonosító: { tetel: { 'fejezet|típus': db }, hatarido: 'ÉÉÉÉ-HH-NN' } }
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
  *    old meg egy évfolyam legutolsó nyitott fejezetében (a `streakMin` évfolyamonként eltérhet). Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
@@ -634,7 +694,8 @@ function ellenoriz() {
  */
 var Szabalyok = (function () {
   function ujAllapot() {
-    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {}, tc: {}, hazi: {},
+    return { v: 3, ch: {}, solved: {}, unlock: {}, purse: {}, combo: {}, hiba: {}, tc: {}, hazi: {}, mac: {}, mc: {}, kiegNy: {}, macAll: 0,
+             hs: { cur: 0, best: 0, ok: [], miss: [] },
              streak: { cur: 0, best: 0, last: '', day: '', dayCount: 0, napi: {}, fagy: '' }, candy: 0, seen: [] };
   }
 
@@ -656,9 +717,17 @@ var Szabalyok = (function () {
     if (s.unlock && typeof s.unlock === 'object') {
       Object.keys(s.unlock).forEach(function (k) { u.unlock[k] = egesz(s.unlock[k], 0, 1000); });
     }
-    ['purse', 'combo'].forEach(function (f) {
+    ['purse', 'combo', 'mac'].forEach(function (f) {
       if (s[f] && typeof s[f] === 'object') Object.keys(s[f]).forEach(function (k) { u[f][k] = egesz(s[f][k], 0, 1e6); });
     });
+    if (s.mc && typeof s.mc === 'object') Object.keys(s.mc).slice(0, 100).forEach(function (m) {
+      var o = s.mc[m]; if (!o || typeof o !== 'object') return;
+      u.mc[m] = {}; Object.keys(o).slice(0, 300).forEach(function (g) { u.mc[m][String(g).slice(0, 140)] = egesz(o[g], 0, 1e6); });
+    });
+    if (s.kiegNy && typeof s.kiegNy === 'object') Object.keys(s.kiegNy).slice(0, 300).forEach(function (k) { if (s.kiegNy[k]) u.kiegNy[String(k).slice(0, 80)] = 1; });
+    u.macAll = egesz(s.macAll, 0, 1e7);
+    if (s.hs && typeof s.hs === 'object') u.hs = { cur: egesz(s.hs.cur, 0, 1e5), best: egesz(s.hs.best, 0, 1e5),
+      ok: Array.isArray(s.hs.ok) ? s.hs.ok.map(String).slice(-60) : [], miss: Array.isArray(s.hs.miss) ? s.hs.miss.map(String).slice(-60) : [] };
     if (s.tc && typeof s.tc === 'object') Object.keys(s.tc).slice(0, 100).forEach(function (m) {
       var o = s.tc[m]; if (!o || typeof o !== 'object') return;
       u.tc[m] = {}; Object.keys(o).slice(0, 60).forEach(function (g) { u.tc[m][String(g).slice(0, 60)] = egesz(o[g], 0, 1e6); });
@@ -711,14 +780,31 @@ var Szabalyok = (function () {
     return n == null ? 3 : Math.max(0, Number(n) || 0);
   }
 
-  /* Mit lehet most megnyitni: { idx, ar, eleg, proba, ch } vagy null, ha már minden nyitva. */
+  /* Macaronár: mit = 'proba' | 'emelt' (alapból 2) */
+  function macAr(ctx, mod, mit) {
+    var o = ctx.macar && ctx.macar[mod], v = o && o[mit];
+    return v == null ? 2 : Math.max(0, Number(v) || 0);
+  }
+
+  /* Mit lehet most megnyitni: { idx, ar, eleg, proba, ch, penz } vagy null, ha már minden nyitva.
+     A fejezetek cukorkába kerülnek, a próba-témazáró macaronba (penz: 'macaron'). */
   function kovetkezo(st, ctx, mod) {
     var order = (ctx.order && ctx.order[mod]) || [];
     var eff = szint(st, ctx, mod);
     if (!order.length || eff >= order.length) return null;
-    var a = ar(ctx, mod, eff), lim = ctx.limit && ctx.limit[mod];
-    return { idx: eff + 1, ar: a, eleg: (st.purse[mod] || 0) >= a, proba: eff + 1 >= order.length, ch: eff + 1 < order.length ? order[eff + 1] : '',
+    var proba = eff + 1 >= order.length, lim = ctx.limit && ctx.limit[mod];
+    var a = proba ? macAr(ctx, mod, 'proba') : ar(ctx, mod, eff), van = proba ? (st.mac[mod] || 0) : (st.purse[mod] || 0);
+    return { idx: eff + 1, ar: a, eleg: van >= a, proba: proba, ch: proba ? '' : order[eff + 1], penz: proba ? 'macaron' : 'cukorka',
              korlat: lim != null && eff + 1 > lim };   // a tanár még nem engedi ennyire előre
+  }
+  /* Közép szintű csoportnál egy emelt (láncon kívüli) fejezet: { nyitva, elerheto, ar, eleg } vagy null. */
+  function kieg(st, ctx, ch) {
+    var anchor = ctx.kieg && ctx.kieg[ch]; if (!anchor) return null;
+    var mod = null;
+    Object.keys(ctx.order || {}).forEach(function (m) { if (ctx.order[m].indexOf(anchor) >= 0) mod = m; });
+    if (!mod) return null;
+    var a = macAr(ctx, mod, 'emelt');
+    return { mod: mod, anchor: anchor, nyitva: !!st.kiegNy[ch], elerheto: ctx.order[mod].indexOf(anchor) <= front(st, ctx, mod), ar: a, eleg: (st.mac[mod] || 0) >= a };
   }
 
   /* A témakör legutolsó nyitott fejezetének sorszáma (0-tól). */
@@ -756,6 +842,7 @@ var Szabalyok = (function () {
      Ha nincs új fejezet, a sorozat fagyott. Ha később új fejezet kerül a tananyagba, a fagyás
      feloldódik, és a tanulónak a felfedezés napjától számítva a szokásos idő áll rendelkezésére. */
   function frissit(st, ctx) {
+    haziSorozat(st, ctx);
     var s = st.streak, today = ctx.today;
     if (kesz(st, ctx)) { if (!s.fagy) s.fagy = today; return st; }
     if (s.fagy) {
@@ -780,11 +867,20 @@ var Szabalyok = (function () {
     if (ev.kind === 'hazi') return hazi(st, ev, ctx, fx);
     frissit(st, ctx);
     var order = (ctx.order && ctx.order[ev.mod]) || [];
+    if (ev.kind === 'nyitas' && ctx.kieg && ctx.kieg[ev.ch]) {   // emelt fejezet macaronért (közép szint)
+      var kg = kieg(st, ctx, ev.ch);
+      if (!kg || kg.nyitva || !kg.elerheto || !kg.eleg) return fx;
+      st.kiegNy[ev.ch] = 1; st.mac[kg.mod] = (st.mac[kg.mod] || 0) - kg.ar;
+      fx.nyitott = ev.ch; fx.ar = kg.ar; fx.penz = 'macaron';
+      return fx;
+    }
     if (ev.kind === 'nyitas') {
       var kov = kovetkezo(st, ctx, ev.mod);
       if (!kov || !kov.eleg || kov.korlat || (kov.proba ? ev.ch !== 'proba' : ev.ch !== kov.ch)) return fx;
       st.unlock[ev.mod] = kov.idx;
-      st.purse[ev.mod] = (st.purse[ev.mod] || 0) - kov.ar;
+      if (kov.penz === 'macaron') st.mac[ev.mod] = (st.mac[ev.mod] || 0) - kov.ar;
+      else st.purse[ev.mod] = (st.purse[ev.mod] || 0) - kov.ar;
+      fx.penz = kov.penz;
       st.combo[ev.mod] = 0; st.tc[ev.mod] = {};
       if (kov.proba) fx.proba = true; else fx.nyitott = kov.ch;
       fx.ar = kov.ar;
@@ -793,7 +889,12 @@ var Szabalyok = (function () {
     }
     var idx = order.indexOf(ev.ch), f = front(st, ctx, ev.mod);
     var anchor = ctx.kieg && ctx.kieg[ev.ch];
-    var frontban = f >= 0 && ((idx >= 0 && idx === f) || (idx < 0 && !!anchor && anchor === order[f]));
+    if (anchor && !st.kiegNy[ev.ch]) anchor = null;   // meg nem nyitott emelt fejezet: nem jár érte semmi
+    var tel = order.length > 0 && szint(st, ctx, ev.mod) >= order.length;   // a próba nyitva → minden fejezet teljesítve
+    var poz = idx >= 0 ? idx : (anchor ? order.indexOf(anchor) : -1);
+    var frontban = f >= 0 && !tel && poz >= 0 && poz === f;
+    var keszben = f >= 0 && poz >= 0 && (poz < f || (tel && poz === f));   // teljesített fejezet → macaron
+    var mk = ev.ch + '|' + ev.gen, mcs = keszben ? (st.mc[ev.mod] || (st.mc[ev.mod] = {})) : null;
     var bonusz = !!ev.emelt && kozepSzint(ctx, ev.mod);
     var kb = kombo(ctx, ev.mod);
     // típusonkénti számlálás: a legutolsó nyitott fejezet kötelező feladattípusai
@@ -810,6 +911,7 @@ var Szabalyok = (function () {
       else fx.kombo = st.combo[ev.mod] || 0;
     };
     var nullaz = function () {
+      if (keszben) { fx.nullazva = (mcs[mk] || 0) > 0; mcs[mk] = 0; fx.macTipus = true; }
       if (frontban) {
         if (req) { fx.nullazva = (tc[cel] || 0) > 0; tc[cel] = 0; }
         else { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; }
@@ -822,7 +924,7 @@ var Szabalyok = (function () {
     c.tried++;
     if (!ev.ok) {
       // emelt feladat közép szinten: az első hibás válasz még nem nulláz (csak a második ugyanarra a feladatra)
-      if (bonusz && frontban && st.hiba[ev.mod] !== ev.sig) { st.hiba[ev.mod] = ev.sig; fx.elsoHiba = true; }
+      if (bonusz && (frontban || keszben) && st.hiba[ev.mod] !== ev.sig) { st.hiba[ev.mod] = ev.sig; fx.elsoHiba = true; }
       else nullaz();
       allas(); return fx;
     }
@@ -833,6 +935,15 @@ var Szabalyok = (function () {
     if (list.indexOf(ev.sig) >= 0) { fx.ok2 = 'ismert'; return fx; }
     list.push(ev.sig);
     fx.uj = true;
+    if (keszben) {   // teljesített fejezet: típusonként macaron
+      fx.ertek = bonusz ? 2 : 1;
+      mcs[mk] = (mcs[mk] || 0) + fx.ertek;
+      if (mcs[mk] >= kb) { mcs[mk] = 0; st.mac[ev.mod] = (st.mac[ev.mod] || 0) + 1; st.macAll++; fx.macaron = true; }
+      fx.macTipus = true; fx.kombo = mcs[mk]; fx.ok2 = 'macaron';
+      var kv2 = kovetkezo(st, ctx, ev.mod);
+      if (fx.macaron && kv2 && kv2.penz === 'macaron' && kv2.eleg && !kv2.korlat) fx.nyithato = kv2;
+      return fx;
+    }
     if (!frontban) { fx.ok2 = 'nemfront'; return fx; }
     // napi sorozat
     var s = st.streak, day = ev.day || ctx.today;
@@ -873,16 +984,37 @@ var Szabalyok = (function () {
     if (!h || !h.tetel) return fx;
     var k = ev.ch + '|' + ev.gen, kell = h.tetel[k];
     if (!kell) return fx;
+    haziSorozat(st, ctx);
     var x = st.hazi[ev.hid] || (st.hazi[ev.hid] = { db: {}, s: [], kesz: '' });
     fx.haziDb = x.db[k] || 0; fx.haziKell = kell;
-    if (!ev.ok) return fx;
+    var kesz = (x.db[k] || 0) >= kell;
+    // egymás utáni jó megoldások: hibás válasz vagy a megoldás megnézése nullázza (a már kész részt nem)
+    if (!ev.ok || ev.megnez) { if (!kesz) { fx.haziNull = (x.db[k] || 0) > 0; x.db[k] = 0; fx.haziDb = 0; } return fx; }
     if (ev.helped) { fx.ok2 = 'segitseg'; return fx; }
     if (x.s.indexOf(ev.sig) >= 0) { fx.ok2 = 'ismert'; return fx; }
     x.s.push(ev.sig); if (x.s.length > 200) x.s.splice(0, x.s.length - 200);
     x.db[k] = Math.min(kell, (x.db[k] || 0) + 1);
     fx.haziDb = x.db[k]; fx.uj = true;
-    if (!x.kesz && Object.keys(h.tetel).every(function (t) { return (x.db[t] || 0) >= h.tetel[t]; })) { x.kesz = ev.day || ctx.today; x.s = []; fx.haziKesz = true; }
+    if (!x.kesz && Object.keys(h.tetel).every(function (t) { return (x.db[t] || 0) >= h.tetel[t]; })) {
+      x.kesz = ev.day || ctx.today; x.s = []; fx.haziKesz = true;
+      // házi sorozat: határidőre kész → +1
+      if ((!h.hatarido || x.kesz <= h.hatarido) && st.hs.ok.indexOf(ev.hid) < 0) {
+        st.hs.ok.push(ev.hid); if (st.hs.ok.length > 60) st.hs.ok.shift();
+        st.hs.cur++; if (st.hs.cur > st.hs.best) st.hs.best = st.hs.cur; fx.haziSorozat = st.hs.cur;
+      }
+    }
     return fx;
+  }
+  /* Házi sorozat: ha egy házi határideje lejárt, és nem lett kész határidőre, a sorozat nullázódik (egyszer). */
+  function haziSorozat(st, ctx) {
+    var today = ctx.today || '';
+    Object.keys(ctx.hazi || {}).forEach(function (hid) {
+      var h = ctx.hazi[hid], hd = h && h.hatarido;
+      if (!hd || !today || hd >= today) return;
+      var x = st.hazi[hid], idoben = x && x.kesz && x.kesz <= hd;
+      if (!idoben && st.hs.miss.indexOf(hid) < 0) { st.hs.cur = 0; st.hs.miss.push(hid); if (st.hs.miss.length > 60) st.hs.miss.shift(); }
+    });
+    return st;
   }
 
   /* A most érvényes streak (0, ha tegnap és ma sem teljesült – kivéve, ha a sorozat fagyott). */
@@ -922,6 +1054,6 @@ var Szabalyok = (function () {
   }
 
   return { ujAllapot: ujAllapot, normal: normal, migral: migral, elozoNap: elozoNap, front: front, teljesitett: teljesitett, kesz: kesz, frissit: frissit, alkalmaz: alkalmaz,
-           aktualisStreak: aktualisStreak, ar: ar, kovetkezo: kovetkezo, szint: szint, kombo: kombo, streakMin: streakMin, kozepSzint: kozepSzint, penz: penz, tomorit: tomorit, azonosito: azonosito };
+           aktualisStreak: aktualisStreak, ar: ar, kovetkezo: kovetkezo, kieg: kieg, macAr: macAr, haziSorozat: haziSorozat, szint: szint, kombo: kombo, streakMin: streakMin, kozepSzint: kozepSzint, penz: penz, tomorit: tomorit, azonosito: azonosito };
 })();
 if (typeof window !== 'undefined') window.Szabalyok = Szabalyok;
