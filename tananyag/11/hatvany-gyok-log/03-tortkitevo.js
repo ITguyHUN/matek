@@ -38,7 +38,7 @@
     const tex = mul ? T`${rt(a, b)}\cdot ${rt(c, d)}` : T`\frac{${rt(a, b)}}{${rt(c, d)}}`;
     return { kerdes: T`<p>Írd fel egyetlen hatványként! (\(x>0\)) Melyik szám kerül a négyzet helyére?</p>\[${tex}=x^{\,\square}\]`, valasz: { ertekek: [fv(e)] }, formatum: FMT.frac,
       tipp: T`Írd át a gyököket törtkitevőre: \(\sqrt[n]{x^m}=x^{m/n}\). Szorzásnál összeadod, osztásnál kivonod a kitevőket (közös nevezőre hozva).`,
-      megoldas: [T`\[x^{${ft(F(b, a))}}${mul ? '\\cdot' : ':'}x^{${ft(F(d, c))}}=x^{${ft(F(b, a))}${mul ? '+' : '-'}${ft(F(d, c))}}=x^{${ft(e)}}\]`] };
+      megoldas: [T`\[x^{${ft(F(b, a))}}${mul ? '\\cdot ' : ':'}x^{${ft(F(d, c))}}=x^{${ft(F(b, a))}${mul ? '+' : '-'}${ft(F(d, c))}}=x^{${ft(e)}}\]`] };
   } };
 
   Tananyag.fejezet({
