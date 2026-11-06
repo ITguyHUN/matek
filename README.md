@@ -26,6 +26,10 @@ tananyag/
   11/hatvany-gyok-log/     10 fejezet, mindegyik külön fájlban
   7/kurzus.js              7. évfolyam (Sokszínű matematika 7., 1–4. lecke)
   7/racionalis-arany-szazalek/  6 fejezet: alakok, számegyenes, műveletek, sorrend, arányosság, százalék
+  10/kurzus.js             10. évfolyam (Sokszínű matematika 10.); az elején a közös segédfüggvények (M10) és a parabola-rajzoló
+  10/masodfoku-egyenlet/   12 fejezet: másodfokú függvény, megoldóképlet, diszkrimináns, Viète, magasabb fokú és törtes,
+                           egyenletrendszerek, egyenlőtlenségek, paraméteres (E), négyzetgyökös, közepek, szélsőérték (E), szöveges
+  10/vizsga-gyokvonas/     vizsgatematika 1. témakör: négyzetgyök-azonosságok, alkalmazásuk, n-edik gyök, vizsgagyakorló
 apps-script/Code.gs        a Google Táblázat mögötti szerverkód
 felhasznalok_minta.xlsx    minta a felhasználói listához
 ```

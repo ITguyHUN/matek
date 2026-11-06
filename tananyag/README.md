@@ -11,7 +11,11 @@ tananyag/
   7/
     kurzus.js                ← a 7. évfolyam leírója (az elején a 7.-es fejezetek közös segédfüggvényei: M7)
     racionalis-arany-szazalek/  ← 6 fejezet (Sokszínű matematika 7., 1–4. lecke)
-  9/  10/                    ← további évfolyamok ugyanígy (saját kurzus.js-sel)
+  10/
+    kurzus.js                ← a 10. évfolyam leírója (az elején a közös segédfüggvények: M10, parabola-rajzoló)
+    masodfoku-egyenlet/      ← 12 fejezet (Sokszínű matematika 10., 3. fejezet)
+    vizsga-gyokvonas/        ← vizsgatematika 1. témakör (négyzetgyök, n-edik gyök), 4 fejezet
+  9/                         ← további évfolyamok ugyanígy (saját kurzus.js-sel)
 ```
 
 A felhasználó a **Tananyag** oszlopban kapja meg, melyik mappa töltődjön be neki, például `11`. Több is megadható vesszővel, például `11, 10`. Ilyenkor a kezdőlapon évfolyamot is választhat, az első a saját évfolyama.
@@ -65,6 +69,8 @@ A `joValaszCukorkahoz` a témakörnél is megadható (elsőbbség: témakör →
 Elsőbbség (nyitási ár): fejezet `cukorka` → témakör `cukorkaNyitashoz` → évfolyam `cukorkaNyitashoz` → `config.js`. A `cukorka: 0` is megengedett (ingyen nyitható, de a gombra kattintani akkor is kell).
 
 A nyitás **nem automatikus**: amikor összegyűlt az ár, a fejezetben (és a zárt fejezet, ill. a próba oldalán) megjelenik a **Megnyitom** gomb, és a cukorka a kattintáskor jön le. Ha egy témakört átmenetileg el akarsz rejteni, add hozzá: `aktiv: false`.
+
+A 10.-es fejezetfájlok a `Tananyag.fejezet(M10.tisztit({ … }))` alakot használják: ez a képletekben a betű előtti `<` jelet (pl. `1<x<3`) HTML-biztossá teszi.
 
 Ha legalább két témakör van, a kezdőlapon megjelenik a **témakörválasztó**, a menü pedig mindig csak a kiválasztott témakör fejezeteit mutatja. A választást az oldal megjegyzi. Azt, hogy kezdetben melyik témakör legyen kiválasztva, a `kurzus.js`-ben adhatod meg: `alapTemakor: 'trig'`. Ez hasznos, amikor az órán új témakörbe léptek.
 
