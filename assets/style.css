@@ -3,7 +3,7 @@
 :root{
   --paper:#f4f7fb; --card:#ffffff; --gridline:#e2e9f4; --line:#d3dcea;
   --ink:#16203a; --muted:#56627d; --pen:#2148c9; --pen-soft:#e7edfc;
-  --red:#c2332b; --red-soft:#fcebe9; --green:#1b7a45; --green-soft:#e3f3e9; --margin:#eeb4b0; --candy:#c4307a; --candy-soft:#fbe6f0; --flame:#d9620b; --flame-soft:#fdeedd;
+  --red:#c2332b; --red-soft:#fcebe9; --green:#1b7a45; --green-soft:#e3f3e9; --margin:#eeb4b0; --candy:#c4307a; --candy-soft:#fbe6f0; --flame:#d9620b; --flame-soft:#fdeedd; --macaron:#7b52d6; --macaron-soft:#efe8fc;
   --f-display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --f-body:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
   --f-mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -11,11 +11,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --paper:#0e1422; --card:#151d2e; --gridline:#1a2338; --line:#28334c;
   --ink:#e5eaf5; --muted:#9ba7c1; --pen:#86a6ff; --pen-soft:#1d2a4b;
-  --red:#ff8076; --red-soft:#3a1d1c; --green:#62d597; --green-soft:#12301f; --margin:#5d2f33; --candy:#ff7ab8; --candy-soft:#3b1a2b; --flame:#ffa057; --flame-soft:#3a2312; color-scheme:dark}}
+  --red:#ff8076; --red-soft:#3a1d1c; --green:#62d597; --green-soft:#12301f; --margin:#5d2f33; --candy:#ff7ab8; --candy-soft:#3b1a2b; --flame:#ffa057; --flame-soft:#3a2312; --macaron:#b69cff; --macaron-soft:#2a2140; color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#0e1422; --card:#151d2e; --gridline:#1a2338; --line:#28334c;
   --ink:#e5eaf5; --muted:#9ba7c1; --pen:#86a6ff; --pen-soft:#1d2a4b;
-  --red:#ff8076; --red-soft:#3a1d1c; --green:#62d597; --green-soft:#12301f; --margin:#5d2f33; --candy:#ff7ab8; --candy-soft:#3b1a2b; --flame:#ffa057; --flame-soft:#3a2312; color-scheme:dark}
+  --red:#ff8076; --red-soft:#3a1d1c; --green:#62d597; --green-soft:#12301f; --margin:#5d2f33; --candy:#ff7ab8; --candy-soft:#3b1a2b; --flame:#ffa057; --flame-soft:#3a2312; --macaron:#b69cff; --macaron-soft:#2a2140; color-scheme:dark}
 
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
   background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);
@@ -397,3 +397,17 @@ table.hzt th{text-transform:none;letter-spacing:0;font-size:.8rem}
 .practice[hidden]{display:none !important}
 .hazi-resz > .btn{width:auto}
 .hz-nincs{color:var(--red);font-weight:600}
+
+/* macaron */
+.stat.macaron{background:var(--macaron-soft);color:var(--macaron)}
+.stat.hazis{background:var(--pen-soft);color:var(--pen)}
+.stat.hazis.off{color:var(--muted)}
+.stat .hzs-i,.toast .hzs-i{font-size:1.1rem;line-height:1}
+.meter.macmeter{background:var(--macaron-soft);border-color:var(--macaron)}
+.tip.mac .tb span{background:var(--macaron)}
+.btn.macgomb{background:var(--macaron);border-color:var(--macaron)}
+.btn.macgomb svg{color:#fff !important}
+.tvalaszto .tv-fej{padding:1px 8px;font-size:.75rem;margin-left:6px}
+.hz-gombok{margin-left:auto;display:flex;gap:6px}
+.hzkiadott .row .hz-gombok button{margin-left:0}
+.hz-szerk{border:2px solid var(--pen);border-radius:8px;padding:10px 14px}
