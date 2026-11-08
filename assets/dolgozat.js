@@ -89,6 +89,18 @@ function render(helpers) {
     ment(); osszesit();
   });
   $('#dglista').addEventListener('click', e => {
+    /* fejezetenként: minden típus ugyanarra a számra, illetve nullázás */
+    const fb = e.target.closest('[data-fejmind],[data-fejnull]');
+    if (fb) {
+      const ck = fb.dataset.fejmind || fb.dataset.fejnull, ch = kurzus().temakorok.flatMap(t => t.fejezetek).find(c => c.key === ck), box = fb.closest('.dg-fej');
+      if (!ch) return;
+      const n = fb.dataset.fejmind ? Math.max(1, Math.min(26, Math.round(+box.querySelector('.dg-fejdb').value || 1))) : 0;
+      if (n) ch.gens.forEach(g => { DG.db[ch.key + '|' + g] = n; }); else nullaz([ch]);
+      box.querySelectorAll('[data-db]').forEach(i => { i.value = n; i.closest('.dg-tipus').classList.toggle('on', !!n); });
+      if (!n) box.querySelectorAll('[data-fsz]').forEach(i => { i.value = ''; });
+      ment(); osszesit();
+      return;
+    }
     const nb = e.target.closest('[data-tznull]');
     if (nb) { const t = kurzus().temakorok.find(x => x.id === nb.dataset.tznull); nullaz(t.fejezetek); listaRajz(); H.toast(`Nullázva: ${H.esc(t.cim)}`); return; }
     const b = e.target.closest('[data-tz]'); if (!b) return;
@@ -128,7 +140,8 @@ function listaHtml(K) {
     <div class="tctrl dg-tzrow"><button class="btn sm" data-tz="${H.esc(t.id)}">Témazáró ebből a témakörből</button><button class="btn sm ghost" data-tznull="${H.esc(t.id)}">Témakör nullázása</button>
       <label>részfeladat / típus<input class="dg-tzdb" type="number" min="1" max="26" value="2" style="width:4.5em"></label>
       <label>szint<select class="dg-tzsz"><option value="emelt">minden feladat</option><option value="kozep">csak közép</option></select></label></div>
-    ${t.fejezetek.map(ch => `<div class="dg-fej"><div class="dg-fejcim">${String(ch.idx + 1).padStart(2, '0')}. ${H.esc(ch.cim)} ${ch.szint === 'emelt' ? H.szintCimke('emelt', K) : ''}</div>
+    ${t.fejezetek.map(ch => `<div class="dg-fej"><div class="dg-fejcim"><span>${String(ch.idx + 1).padStart(2, '0')}. ${H.esc(ch.cim)} ${ch.szint === 'emelt' ? H.szintCimke('emelt', K) : ''}</span>
+      <span class="dg-fejall"><input type="number" min="1" max="26" value="2" class="dg-fejdb" aria-label="részfeladat minden típushoz" title="ennyi részfeladat a fejezet minden típusából"><button class="btn sm" data-fejmind="${H.esc(ch.key)}" title="a fejezet minden típusa erre a számra">minden típushoz</button><button class="btn sm ghost" data-fejnull="${H.esc(ch.key)}" title="a fejezet minden típusa 0">nullázás</button></span></div>
       ${ch.gens.map(g => { const k = H.esc(ch.key + '|' + g); return `<div class="dg-tipus${DG.db[ch.key + '|' + g] ? ' on' : ''}"><input type="number" min="0" max="26" data-db="${k}" value="${DG.db[ch.key + '|' + g] || 0}" title="részfeladatok száma" aria-label="részfeladatok száma"><span class="dg-tnev">${H.esc(ch.feladatok[g].nev || g)} ${H.szintCimke(ch.genSzint[g], K)}</span><label class="dg-fpl">feladat<input type="number" min="1" max="99" data-fsz="${k}" value="${DG.fsz[ch.key + '|' + g] || ''}" placeholder="–" title="melyik feladatba kerüljön (üresen: külön feladat)"></label><label class="dg-fpl">pont<input type="number" min="1" max="100" data-rp="${k}" value="${DG.rp[ch.key + '|' + g] || ''}" placeholder="${DG.pont}" title="egy részfeladat pontszáma (üresen: alap pont)"></label></div>`; }).join('')}</div>`).join('')}
   </details>`).join('');
 }

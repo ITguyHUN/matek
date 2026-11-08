@@ -411,3 +411,9 @@ table.hzt th{text-transform:none;letter-spacing:0;font-size:.8rem}
 .hz-gombok{margin-left:auto;display:flex;gap:6px}
 .hzkiadott .row .hz-gombok button{margin-left:0}
 .hz-szerk{border:2px solid var(--pen);border-radius:8px;padding:10px 14px}
+
+/* dolgozatkészítő: fejezetenkénti darabszám és nullázás */
+.dg-fejcim{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.dg-fejall{display:inline-flex;align-items:center;gap:6px;font-weight:400}
+.dg-fejall .dg-fejdb{width:4em;font-family:var(--f-mono);padding:3px 6px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.dg-fejall .btn{padding:2px 9px;font-size:.78rem}

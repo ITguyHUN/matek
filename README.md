@@ -96,7 +96,7 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 
 - Évfolyamonként, témakörönként és fejezetenként felsorolja a feladattípusokat. Mindegyiknél megadható: hány részfeladat legyen belőle, **melyik feladatba** kerüljön (üresen: külön feladat), és hány **pontot** ér egy részfeladata (üresen: az alap pont).
 - Egy feladatban több típus is lehet; a részfeladatok betűjele (a, b, c, …) folytatólagos, mindegyik mellett ott a pontszáma. Ha a részfeladatok ugyanazzal az utasítással kezdődnek, az a feladat fejlécébe kerül.
-- **Nullázás:** „Minden darabszám 0” (a lista tetején) és témakörönként „Témakör nullázása”. A „csak a kiválasztott típusok látszanak” kapcsolóval a lista a kiválasztottakra szűkíthető.
+- **Nullázás és gyors kitöltés:** „Minden darabszám 0” (a lista tetején), témakörönként „Témakör nullázása”, és **fejezetenként** egy darabszám-mező a „minden típushoz” (a fejezet minden típusát erre a számra állítja) és a „nullázás” gombbal. A „csak a kiválasztott típusok látszanak” kapcsolóval a lista a kiválasztottakra szűkíthető.
 - **Témazáró ebből a témakörből:** a témakör minden feladattípusát kitölti a megadott darabszámmal (a próba-témazáróból kizárt, `proba: false` típusok kivételével), igény szerint csak a közép szintűekkel.
 - **Pontozás:** a feladat pontszáma a részfeladatai pontjainak összege. Ebből készül a **ponttáblázat** (Feladat / Max. pont / Elért pont, összesen).
 - **Ponthatárok:** az 5-ös, 4-es, 3-as, 2-es alsó határa megadható **százalékban** (alapból 85/70/55/40%) vagy **pontban**; váltáskor az értékek átszámolódnak. Az előnézet a pontsávokat is mutatja, és szól, ha a határok nem csökkenőek.
