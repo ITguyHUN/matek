@@ -44,6 +44,8 @@ function tenyezo(r, v = 'x') { const f = isF(r) ? F(r.n, r.d) : F(r, 1); return 
 function gyokEgysz(n, k = 2) { /* n = s^k · m, a legnagyobb ilyen s-sel */ let s = 1; for (let t = Math.floor(Math.pow(n, 1 / k) + 1e-9); t >= 2; t--) if (n % (t ** k) === 0) { s = t; break; } return { s, m: n / (s ** k) }; }
 function gy(s, m, k = 2) { const r = k === 2 ? T`\sqrt{${m}}` : T`\sqrt[${k}]{${m}}`; if (m === 1) return String(s); if (s === 1) return r; if (s === -1) return '-' + r; return `${s}${r}`; }
 const negyzet = n => n >= 0 && Number.isInteger(Math.sqrt(n));
+const fakt = n => { let p = 1; for (let i = 2; i <= n; i++) p *= i; return p; };
+const binom = (n, k) => { if (k < 0 || k > n) return 0; let p = 1; for (let i = 1; i <= k; i++) p = p * (n - k + i) / i; return Math.round(p); };
 
 /* ---------- másodfokú egyenlet: együtthatók gyökökből ---------- */
 /* gyökök (egész vagy tört objektum) → [a, b, c] egész együtthatók, a > 0, legnagyobb közös osztó nélkül; k: szorzó */
@@ -194,7 +196,10 @@ function parabola(opt = {}) {
 const MATH = /\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g;
 const lt = s => typeof s === 'string' ? s.replace(MATH, m => m.replace(/<(?=[A-Za-z|!?\/])/g, '< ')) : s;
 function tisztitP(p) { if (!p) return p; ['kerdes', 'tipp', 'allitas', 'miert'].forEach(k => { if (p[k] != null) p[k] = lt(p[k]); }); if (Array.isArray(p.megoldas)) p.megoldas = p.megoldas.map(lt); return p; }
+/* Fejezet-nyilvántartás: a vizsgafejezetek a tananyag-fejezetek feladattípusait használják (lásd atvesz, vizsga). */
+const REG = {};
 function tisztit(d) {
+  if (d && d.id) REG[d.id] = d;
   ['bevezeto', 'elmelet'].forEach(k => { d[k] = lt(d[k]); });
   if (d.mintapelda) { d.mintapelda.feladat = lt(d.mintapelda.feladat); d.mintapelda.lepesek = (d.mintapelda.lepesek || []).map(lt); }
   if (Array.isArray(d.igazHamis)) d.igazHamis = d.igazHamis.map(x => typeof x.general === 'function' ? Object.assign({}, x, { general() { return tisztitP(x.general.call(x)); } }) : tisztitP(Object.assign({}, x)));
@@ -204,19 +209,76 @@ function tisztit(d) {
 
 const FMT10 = { egesz: 'egész szám', tort: 'egész szám vagy tört, pl. 3/2', halmaz: 'egy vagy több szám, pontosvesszővel: 1; 2 (ha nincs: nincs)', kerek: 'tizedes tört két tizedesjegyre, pl. 2,41', szam: 'szám' };
 
-window.M10 = { R0, keverd, kulonbozo, isF, val, absT, sz, zj, el, tg, poly, q2, l1, tenyezo, gyokEgysz, gy, negyzet, egyutthatok, tortGyok, keplet, gyokokT, frSz, hs, az, Az, vel, szer, szerese, parabola, tisztit, FMT10 };
+/* Vizsga: egy tananyag-fejezet feladattípusának átvétele. A forrásfejezet is be van töltve (minden aktív témakör
+   fejezete betöltődik), a generátort csak feladatkészítéskor keressük meg – így a betöltési sorrend mindegy.
+   FONTOS: a forrásfejezet témakörét ne kapcsold ki (aktiv: false), különben a vizsgafeladat nem készül el. */
+function atvesz(forras, tipus, nev, opt = {}) {
+  return Object.assign({ nev, general() {
+    const d = REG[forras], g = d && d.feladatok && d.feladatok[tipus];
+    if (!g) throw new Error(`A(z) „${forras}” fejezet „${tipus}” feladattípusa nincs betöltve.`);
+    return g.general();
+  } }, opt);
+}
+/* Vizsgafejezet: a saját szövegei tisztítva; az igaz–hamis kérdésbankot a forrásfejezetekből veszi (csak közép szintűek). */
+function vizsga(d, forrasok = [], ihDb = 10) {
+  const sajat = Array.isArray(d.igazHamis) ? d.igazHamis : [];
+  delete d.igazHamis;
+  ['bevezeto', 'elmelet'].forEach(k => { d[k] = lt(d[k]); });
+  if (d.mintapelda) { d.mintapelda.feladat = lt(d.mintapelda.feladat); d.mintapelda.lepesek = (d.mintapelda.lepesek || []).map(lt); }
+  Object.values(d.feladatok || {}).forEach(g => { const eredeti = g.general; g.general = function () { return tisztitP(eredeti.call(this)); }; });
+  Object.defineProperty(d, 'igazHamis', { enumerable: true, configurable: true, get() {
+    const lista = sajat.slice();
+    forrasok.forEach(f => { const x = REG[f]; if (x && Array.isArray(x.igazHamis)) x.igazHamis.forEach(e => { if (e.szint !== 'emelt') lista.push(e); }); });
+    return lista;
+  } });
+  if (d.id) REG[d.id] = d;
+  return d;
+}
+/* tananyag-hivatkozások a vizsgafejezetek elméletéhez */
+const gyakorlo = (tk, fgy) => `<div class="prose small"><p><b>Gyakorló feladatok (vizsgatematika):</b> ${tk ? `Tankönyv: ${tk}` : ''}${tk && fgy ? ' · ' : ''}${fgy ? `Sokszínű matematika feladatgyűjtemény 9–10: ${fgy}` : ''}</p></div>`;
+
+window.M10 = { R0, keverd, kulonbozo, isF, val, absT, sz, zj, el, tg, poly, q2, l1, tenyezo, gyokEgysz, gy, negyzet, egyutthatok, tortGyok, keplet, gyokokT, frSz, hs, az, Az, vel, szer, szerese, parabola, tisztit, atvesz, vizsga, gyakorlo, REG, binom, fakt, FMT10 };
 })();
 
 Tananyag.kurzus({
   cim: 'Matek 10',
   alcim: '10. évfolyam · Sokszínű matematika 10. (Mozaik)',
-  jelek: 'ax² + bx + c = 0 · D = b² − 4ac · √a · ⁿ√a',
+  jelek: 'n! · ax² + bx + c = 0 · D = b² − 4ac · √a · ⁿ√a',
   alapTemakor: 'masod',      // ez a témakör legyen kiválasztva, amíg a diák nem választ mást
   // Évfolyamszintű szabályok (elhagyhatók – akkor a config.js értéke érvényes):
   joValaszCukorkahoz: 5,     // egy cukorkához minden feladattípusból ennyi új jó megoldás kell
   // cukorkaNyitashoz: 1,
   // streakNapiMin: 1,
   temakorok: [
+    /* ---------- Tananyag (a tankönyv fejezetei) ---------- */
+    {
+      id: 'gondolkodas',
+      cim: 'Gondolkodási módszerek',
+      mappa: 'gondolkodasi-modszerek',
+      cukorkaNyitashoz: 1,
+      proba: { feladatszam: 12 },
+      fejezetek: [
+        '01-feltetelek.js',
+        '02-skatulyaelv.js',
+        '03-sorba-rendezes.js',
+        '04-kivalasztas.js',
+        '05-kombinacio.js'
+      ]
+    },
+    {
+      id: 'gyok',
+      cim: 'A gyökvonás',
+      mappa: 'gyokvonas',
+      cukorkaNyitashoz: 1,
+      proba: { feladatszam: 12 },
+      fejezetek: [
+        '00-racionalis-irracionalis.js',
+        '01-negyzetgyok-azonossagok.js',
+        '02-negyzetgyok-alkalmazasok.js',
+        '03-n-edik-gyok.js',
+        '04-vegyes.js'
+      ]
+    },
     {
       id: 'masod',
       cim: 'A másodfokú egyenlet',
@@ -238,17 +300,51 @@ Tananyag.kurzus({
         '12-szoveges.js'
       ]
     },
+    /* ---------- Vizsga (vizsgatematika 10.ABCD; csak a tematika feladattípusai) ----------
+       A vizsgafejezetek a fenti tananyag-fejezetek generátorait használják (M10.atvesz). */
     {
       id: 'vizsga1',
       cim: 'Vizsga 1. · Négyzetgyök, n-edik gyök',
-      mappa: 'vizsga-gyokvonas',
+      mappa: 'vizsga',
       cukorkaNyitashoz: 1,
       proba: { feladatszam: 12 },
       fejezetek: [
-        '01-negyzetgyok-azonossagok.js',
-        '02-negyzetgyok-alkalmazasok.js',
-        '03-n-edik-gyok.js',
-        '04-vizsgagyakorlo.js'
+        'v1-01-racionalis-irracionalis.js',
+        'v1-02-negyzetgyok-azonossagok.js',
+        'v1-03-negyzetgyok-muveletek.js',
+        'v1-04-n-edik-gyok.js',
+        'v1-05-n-edik-gyok-muveletek.js'
+      ]
+    },
+    {
+      id: 'vizsga2',
+      cim: 'Vizsga 2. · Másodfokú egyenletek',
+      mappa: 'vizsga',
+      cukorkaNyitashoz: 1,
+      proba: { feladatszam: 15 },
+      fejezetek: [
+        'v2-01-megoldokeplet.js',
+        'v2-02-gyoktenyezos-alak.js',
+        'v2-03-egyenlotlensegek.js',
+        'v2-04-negyzetgyokos.js',
+        'v2-05-magasabbfoku-tortes.js',
+        'v2-06-egyenletrendszerek.js',
+        'v2-07-szoveges.js',
+        'v2-08-diszkriminans.js'
+      ]
+    },
+    {
+      id: 'vizsga4',
+      cim: 'Vizsga 4. · Kombinatorika',
+      mappa: 'vizsga',
+      cukorkaNyitashoz: 1,
+      proba: { feladatszam: 12 },
+      fejezetek: [
+        'v4-01-skatulyaelv.js',
+        'v4-02-permutacio.js',
+        'v4-03-variacio.js',
+        'v4-04-kombinacio.js'
+        // 'v4-05-valoszinuseg.js'   ← a klasszikus valószínűségi modell, ha a tankönyv 6. fejezetéhez értetek
       ]
     }
   ]
