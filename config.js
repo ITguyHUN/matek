@@ -25,13 +25,6 @@ window.BEALLITAS = {
   // a kurzus.js-ben (cukorkaNyitashoz, ill. a fejezetnél { fajl: '…', cukorka: 2 }).
   cukorkaNyitashoz: 1,
 
-  // Macaron: a TELJESÍTETT fejezetekben gyűlik, típusonként (egy típusból joValaszCukorkahoz jó megoldás
-  // egymás után = 1 macaron). Ennyi macaronba kerül a próba-témazáró, ill. közép szintű csoportnál egy
-  // emelt szintű fejezet megnyitása. Évfolyamonként / témakörönként felülírható a kurzus.js-ben
-  // (macaronProbahoz, macaronEmelthez; a próbánál: proba: { macaron: 3 }).
-  macaronProbahoz: 2,
-  macaronEmelthez: 2,
-
   // Napi streak: ennyi ÚJ feladatot kell aznap megoldani a legutolsó nyitott fejezetben.
   // (kurzus.js: streakNapiMin)
   streakNapiMin: 1,
@@ -41,5 +34,5 @@ window.BEALLITAS = {
 
   // Ha bármelyik tananyagfájlt módosítod, írd át ezt (pl. a mai dátumra),
   // hogy a diákok böngészője biztosan az új változatot töltse le.
-  verzio: '2026-11-08'
+  verzio: '2026-11-08a'
 };
