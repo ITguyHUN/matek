@@ -41,5 +41,5 @@ window.BEALLITAS = {
 
   // Ha bármelyik tananyagfájlt módosítod, írd át ezt (pl. a mai dátumra),
   // hogy a diákok böngészője biztosan az új változatot töltse le.
-  verzio: '2026-11-06d'
+  verzio: '2026-11-08'
 };
