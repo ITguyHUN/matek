@@ -27,9 +27,11 @@ tananyag/
   7/kurzus.js              7. évfolyam (Sokszínű matematika 7., 1–4. lecke)
   7/racionalis-arany-szazalek/  6 fejezet: alakok, számegyenes, műveletek, sorrend, arányosság, százalék
   10/kurzus.js             10. évfolyam (Sokszínű matematika 10.); az elején a közös segédfüggvények (M10) és a parabola-rajzoló
-  10/masodfoku-egyenlet/   12 fejezet: másodfokú függvény, megoldóképlet, diszkrimináns, Viète, magasabb fokú és törtes,
+  10/gondolkodasi-modszerek/  TK 1. fejezet: feltételek, skatulyaelv, sorba rendezés, kiválasztás, kombináció
+  10/gyokvonas/            TK 2. fejezet: racionális–irracionális, négyzetgyök-azonosságok és alkalmazásuk, n-edik gyök, vegyes
+  10/masodfoku-egyenlet/   TK 3. fejezet, 12 fejezet: másodfokú függvény, megoldóképlet, diszkrimináns, Viète, magasabb fokú és törtes,
                            egyenletrendszerek, egyenlőtlenségek, paraméteres (E), négyzetgyökös, közepek, szélsőérték (E), szöveges
-  10/vizsga-gyokvonas/     vizsgatematika 1. témakör: négyzetgyök-azonosságok, alkalmazásuk, n-edik gyök, vizsgagyakorló
+  10/vizsga/               vizsgatematika 1., 2. és 4. témaköre – csak a tematika feladattípusai (a fenti fejezetek generátoraival)
 apps-script/Code.gs        a Google Táblázat mögötti szerverkód
 felhasznalok_minta.xlsx    minta a felhasználói listához
 ```
@@ -70,10 +72,7 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
   - Nem egymás utáni jó megoldásokat számol, hanem **új (még meg nem oldott) feladatok helyes megoldását**: a hibás válasz nem nulláz, a megoldás megnézése után megoldott feladat pedig nem számít.
   - A már korábban megoldott feladat nem számít bele a sorozatba, de nem is nullázza.
 - **Fejezetnyitás:** ha összegyűlt a következő fejezet ára (`cukorkaNyitashoz`, fejezetenként eltérhet), a fejezet tetején megjelenik a **Megnyitom** gomb. A diák erre kattintva nyitja meg a fejezetet, és az ára ekkor jön le a cukorkáiból. Amíg nem kattint, a cukorkák megmaradnak, és tovább gyűlnek.
-- **Macaron:** a már **teljesített** fejezetekben (a legutolsó nyitott fejezet előttiekben, illetve a próba megnyitása után mindegyikben) gyűlik cukorka helyett. **Típusonként külön** számol: ha egy feladattípusból újra összegyűlik `joValaszCukorkahoz` új jó megoldás egymás után, az 1 macaron. Hibás válasz vagy a megoldás megnézése annak a típusnak a macaron-számlálóját nullázza.
-- **Próba-témazáró:** **macaronért** nyílik (`macaronProbahoz`, alapból 2; témakörönként `proba: { macaron: 3 }`), ha a témakör minden fejezete nyitva van. Tanári csoportnyitással („Minden fejezet + próba”) továbbra is megnyitható.
-- **Emelt fejezetek közép szintű csoportnál:** macaronért nyílnak (`macaronEmelthez`, alapból 2), ha az előttük álló fejezet már nyitva van.
-- **Próba-témazáró összeállítása:** a Tanári felület **Próba-témazáró** fülén csoportonként és témakörönként megadható, mely feladattípusokból hány feladat kerüljön a diákok próbájába (különben véletlenszerű). Tanári fiókkal és helyi módban mindig nyitva van.
+- **Próba-témazáró:** csak akkor nyílik meg, ha a témakör minden fejezete teljesítve van: az utolsó fejezetben is összegyűlt a próba ára (`proba: { cukorka: … }`, alapból a témakör `cukorkaNyitashoz` értéke), és a diák a gombbal megnyitotta. Tanári fiókkal és helyi módban mindig nyitva van.
 - **Témakör- és évfolyamválasztás:** ha egy évfolyamnak több témaköre van, vagy a diáknak több évfolyama, a kezdőlapon választhat közöttük. Az oldal megjegyzi a választást, a menü pedig mindig a kiválasztott témakört mutatja.
 - **Napi sorozat:** az a nap számít, amelyen a diák legalább `streakNapiMin` (alapból 1) új feladatot old meg **egy témakör** legutolsó nyitott fejezetében. A fejlécben a sorozatra kattintva lenyílik, mely témakörökben szerezheti meg a mai napot, és hol tart bennük.
 - **Témakörönkénti szabályok a tanári felületen:** a Tanári felületen csoportonként és témakörönként beállítható a napi sorozat feltétele (új feladat / nap), a cukorkához/macaronhoz szükséges új jó megoldások száma típusonként, és a próba-témazáró ára macaronban (új „Csoportszabály” lap). Üresen hagyva a tananyag alapértéke érvényes. Több évfolyamnál a sorozat közös, de mindegyik évfolyamban a saját feltétele számít.
@@ -83,9 +82,6 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
 - **Cukorkához szükséges jó válaszok:** a szükséges darabszám (`joValaszCukorkahoz`, feladattípusonként értendő) témakörönként is megadható a `kurzus.js`-ben.
 - **Haladási korlát:** a Tanári felületen csoportonként és témakörönként megadható, hogy a diákok cukorkával legfeljebb melyik fejezetig nyithatnak, hogy ne haladjanak az óra elé. A cukorka közben gyűlik, és a korlát emelése után felhasználható. A csoportnyitás ettől függetlenül működik.
 - **Házi feladat:** a Tanári felület **Házi feladat** fülén kiadható: címmel, határidővel, és feladattípusonként azzal, hogy hány helyes megoldás kell. A diákok a menü tetején, a kezdőlapon és minden oldal tetején látják. Csak a még meg nem oldott, segítség (megoldás megnézése) nélküli helyes megoldások számítanak. A házi **nem számít bele semmilyen gyűjthető dologba** (cukorka, típusszámlálók, napi sorozat). A tanár diákonként látja az állást, és hogy határidőre vagy késve lett-e kész. A határidő után 14 napig a diákok is látják a házit.
-  - A megadott számú helyes megoldásnak **egymás után** kell meglennie: hibás válasz vagy a megoldás megnézése az adott rész számlálóját nullázza (a már kész részt nem).
-  - **Házi sorozat:** minden határidőre kész házi +1; csak akkor nullázódik, ha egy házi határideje lejár, és nincs kész.
-  - A kiadott házi **szerkeszthető** (Szerkesztés gomb); a típusválasztóban témakörönként és fejezetenként egyszerre kitölthető és nullázható a darabszám.
   - Ha a házi (vagy egy része) kész, a házi oldalán **zölden lezárul**: ott már nem lehet tovább dolgozni, a gyakorlás a fejezetben folytatható (ott a cukorka is gyűlik).
   - Ha lejárt a határidő, és nincs kész, **piros** (a kezdőlapon, a felső sávban, a házi oldalán és a tanári táblázatban is); késve még befejezhető.
 - **Csoportnyitás:** a Tanári felületen egy csoportnak megnyithatod a fejezeteket egy adott pontig. A lista utolsó eleme („Minden fejezet + próba-témazáró”) a próbát is megnyitja. Ilyenkor a cukorka és a sorozat ettől a fejezettől kezdve gyűlik. A tanári felületen a csoport mellett tananyagot (évfolyamot) és témakört is választhatsz.
@@ -97,7 +93,7 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 
 - Évfolyamonként, témakörönként és fejezetenként felsorolja a feladattípusokat. Mindegyiknél megadható: hány részfeladat legyen belőle, **melyik feladatba** kerüljön (üresen: külön feladat), és hány **pontot** ér egy részfeladata (üresen: az alap pont).
 - Egy feladatban több típus is lehet; a részfeladatok betűjele (a, b, c, …) folytatólagos, mindegyik mellett ott a pontszáma. Ha a részfeladatok ugyanazzal az utasítással kezdődnek, az a feladat fejlécébe kerül.
-- **Nullázás és gyors kitöltés:** „Minden darabszám 0” (a lista tetején), témakörönként „Témakör nullázása”, és **fejezetenként** egy darabszám-mező a „minden típushoz” (a fejezet minden típusát erre a számra állítja) és a „nullázás” gombbal. A „csak a kiválasztott típusok látszanak” kapcsolóval a lista a kiválasztottakra szűkíthető.
+- **Nullázás:** „Minden darabszám 0” (a lista tetején) és témakörönként „Témakör nullázása”. A „csak a kiválasztott típusok látszanak” kapcsolóval a lista a kiválasztottakra szűkíthető.
 - **Témazáró ebből a témakörből:** a témakör minden feladattípusát kitölti a megadott darabszámmal (a próba-témazáróból kizárt, `proba: false` típusok kivételével), igény szerint csak a közép szintűekkel.
 - **Pontozás:** a feladat pontszáma a részfeladatai pontjainak összege. Ebből készül a **ponttáblázat** (Feladat / Max. pont / Elért pont, összesen).
 - **Ponthatárok:** az 5-ös, 4-es, 3-as, 2-es alsó határa megadható **százalékban** (alapból 85/70/55/40%) vagy **pontban**; váltáskor az értékek átszámolódnak. Az előnézet a pontsávokat is mutatja, és szól, ha a határok nem csökkenőek.

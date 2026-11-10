@@ -15,7 +15,9 @@ tananyag/
     kurzus.js                ← a 10. évfolyam leírója (az elején a közös segédfüggvények: M10, parabola-rajzoló)
     masodfoku-egyenlet/      ← 12 fejezet (Sokszínű matematika 10., 3. fejezet)
     vizsga-gyokvonas/        ← vizsgatematika 1. témakör (négyzetgyök, n-edik gyök), 4 fejezet
-  9/                         ← további évfolyamok ugyanígy (saját kurzus.js-sel)
+  9/
+    kurzus.js                ← a 9. évfolyam leírója (az elején a közös segédfüggvények: M9 – polinomok, törtek, számelmélet, számrendszerek)
+    algebra-szamelmelet/     ← II. fejezet: Algebra és számelmélet, 11 lecke (Sokszínű matematika 9.)
 ```
 
 A felhasználó a **Tananyag** oszlopban kapja meg, melyik mappa töltődjön be neki, például `11`. Több is megadható vesszővel, például `11, 10`. Ilyenkor a kezdőlapon évfolyamot is választhat, az első a saját évfolyama.
