@@ -92,7 +92,7 @@
     const k = B.v === 10 ? R(0, 2) : small ? R(-3, 1) : R(0, 3); const bk = small ? fpow(F(B.v === 0.5 ? 2 : 3), -k) : fpow(F(B.v), k);
     if (fv(bk) > 150) return this.general();
     const p = R(1, 5), q = R(-8, 8);
-    const rels = ['<', '>', '≤', '≥'], relT = { '<': '<', '>': '>', '≤': '\\le', '≥': '\\ge' }, flip = { '<': '>', '>': '<', '≤': '≥', '≥': '≤' };
+    const rels = ['<', '>', '≤', '≥'], relT = { '<': '<', '>': '>', '≤': '\\le ', '≥': '\\ge ' }, flip = { '<': '>', '>': '<', '≤': '≥', '≥': '≤' };
     const rel = P(rels); const rel2 = small ? flip[rel] : rel;  // p x + q  rel2  b^k
     const Bd = F(bk.n - q * bk.d, p * bk.d); const dom = F(-q, p);
     const strict = r => r === '≤' ? '<' : r === '≥' ? '>' : r;

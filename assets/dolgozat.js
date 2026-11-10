@@ -238,13 +238,15 @@ function generalas(K) {
   EREDMENY = { opt: Object.assign({}, DG), K, valtozatok };
   const out = $('#dgout');
   out.innerHTML = `<section class="blk"><h3>Előnézet</h3>
-    <div class="ansrow dg-gombok"><button class="btn primary" id="dgdocx">Letöltés: Word (.docx)</button><button class="btn primary" id="dgpdf">Letöltés: PDF</button><button class="btn ghost" id="dgujra">Új feladatok (újragenerálás)</button><span class="small" id="dgst"></span></div>
+    <div class="ansrow dg-gombok"><button class="btn primary" id="dgdocx">Letöltés: Word (.docx)</button><button class="btn primary" id="dgpdf">Letöltés: PDF</button><button class="btn primary" id="dgtex">Letöltés: LaTeX (.tex)</button><button class="btn ghost" id="dgovl" title="A .tex tartalmát elküldi az Overleafnek, és ott megnyitja">Megnyitás Overleafben</button><button class="btn ghost" id="dgujra">Új feladatok (újragenerálás)</button><span class="small" id="dgst"></span></div>
     <p class="small">PDF: a megnyíló nyomtatási ablakban válaszd a <b>Mentés PDF-ként</b> célt. A Word-fájlban a képletek képként szerepelnek, a szöveg szerkeszthető.</p>
     <div id="dgnyomtat">${nyomtatHtml(EREDMENY)}</div></section>`;
   H.typeset($('#dgnyomtat'));
   $('#dgujra').onclick = () => generalas(K);
   $('#dgpdf').onclick = pdf;
   $('#dgdocx').onclick = () => docx().catch(e => { $('#dgst').textContent = 'Hiba: ' + e.message; });
+  $('#dgtex').onclick = () => { letolt(new Blob([texDolgozat(EREDMENY)], { type: 'application/x-tex;charset=utf-8' }), fajlNev(EREDMENY.opt.cim) + '.tex'); $('#dgst').textContent = 'A LaTeX-fájl elkészült (pdfLaTeX, XeLaTeX vagy LuaLaTeX is fordítja).'; };
+  $('#dgovl').onclick = () => overleaf(texDolgozat(EREDMENY), fajlNev(EREDMENY.opt.cim));
   out.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 const helyPx = h => [0, 50, 110, 200][h] || 0;
@@ -294,6 +296,144 @@ function ponttablazat(fel, ossz) {
     ]);
   }
   return out;
+}
+
+/* ---------- LaTeX ---------- */
+const fajlNev = c => (c || 'dolgozat').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'dolgozat';
+function letolt(blob, nev) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nev;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+/* Overleaf: a .tex tartalmát új projektként nyitja meg (a tanár kattintására) */
+function overleaf(tex, nev) {
+  const f = document.createElement('form');
+  f.method = 'POST'; f.action = 'https://www.overleaf.com/docs'; f.target = '_blank';
+  [['encoded_snip', encodeURIComponent(tex)], ['snip_name', nev + '.tex'], ['engine', 'pdflatex']].forEach(([n, v]) => {
+    const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i);
+  });
+  document.body.appendChild(f); f.submit(); f.remove();
+}
+/* Különleges (Unicode) karakterek → LaTeX, hogy pdfLaTeX-hel is forduljon. Szövegben \ensuremath-mal, képletben anélkül. */
+const UNI = { '\u2212': '-', '\u00B7': '\\cdot ', '\u22C5': '\\cdot ', '\u00D7': '\\times ', '\u2264': '\\le ', '\u2265': '\\ge ', '\u2260': '\\ne ', '\u2248': '\\approx ',
+  '\u00B1': '\\pm ', '\u2213': '\\mp ', '\u2192': '\\rightarrow ', '\u2190': '\\leftarrow ', '\u2194': '\\leftrightarrow ', '\u21D2': '\\Rightarrow ', '\u21D4': '\\Leftrightarrow ',
+  '\u221A': '\\surd ', '\u221B': '\\sqrt[3]{\\ }', '\u221C': '\\sqrt[4]{\\ }', '\u2200': '\\forall ', '\u2208': '\\in ', '\u2205': '\\emptyset ', '\u221E': '\\infty ',
+  '\u03BC': '\\mu ', '\u03C0': '\\pi ', '\u00B0': '^\\circ ', '\u2026': '\\ldots ', '\u25A1': '\\square ', '\u2713': '\\checkmark ', '\u2714': '\\checkmark ', '\u2717': '\\times ',
+  '\u2070': '^0', '\u00B9': '^1', '\u00B2': '^2', '\u00B3': '^3', '\u2074': '^4', '\u2075': '^5', '\u2076': '^6', '\u2077': '^7', '\u2078': '^8', '\u2079': '^9',
+  '\u207A': '^+', '\u207B': '^-', '\u207F': '^n', '\u2071': '^i', '\u1D50': '^m', '\u02E3': '^x',
+  '\u2080': '_0', '\u2081': '_1', '\u2082': '_2', '\u2083': '_3', '\u2084': '_4', '\u2085': '_5', '\u2086': '_6', '\u2087': '_7', '\u2088': '_8', '\u2089': '_9', '\u2090': '_a' };
+const SZOVEG_KAR = { '\u00F8': '\\o{}', '\u00A0': '~', '\u2009': '\\,', '\u202F': '\\,' };
+function texSzoveg(t) {   // matematikán kívüli szöveg
+  return String(t).replace(/[\u0300-\u036F]/g, '').replace(/[\\{}#$%&_^~\u0080-\uFFFF]/g, c => {
+    if (c === '\\') return '\\textbackslash{}';
+    if ('{}#$%&_'.includes(c)) return '\\' + c;
+    if (c === '^') return '\\^{}';
+    if (c === '~') return '\\~{}';
+    if (SZOVEG_KAR[c]) return SZOVEG_KAR[c];
+    if (UNI[c]) return c === '\u2026' ? '\\ldots{}' : `\\ensuremath{${UNI[c].trim()}}`;
+    return c;   // ékezetes betűk, „ ” – stb. maradnak
+  });
+}
+const texMat = t => String(t).replace(/[\u0300-\u036F]/g, '').replace(/[\u0080-\uFFFF]/g, c => UNI[c] || c);
+/* szöveg + \( … \) / \[ … \] képletek */
+function texVegyes(t, kiemeltInline) {
+  return String(t).split(/(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/).map((d, i) => {
+    if (i % 2 === 0) return texSzoveg(d);
+    const kiemelt = d.startsWith('\\['), b = texMat(d.slice(2, -2)).trim();
+    return kiemelt ? (kiemeltInline ? `$\\displaystyle ${b}$` : `\\[ ${b} \\]`) : `$${b}$`;
+  }).join('');
+}
+/* HTML (a feladat szövege) → LaTeX */
+function html2tex(html, kiemeltInline) {
+  const doc = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html');
+  const jar = n => {
+    if (n.nodeType === 3) return texVegyes(n.nodeValue.replace(/\s+/g, ' '), kiemeltInline);
+    if (n.nodeType !== 1) return '';
+    const tag = n.tagName, bel = () => Array.from(n.childNodes).map(jar).join('');
+    switch (tag) {
+      case 'B': case 'STRONG': return `\\textbf{${bel()}}`;
+      case 'I': case 'EM': return `\\emph{${bel()}}`;
+      case 'SUP': return `\\textsuperscript{${bel()}}`;
+      case 'SUB': return `\\textsubscript{${bel()}}`;
+      case 'CODE': return `\\texttt{${bel()}}`;
+      case 'BR': return '\\\\\n';
+      case 'P': case 'DIV': return `\n\n${bel().trim()}\n\n`;
+      case 'UL': return `\n\\begin{itemize}\n${bel()}\\end{itemize}\n`;
+      case 'OL': return `\n\\begin{enumerate}\n${bel()}\\end{enumerate}\n`;
+      case 'LI': return `\\item ${bel().trim()}\n`;
+      case 'TABLE': {
+        const sorok = Array.from(n.querySelectorAll('tr')).map(tr => Array.from(tr.children).map(td => {
+          const x = Array.from(td.childNodes).map(jar).join('').replace(/\n+/g, ' ').trim(); return td.tagName === 'TH' ? `\\textbf{${x}}` : x; }));
+        const osz = Math.max(...sorok.map(r => r.length), 1);
+        return `\n\n\\begin{tabular}{|${'c|'.repeat(osz)}}\\hline\n${sorok.map(r => r.join(' & ') + ' \\\\ \\hline').join('\n')}\n\\end{tabular}\n\n`;
+      }
+      case 'INPUT': case 'BUTTON': case 'CANVAS': case 'SCRIPT': case 'STYLE': return '';
+      default: return bel();
+    }
+  };
+  return Array.from(doc.body.childNodes).map(jar).join('').replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
+}
+function texDolgozat(E) {
+  const o = E.opt, ki = [];
+  const helyCm = [0, 1, 2.3, 4][o.hely] || 0;
+  ki.push(`% ${o.cim} – készült a Matek gyakorló dolgozatkészítőjével
+% Fordítható pdfLaTeX-hel, XeLaTeX-hel és LuaLaTeX-hel is (pl. Overleafen).
+\\documentclass[11pt,a4paper]{article}
+\\newif\\ifunicodetex
+\\ifdefined\\XeTeXrevision\\unicodetextrue\\fi
+\\ifdefined\\directlua\\unicodetextrue\\fi
+\\ifunicodetex\\usepackage{fontspec}\\else\\usepackage[utf8]{inputenc}\\usepackage[T1]{fontenc}\\usepackage{lmodern}\\fi
+\\usepackage[magyar]{babel}
+\\usepackage{amsmath,amssymb}
+\\usepackage[a4paper,margin=2cm]{geometry}
+\\providecommand{\\lt}{<}\\providecommand{\\gt}{>}% a MathJax ismeri, a LaTeX nem
+\\setlength{\\parindent}{0pt}
+\\setlength{\\parskip}{3pt}
+\\pagestyle{empty}
+% \\feladat{sorszám}{utasítás}{pont}
+\\newcommand{\\feladat}[3]{\\par\\medskip\\noindent\\textbf{#1}~#2\\hfill\\mbox{\\dots\\dots{} / #3 pont}\\par\\nopagebreak}
+\\newcommand{\\rpont}[1]{\\hfill{\\small(#1~p)}}
+\\newenvironment{reszek}{\\begin{list}{}{\\setlength{\\leftmargin}{2.4em}\\setlength{\\labelwidth}{1.8em}\\setlength{\\itemsep}{2pt}\\setlength{\\topsep}{2pt}}}{\\end{list}}
+
+\\begin{document}
+`);
+  E.valtozatok.forEach((V, vi) => {
+    const ossz = V.feladatok.reduce((a, f) => a + f.pont, 0);
+    if (vi) ki.push('\\newpage');
+    ki.push(`{\\Large\\bfseries ${texSzoveg(o.cim)}${V.betu ? ` -- ${V.betu} csoport` : ''}}\\par\\medskip`);
+    if (o.nev) ki.push('Név: \\rule{6.5cm}{0.4pt}\\quad Osztály: \\rule{2cm}{0.4pt}\\quad Dátum: \\rule{2.8cm}{0.4pt}\\par\\bigskip');
+    V.feladatok.forEach((f, fi) => {
+      let fej = html2tex(f.utasitas, false).replace(/\n+/g, ' ');
+      if (f.dolt) fej = `\\emph{${fej}}`; else if (f.felkover) fej = `\\textbf{${fej}}`;
+      ki.push(`\\feladat{${fi + 1}.}{${fej}}{${f.pont}}`);
+      const tobb = f.items.length > 1;
+      if (f.egysor) {
+        ki.push('\\par\\hspace*{2.4em}' + f.items.map((it, ii) => `${BETUK[ii]})~${html2tex(it.kerdes, true).replace(/\n+/g, ' ')}${o.rpMutat ? ` {\\small(${it.rp}~p)}` : ''}`).join('\\qquad\\qquad ') + '\\par');
+        if (helyCm) ki.push(`\\vspace{${helyCm}cm}`);
+        return;
+      }
+      const sor = ['\\begin{reszek}'];
+      f.items.forEach((it, ii) => {
+        if (it.elo) sor.push(`\\item[] \\emph{${html2tex(it.elo, false).replace(/\n+/g, ' ')}}`);
+        const v = it.valasz && it.valasz.valasztas ? '\n\n' + it.valasz.valasztas.map((x, i) => `\\textbf{${String.fromCharCode(65 + i)})}~${texVegyes(x, true)}`).join('\\qquad ') : '';
+        sor.push(`\\item[${tobb ? BETUK[ii] + ')' : ''}] ${html2tex(it.kerdes, true)}${v}${tobb && o.rpMutat ? `\\rpont{${it.rp}}` : ''}${helyCm ? `\n\\vspace{${helyCm}cm}` : ''}`);
+      });
+      sor.push('\\end{reszek}');
+      ki.push(sor.join('\n'));
+    });
+    if (o.ptab) ponttablazat(V.feladatok, ossz).forEach(sorok => ki.push(`\\par\\bigskip\\begin{flushright}\\begin{tabular}{|l|${'c|'.repeat(sorok[0].length - 1)}}\\hline\n${sorok.map(r => r.map((c, ci) => ci === 0 ? `\\textbf{${texSzoveg(c)}}` : texSzoveg(c)).join(' & ') + ' \\\\ \\hline').join('\n')}\n\\end{tabular}\\end{flushright}`));
+    else ki.push(`\\par\\bigskip\\hfill\\textbf{Összesen: \\dots\\dots{} / ${ossz} pont}`);
+    if (o.jegy) ki.push(`\\begin{flushright}\\begin{tabular}{|l|${'c|'.repeat(JEGYEK.length)}}\\hline\n\\textbf{Jegy} & ${JEGYEK.join(' & ')} \\\\ \\hline\n\\textbf{Pont} & ${hatarok(ossz, o).map(texSzoveg).join(' & ')} \\\\ \\hline\n\\end{tabular}\\end{flushright}`);
+  });
+  if (o.kulcs) E.valtozatok.forEach(V => {
+    ki.push(`\\newpage\n{\\large\\bfseries Megoldókulcs -- ${texSzoveg(o.cim)}${V.betu ? ` -- ${V.betu} csoport` : ''}}\\par\\medskip`);
+    V.feladatok.forEach((f, fi) => {
+      ki.push(`\\textbf{${fi + 1}.} ` + f.items.map((it, ii) => `${f.items.length > 1 ? BETUK[ii] + ')~' : ''}${texSzoveg(H.valaszSzoveg(it.valasz))}`).join(';\\quad ') + '\\par');
+      if (o.reszl) f.items.forEach((it, ii) => ki.push(`\\begin{reszek}\\item[${f.items.length > 1 ? BETUK[ii] + ')' : ''}] ${it.megoldas.map(x => html2tex(/^\s*\\\[/.test(x) ? x : `<p>${x}</p>`, false)).join('\n\n')}\\end{reszek}`));
+    });
+  });
+  ki.push('\\end{document}\n');
+  return ki.join('\n\n');
 }
 
 /* ---------- PDF: nyomtatás ---------- */
