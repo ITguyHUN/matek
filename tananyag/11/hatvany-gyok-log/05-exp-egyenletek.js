@@ -96,7 +96,7 @@
     const a = P([1, 2, 3, 4, -1, -2]), q = R(-5, 5); const r = R(-3, 3); if (p ** Math.abs(r) > 125) return this.general();
     // jobb oldal: base^r számként
     const val = small ? fpow(F(1, p), r) : fpow(F(p), r);
-    const rels = ['<', '>', '≤', '≥'], relT = { '<': '<', '>': '>', '≤': '\\le', '≥': '\\ge' }, flip = { '<': '>', '>': '<', '≤': '≥', '≥': '≤' };
+    const rels = ['<', '>', '≤', '≥'], relT = { '<': '<', '>': '>', '≤': '\\le ', '≥': '\\ge ' }, flip = { '<': '>', '>': '<', '≤': '≥', '≥': '≤' };
     const rel = P(rels); let rel2 = small ? flip[rel] : rel; const B = F(r - q, a); const rel3 = a < 0 ? flip[rel2] : rel2;
     const lin = (a === 1 ? 'x' : a === -1 ? '-x' : a + 'x') + (q === 0 ? '' : q > 0 ? '+' + q : String(q));
     const ok = `x ${rel3} ${fp(B)}`;

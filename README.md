@@ -99,7 +99,7 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 - **Ponthatárok:** az 5-ös, 4-es, 3-as, 2-es alsó határa megadható **százalékban** (alapból 85/70/55/40%) vagy **pontban**; váltáskor az értékek átszámolódnak. Az előnézet a pontsávokat is mutatja, és szól, ha a határok nem csökkenőek.
 - Beállítható még: cím, csoportok száma (számmal; a betűjel A, B, C, … – mindegyik csoport más feladatokat kap), hely a megoldásnak, név-osztály-dátum sor, megoldókulcs (részletes megoldásokkal is).
 - **Elrendezés:** a rövid részfeladatok egy sorban, egymás mellett (kapcsolható), a közös utasítás dőlttel, a választási lehetőségek egy sorban; a részfeladatok pontja („(1 p)”) kikapcsolható.
-- **Letöltés:** Word (.docx) – a képletek **szerkeszthető Word-egyenletként** (kikapcsolva: képként); PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”.
+- **Letöltés:** Word (.docx) – a képletek **szerkeszthető Word-egyenletként** (kikapcsolva: képként); PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”; **LaTeX (.tex)** – önálló, fordítható forrás (pdfLaTeX, XeLaTeX, LuaLaTeX; pl. Overleafen), a „Megnyitás Overleafben” gomb pedig egyből új Overleaf-projektként nyitja meg.
 
 ## Táblázat lapjai
 

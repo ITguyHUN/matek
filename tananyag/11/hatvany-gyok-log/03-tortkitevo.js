@@ -38,7 +38,7 @@
     const tex = mul ? T`${rt(a, b)}\cdot ${rt(c, d)}` : T`\frac{${rt(a, b)}}{${rt(c, d)}}`;
     return { kerdes: T`<p>Írd fel egyetlen hatványként! (\(x>0\)) Melyik szám kerül a négyzet helyére?</p>\[${tex}=x^{\,\square}\]`, valasz: { ertekek: [fv(e)] }, formatum: FMT.frac,
       tipp: T`Írd át a gyököket törtkitevőre: \(\sqrt[n]{x^m}=x^{m/n}\). Szorzásnál összeadod, osztásnál kivonod a kitevőket (közös nevezőre hozva).`,
-      megoldas: [T`\[x^{${ft(F(b, a))}}${mul ? '\\cdot' : ':'}x^{${ft(F(d, c))}}=x^{${ft(F(b, a))}${mul ? '+' : '-'}${ft(F(d, c))}}=x^{${ft(e)}}\]`] };
+      megoldas: [T`\[x^{${ft(F(b, a))}}${mul ? '\\cdot ' : ':'}x^{${ft(F(d, c))}}=x^{${ft(F(b, a))}${mul ? '+' : '-'}${ft(F(d, c))}}=x^{${ft(e)}}\]`] };
   } };
 
   /* ---- Hányadik hatványa? (egymásba ágyazott gyökök) ---- */
@@ -76,7 +76,7 @@
     return { tex: T`${b}^{${eT}}`, val: neg ? F(1, v) : F(v), sol: neg ? T`\frac{1}{${v}}` : String(v) }; }
   const fmul = (a, b) => F(a.n * b.n, a.d * b.d), fdiv = (a, b) => F(a.n * b.d, a.d * b.n), fsub = (a, b) => F(a.n * b.d - b.n * a.d, a.d * b.d);
   feladatok.tortossz = { nev: 'Kifejezés értéke', general() {
-    const A = tkTag(), B = tkTag(); const op = P(['+', '-', '\\cdot', ':']);
+    const A = tkTag(), B = tkTag(); const op = P(['+', '-', '\\cdot ', ':']);
     const val = op === '+' ? fadd(A.val, B.val) : op === '-' ? fsub(A.val, B.val) : op === ':' ? fdiv(A.val, B.val) : fmul(A.val, B.val);
     const wrap = x => /^\\frac/.test(x) ? T`${x}` : x;
     return { kerdes: T`<p>Számítsd ki számológép nélkül!</p>\[${A.tex}${op}${B.tex}\]`, valasz: { ertekek: [fv(val)] }, formatum: FMT.frac,
