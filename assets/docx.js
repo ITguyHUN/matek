@@ -6,7 +6,8 @@
  *  blocks: [{ t: 'p', runs, align, indent: { left, hanging }, before, after, keepNext, pageBreakBefore, tabs: [twip] }
  *           { t: 'table', rows: [[runs, …], …], header: true }]
  *  runs:   [{ text, b, i, sup, sub, size }  |  { tab: true }  |  { br: true }
- *           { img: { data: Uint8Array (PNG), w: px, h: px }, pos: félpont (függőleges eltolás) }]
+ *           { img: { data: Uint8Array (PNG), w: px, h: px }, pos: félpont (függőleges eltolás) }
+ *           { omml: '<m:oMath>…</m:oMath>' } – szerkeszthető egyenlet]
  */
 (function () {
 'use strict';
@@ -39,12 +40,13 @@ function zip(files) {   // files: [{ name, data: Uint8Array }]
 }
 
 /* ---------- WordprocessingML ---------- */
-const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"';
 const EMU = 9525;   // 1 px (96 dpi) EMU-ban
 
 function build(blocks) {
   const media = []; let pid = 0;
   const run = r => {
+    if (r.omml) return r.omml;   // szerkeszthető Word-egyenlet (<m:oMath>)
     if (r.tab) return '<w:r><w:tab/></w:r>';
     if (r.br) return '<w:r><w:br/></w:r>';
     if (r.img) {

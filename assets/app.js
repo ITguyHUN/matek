@@ -152,20 +152,31 @@ let K = null;                 // aktuális (kiválasztott) tananyag
 let KS = [];                  // a felhasználó összes betöltött tananyaga
 let profile = null;           // { user, name, group, course, role }
 let sess = null;              // { user, token }
-let store = { state: Szabalyok.ujAllapot(), queue: [], tests: [], gu: {}, gl: {}, gk: {}, hk: [], pb: {} };
+let store = { state: Szabalyok.ujAllapot(), queue: [], tests: [], gu: {}, gl: {}, gk: {}, hk: [], pb: {}, gr: {} };
 let syncState = 'local';
 const isTeacher = () => profile && profile.role === 'tanar';
 /* Játékelemek (cukorka, sorozat, zárolás) csak bejelentkezett diáknak. */
 const jatek = () => !!(ENDPOINT && sess && profile && profile.role !== 'tanar');
 /* jó-válasz-sorozat hossza egy cukorkához (évfolyamonként: kurzus.js → joValaszCukorkahoz) */
 /* x: témakör (objektum vagy 'évfolyam/témakör' kulcs) vagy évfolyam-azonosító; a témakör saját értéke elsőbbséget kap */
+/* A csoport tanár által beállított témakörszabálya ({ streak, kombo, macProba }) – diáknál a szerverről, tanárnál az áttekintésből. */
+const csopSzabaly = key => (jatek() ? (store.gr || {})[key] : isTeacher() && typeof TV !== 'undefined' && TV.data ? (TV.data.groupRules || {})[key] : null) || {};
+const temaByKey = key => KS.concat(Object.values(KURZUSOK)).map(k => k.temakorok.find(t => t.key === key)).find(Boolean);
 const KOMBO = x => {
-  const tk = x && typeof x === 'object' ? x : (typeof x === 'string' && x.includes('/') ? KS.concat(Object.values(KURZUSOK)).map(k => k.temakorok.find(t => t.key === x)).find(Boolean) : null);
+  const tk = x && typeof x === 'object' ? x : (typeof x === 'string' && x.includes('/') ? temaByKey(x) : null);
+  if (tk && csopSzabaly(tk.key).kombo) return csopSzabaly(tk.key).kombo;
   if (tk && tk.kombo) return tk.kombo;
   const kid = tk ? tk.kid : x;
   const k = (kid && KURZUSOK[kid]) || K; return (k && k.kombo) || CFG.joValaszCukorkahoz || 10;
 };
-const STREAKMIN = kid => { const k = (kid && KURZUSOK[kid]) || K; return (k && k.streakMin) || CFG.streakNapiMin || 1; };
+/* napi sorozat feltétele: témakörönként (tanári szabály), különben az évfolyamé */
+const STREAKMIN = x => {
+  const t = x && typeof x === 'object' ? x : null;
+  if (t && csopSzabaly(t.key).streak) return csopSzabaly(t.key).streak;
+  const kid = t ? t.kid : x;
+  const k = (kid && KURZUSOK[kid]) || K; return (k && k.streakMin) || CFG.streakNapiMin || 1;
+};
+const macProba = t => { const r = csopSzabaly(t.key); return r.macProba != null ? r.macProba : t.macProba; };
 /* A csoport beállított szintje az évfolyamban: közép → az emelt feladatok külön, kedvezménnyel. */
 const kozepCsop = kid => jatek() && (store.gl || {})[kid] === 'kozep';
 const L = t => lancOf(t, kozepCsop(t.kid));
@@ -183,13 +194,14 @@ const kurzusCtx = (kl, kozepFn) => {
   const order = {}, need = {}, kombo = {}, streakMin = {}, kieg = {}, szint = {}, tipusok = {}, macar = {};
   kl.forEach(k => { kombo[k.id] = k.kombo; k.temakorok.forEach(t => { if (t.kombo) kombo[t.key] = t.kombo; }); streakMin[k.id] = k.streakMin; const kz = !!kozepFn(k.id); szint[k.id] = kz ? 'kozep' : 'emelt';
     k.temakorok.forEach(t => { const l = lancOf(t, kz); order[t.key] = l.lanc.map(c => c.key); need[t.key] = l.arak; Object.assign(kieg, l.kieg);
-      l.lanc.forEach(c => { tipusok[c.key] = kotelezo(c, kz); }); macar[t.key] = { proba: t.macProba, emelt: t.macEmelt }; }); });
+      l.lanc.forEach(c => { tipusok[c.key] = kotelezo(c, kz); }); macar[t.key] = { proba: macProba(t), emelt: t.macEmelt };
+      const r = csopSzabaly(t.key); if (r.kombo) kombo[t.key] = r.kombo; if (r.streak) streakMin[t.key] = r.streak; }); });
   return { order, need, kombo, streakMin, kieg, szint, tipusok, macar };
 };
 const storeKey = () => 'mg:adat:' + (sess ? sess.user.toLowerCase() : '_helyi');
 const loadStore = () => {
   const d = lsGet(storeKey()) || {};
-  store = { state: Szabalyok.migral(Szabalyok.normal(d.state), kurzusLista()[0]), queue: (d.queue || []).filter(e => String(e.mod || '').includes('/')), tests: d.tests || [], gu: d.gu || {}, gl: d.gl || {}, gk: d.gk || {}, hk: Array.isArray(d.hk) ? d.hk : [], pb: d.pb || {} };
+  store = { state: Szabalyok.migral(Szabalyok.normal(d.state), kurzusLista()[0]), queue: (d.queue || []).filter(e => String(e.mod || '').includes('/')), tests: d.tests || [], gu: d.gu || {}, gl: d.gl || {}, gk: d.gk || {}, hk: Array.isArray(d.hk) ? d.hk : [], pb: d.pb || {}, gr: d.gr || {} };
 };
 /* A felhasználó tananyagai: profil (Tananyag oszlop, pl. „11, 10”) vagy config.js. */
 function kurzusLista() {
@@ -315,7 +327,7 @@ function syncNow() {
         const sentE = new Set(events.map(e => e.eid)), sentT = new Set(tests.map(t => t.tid));
         store.queue = store.queue.filter(e => !sentE.has(e.eid));
         store.tests = store.tests.filter(t => !sentT.has(t.tid));
-        store.gu = res.groupUnlock || {}; store.gl = res.groupLevel || {}; store.gk = res.groupLimit || {}; store.hk = res.hazik || []; store.pb = res.probaBeall || {};
+        store.gu = res.groupUnlock || {}; store.gl = res.groupLevel || {}; store.gk = res.groupLimit || {}; store.hk = res.hazik || []; store.pb = res.probaBeall || {}; store.gr = res.groupRules || {};
         store.state = Szabalyok.normal(res.state);
         const c2 = ctx();
         store.queue.forEach(e => Szabalyok.alkalmaz(store.state, e, c2));
@@ -387,15 +399,31 @@ function renderStats() {
   if (!K || !jatek()) { el.innerHTML = isTeacher() ? '<span class="stat flame off">Tanári fiók</span>' : ''; return; }
   const st = store.state, today = dayKey(), c = ctx();
   const cur = Szabalyok.aktualisStreak(st, today, c);
-  const ma = st.streak.day === today ? ((st.streak.napi || {})[K.id] || 0) : 0, min = STREAKMIN(K.id);
+  const akt = aktivTema(), ma = akt && st.streak.day === today ? ((st.streak.napi || {})[akt.key] || 0) : 0, min = akt ? STREAKMIN(akt) : STREAKMIN(K.id);
   const done = st.streak.last === today, vedett = Szabalyok.kesz(st, c);
   const sub = done ? 'ma kész' : vedett ? 'nem vész el' : min > 1 ? `ma ${Math.min(ma, min)}/${min}` : 'ma még nincs';
   const macDb = Object.values(st.mac || {}).reduce((a, x) => a + x, 0), hs = st.hs || { cur: 0, best: 0 };
   el.innerHTML = `<span class="stat candy" title="Elkölthető cukorkák (összesen eddig ${st.candy})">${ICON.candy}${Szabalyok.penz(st)}<small>cukorka</small></span>
     <span class="stat macaron" title="Elkölthető macaronok (összesen eddig ${st.macAll || 0}) – a teljesített fejezetekben gyűlnek">${ICON.macaron}${macDb}<small>macaron</small></span>
     ${(store.hk || []).length || hs.best ? `<span class="stat hazis ${hs.cur ? '' : 'off'}" title="Házi sorozat: egymás után határidőre kész házik · legjobb: ${hs.best}"><span class="hzs-i">✍</span>${hs.cur}<small>házi</small></span>` : ''}
-    <span class="stat flame ${cur ? '' : 'off'}" title="Napi sorozat · legjobb: ${st.streak.best} nap${vedett ? ' · nincs új fejezet, ezért a sorozat nem vész el' : ''}">${ICON.flame}${cur}<small>nap · ${sub}</small></span>`;
+    <button type="button" class="stat flame ${cur ? '' : 'off'}" id="streakgomb" aria-expanded="false" title="Napi sorozat · legjobb: ${st.streak.best} nap · kattints: hol szerezheted meg a mai napot">${ICON.flame}${cur}<small>nap · ${sub}</small></button>
+    <div class="streakpanel" id="streakpanel" hidden></div>`;
+  $('#streakgomb').onclick = e => { e.stopPropagation(); const p = $('#streakpanel'), ny = p.hidden; p.hidden = !ny; e.currentTarget.setAttribute('aria-expanded', ny); if (ny) p.innerHTML = streakPanel(); };
 }
+/* A sorozatra kattintva: azok a témakörök, ahol ma napi sorozatot lehet szerezni (a legutolsó nyitott fejezet még nincs „lezárva”). */
+function streakPanel() {
+  const st = store.state, c = ctx(), today = dayKey(), kesz = st.streak.last === today;
+  const sorok = [];
+  KS.forEach(k => k.temakorok.forEach(t => {
+    if (Szabalyok.teljesitett(st, c, t.key)) return;
+    const fc = L(t).lanc[frontIdx(t.key)]; if (!fc) return;
+    const min = STREAKMIN(t), ma = st.streak.day === today ? ((st.streak.napi || {})[t.key] || 0) : 0;
+    sorok.push(`<a href="${chHref(fc)}" class="sp-sor"><span><b>${esc(t.cim)}</b>${KS.length > 1 ? ` <span class="small">(${esc(k.cim)})</span>` : ''}<br><span class="small">${esc(fc.rovid)} · napi ${min} új feladat</span></span><span class="sp-db ${ma >= min ? 'ok' : ''}">${ma >= min ? ICON.check + ' ' : ''}${Math.min(ma, min)}/${min}</span></a>`);
+  }));
+  return `<div class="sp-fej"><b>${kesz ? `${ICON.check} A mai napod megvan!` : 'Itt szerezheted meg a mai napot'}</b><span class="small">Bármelyik témakörben elég, ha a legutolsó nyitott fejezetben megoldod a megadott számú új feladatot.</span></div>
+    ${sorok.length ? sorok.join('') : '<p class="small">Most nincs olyan témakör, ahol napi sorozatot szerezhetnél – ilyenkor a sorozatod nem vész el.</p>'}`;
+}
+document.addEventListener('click', e => { const p = $('#streakpanel'); if (p && !p.hidden && !e.target.closest('#streakpanel,#streakgomb')) { p.hidden = true; const g = $('#streakgomb'); if (g) g.setAttribute('aria-expanded', 'false'); } });
 function renderAcct() {
   const el = $('#acct'); if (!el) return;
   if (!ENDPOINT || !sess) { el.hidden = true; return; }
@@ -480,7 +508,7 @@ function renderLogin() {
       profile = res.profile; lsSet('mg:sess', sess);
       loadStore();
       const serverState = Szabalyok.normal(res.state);
-      store.gu = res.groupUnlock || {}; store.gl = res.groupLevel || {}; store.gk = res.groupLimit || {}; store.hk = res.hazik || []; store.pb = res.probaBeall || {};
+      store.gu = res.groupUnlock || {}; store.gl = res.groupLevel || {}; store.gk = res.groupLimit || {}; store.hk = res.hazik || []; store.pb = res.probaBeall || {}; store.gr = res.groupRules || {};
       store.state = serverState;
       await startCourse();
       store.queue.forEach(ev => Szabalyok.alkalmaz(store.state, ev, ctx()));
@@ -524,7 +552,7 @@ function homeCards() {
       return `<a class="ccard" href="${chHref(c)}"${s === 'locked' ? ' style="opacity:.6"' : ''}><span class="n">${pad2(c.idx + 1)} ${c.szint === 'emelt' ? szintCimke('emelt') : ''}</span><strong>${esc(c.cim)}</strong><span class="d">${d}</span></a>`;
     }).join('');
     return `<section class="blk"><h3>${K.temakorok.length > 1 ? 'Fejezetek: ' : ''}${esc(t.cim)} <span class="tag">${temaInfo(t).replace(/<svg[\s\S]*?<\/svg>\s*/, '')}</span></h3>
-      <div class="cards">${cards}<a class="ccard test" href="${probaHref(t)}"${pn ? '' : ' style="opacity:.6"'}><span class="n">${t.probaDb} feladat</span><strong>Próba-témazáró</strong><span class="d">${pn ? 'A témakör összes fejezetéből' : `${ICON.lock} ${t.macProba} macaronért nyílik meg`}</span></a></div></section>`;
+      <div class="cards">${cards}<a class="ccard test" href="${probaHref(t)}"${pn ? '' : ' style="opacity:.6"'}><span class="n">${t.probaDb} feladat</span><strong>Próba-témazáró</strong><span class="d">${pn ? 'A témakör összes fejezetéből' : `${ICON.lock} ${macProba(t)} macaronért nyílik meg`}</span></a></div></section>`;
   }).join('');
 }
 function renderHome() {
@@ -544,8 +572,8 @@ function renderHome() {
     <div id="homecards">${homeCards()}</div>
     ${kov && kov.eleg && !kov.korlat ? `<div class="ansrow">${nyitasGomb(akt, kov)}</div>` : ''}
     ${jatek() ? `<section class="blk"><h3>Így működik</h3><div class="how">
-        <div><b>${ICON.candy.replace('<svg', '<svg width="18" height="18" class="ico" style="color:var(--candy)"')} Cukorka</b><span>A legutolsó nyitott fejezetben akkor kapsz egy cukorkát, ha a fejezet <b>minden feladattípusából</b> összegyűlt ${kombo} jó megoldás. Csak a még meg nem oldott feladatok számítanak; hibás válasz vagy a megoldás megnézése annak a típusnak a számlálóját nullázza.</span></div>
-        <div><b>${macIco(18)} Macaron</b><span>A már <b>teljesített</b> fejezetekben macaron gyűlik: bármelyik feladattípusból ${kombo} új jó megoldás egymás után = 1 macaron. Macaronnal nyílik a <b>próba-témazáró</b>${kozepCsop(K.id) ? ' és az <b>emelt szintű</b> fejezetek' : ''}.</span></div>
+        <div><b>${ICON.candy.replace('<svg', '<svg width="18" height="18" class="ico" style="color:var(--candy)"')} Cukorka</b><span>A legutolsó nyitott fejezetben akkor kapsz egy cukorkát, ha a fejezet <b>minden feladattípusából</b> összegyűlt ${kombo} új feladat helyes megoldása. Csak a még meg nem oldott feladatok számítanak (és az nem, aminek előbb megnézted a megoldását); a hibás válasz nem nulláz.</span></div>
+        <div><b>${macIco(18)} Macaron</b><span>A már <b>teljesített</b> fejezetekben macaron gyűlik: bármelyik feladattípusból ${kombo} új feladat helyes megoldása = 1 macaron. Macaronnal nyílik a <b>próba-témazáró</b>${kozepCsop(K.id) ? ' és az <b>emelt szintű</b> fejezetek' : ''}.</span></div>
         <div><b>${ICON.check} Fejezetnyitás</b><span>Ha összegyűlt elég cukorkád, a <b>Megnyitom</b> gombbal nyithatod meg a következő fejezetet; az ára le is jön a számládról. ${arak.length > 1 ? `Fejezetenként ${Math.min(...arak)}–${Math.max(...arak)} cukorkába kerül, a következő ${need} cukorka.` : `Egy fejezet ${need} cukorkába kerül.`} A már teljesített fejezetekben bármikor gyakorolhatsz, de ott nem jár cukorka.</span></div>
         <div><b>${ICON.flame.replace('<svg', '<svg width="18" height="18" class="ico" style="color:var(--flame)"')} Napi sorozat</b><span>Ha egy nap legalább ${min === 1 ? 'egy' : min} új feladatot megoldasz a legutolsó nyitott fejezetben, nő a sorozatod. Ha kihagysz egy napot, újraindul; ha viszont már nincs megnyitható új fejezet, nem vész el.</span></div></div></section>` : ''}
     ${!ENDPOINT ? `<div class="foot"><span>Helyi mód (nincs beállítva szerver): belépés, cukorka és napi sorozat nélkül.</span></div>` : ''}`;
@@ -580,7 +608,7 @@ function meterHtml(ch) {
     : next ? `Cukorkáid: <b>${purse}</b> · ${ar} cukorkáért megnyithatod: <b>${esc(next.rovid)}</b>`
     : `Cukorkáid: <b>${purse}</b> · Ez az utolsó fejezet: ${ar} cukorkáért megnyithatod a <b>próba-témazárót</b>.`;
   return `<div class="meter" id="meter" data-ch="${ch.key}">
-    <div class="row"><b>Egy cukorkához mindegyik feladattípusból ${A.kb} jó megoldás kell · kész: ${A.kesz}/${A.req.length}</b><span class="small">Hibás válasz vagy a megoldás megnézése csak annak a típusnak a számlálóját nullázza.</span></div>
+    <div class="row"><b>Egy cukorkához mindegyik feladattípusból ${A.kb} jó megoldás kell · kész: ${A.kesz}/${A.req.length}</b><span class="small">Csak az új feladatok helyes megoldása számít; a hibás válasz nem nulláz.</span></div>
     <div class="tipusok">${tipusok}</div>
     <div class="row"><span>${txt}</span><span class="candies" aria-hidden="true">${icons}</span></div>
     ${kov ? `<div class="row">${nyitasGomb(t, kov)}</div>` : ''}</div>`;
@@ -590,10 +618,10 @@ function macaronMeter(ch, t, frontCh) {
   const st = store.state, kb = KOMBO(t), mc = (st.mc || {})[t.key] || {}, van = (st.mac || {})[t.key] || 0, kov = kovetkezo(t);
   const tipusok = ch.gens.map(g => { const n = Math.min(kb, mc[ch.key + '|' + g] || 0);
     return `<span class="tip mac" title="${esc(ch.feladatok[g].nev || g)}: ${n}/${kb}"><span class="tn">${esc(ch.feladatok[g].nev || g)}</span><span class="tb"><span style="width:${Math.round(100 * n / kb)}%"></span></span><span class="tv">${n}/${kb}</span></span>`; }).join('');
-  const cel = kov && kov.penz === 'macaron' ? `A próba-témazáró ${kov.ar} macaronba kerül.` : probaNyitva(t) ? 'A próba-témazáró már nyitva.' : `A próba-témazáróhoz ${t.macProba} macaron kell.`;
+  const cel = kov && kov.penz === 'macaron' ? `A próba-témazáró ${kov.ar} macaronba kerül.` : probaNyitva(t) ? 'A próba-témazáró már nyitva.' : `A próba-témazáróhoz ${macProba(t)} macaron kell.`;
   return `<div class="meter done macmeter" id="meter" data-ch="${ch.key}">
     <div class="row"><b>${ICON.check} Teljesítetted ezt a fejezetet – itt macaront gyűjthetsz</b><span class="small">${frontCh && !probaNyitva(t) ? `Cukorka a(z) <a href="${chHref(frontCh)}">${esc(frontCh.rovid)}</a> fejezetben jár.` : ''}</span></div>
-    <div class="row"><span class="small">Bármelyik feladattípusból ${kb} új jó megoldás egymás után = 1 macaron. Hibás válasz vagy a megoldás megnézése annak a típusnak a számlálóját nullázza.</span></div>
+    <div class="row"><span class="small">Bármelyik feladattípusból ${kb} új feladat helyes megoldása = 1 macaron. A hibás válasz nem nulláz.</span></div>
     <div class="tipusok">${tipusok}</div>
     <div class="row"><span>${macIco(18)} Macaronjaid ebben a témakörben: <b>${van}</b> · ${cel}</span></div>
     ${kov && kov.penz === 'macaron' ? `<div class="row">${nyitasGomb(t, kov)}</div>` : ''}</div>`;
@@ -693,7 +721,7 @@ function gyakorlasReszek(ch) {
 function gyakorlasHtml(ch) {
   return gyakorlasReszek(ch).map(r => r.emeltResz
     ? `<section class="blk emeltresz"><h3>Nehezebb feladatok <span class="lvl emelt">emelt</span> <span class="tag">nem kötelező</span></h3>
-       <p class="small">Itt egy jó megoldás <b>kettőt ér</b> a sorozatban. Egy hibás válasz még nem nullázza a sorozatot, csak ha ugyanarra a feladatra másodszor is hibázol, vagy ha megnézed a megoldást.</p>
+       <p class="small">Itt egy jó megoldás <b>kettőt ér</b>.</p>
        <div class="practice" id="${r.id}"></div></section>`
     : `<section class="blk"><h3>Gyakorlás</h3><div class="practice" id="${r.id}"></div></section>`).join('');
 }
@@ -902,7 +930,7 @@ function renderProba(t) {
     const fl = L(t).lanc, fi = frontIdx(t.key), fc = fl[fi];
     m.innerHTML = `<div class="eyebrow">${esc(t.cim)}</div><h2 class="ch">Próba-témazáró</h2>
       <div class="lockbox">${ICON.lock.replace('width="13" height="13"', 'width="34" height="34"')}
-      <p class="lead">A próba-témazárót <b>${t.macProba} macaronért</b> nyithatod meg, ha a témakör minden fejezete nyitva van. Macaront a teljesített fejezetekben gyűjthetsz: bármelyik feladattípusból ${KOMBO(t)} új jó megoldás egymás után = 1 macaron. Eddig: ${(store.state.mac || {})[t.key] || 0} macaron.</p>
+      <p class="lead">A próba-témazárót <b>${macProba(t)} macaronért</b> nyithatod meg, ha a témakör minden fejezete nyitva van. Macaront a teljesített fejezetekben gyűjthetsz: bármelyik feladattípusból ${KOMBO(t)} új feladat helyes megoldása = 1 macaron. Eddig: ${(store.state.mac || {})[t.key] || 0} macaron.</p>
       <p class="small">Most itt tartasz: <b>${esc(fc.cim)}</b> (${fi + 1}/${fl.length}. fejezet).</p>
       <div class="ansrow">${fi === fl.length - 1 ? nyitasGomb(t) : ''}<a class="btn" href="${chHref(fc)}">Tovább: ${esc(fc.rovid)} →</a></div></div>`;
     return;
@@ -1192,8 +1220,14 @@ function drawTeacher() {
   const gu = Math.min((d.groupUnlock || {})[t.key] || 0, tl.length);
   const gk = (d.groupLimit || {})[t.key];
   $('#tbody').innerHTML = `
+    <section class="blk"><h3>Szabályok ebben a témakörben <span class="tag">${esc(t.cim)}</span></h3>
+      <p class="small">A csoportnak témakörönként állíthatod. Üresen hagyva a tananyag alapértéke érvényes (szürkén látszik).</p>
+      ${(r => `<div class="tctrl"><label for="tsrs">Napi sorozat: új feladat / nap<input id="tsrs" type="number" min="1" max="50" value="${r.streak || ''}" placeholder="${TV.course.streakMin}" style="width:6em"></label>
+      <label for="tsrk">Cukorka / macaron: új jó megoldás típusonként<input id="tsrk" type="number" min="1" max="100" value="${r.kombo || ''}" placeholder="${t.kombo || TV.course.kombo}" style="width:6em"></label>
+      <label for="tsrm">Próba-témazáró ára (macaron)<input id="tsrm" type="number" min="0" max="100" value="${r.macProba != null ? r.macProba : ''}" placeholder="${t.macProba}" style="width:6em"></label>
+      <button class="btn" id="tsrment">Mentés</button><span class="small" id="tsrst"></span></div>`)((d.groupRules || {})[t.key] || {})}</section>
     <section class="blk"><h3>Feladatszint</h3>
-      <p class="small"><b>Közép:</b> a közép szintű feladatok a fő gyakorlásban, az emelt szintűek külön, alatta (ott egy jó megoldás kettőt ér, és az első hibás válasz még nem nullázza a sorozatot). Az emelt szintű fejezetek kimaradnak a nyitási láncból, és a próba-témazáró is csak közép feladatokat ad.<br><b>Emelt:</b> minden feladat egy felületen, a szokásos szabályokkal.</p>
+      <p class="small"><b>Közép:</b> a közép szintű feladatok a fő gyakorlásban, az emelt szintűek külön, alatta (ott egy jó megoldás kettőt ér). Az emelt szintű fejezetek kimaradnak a nyitási láncból, és a próba-témazáró is csak közép feladatokat ad.<br><b>Emelt:</b> minden feladat egy felületen, a szokásos szabályokkal.</p>
       <div class="tctrl"><label for="tsz">A csoport szintje (${esc(TV.course.cim)})<select id="tsz"><option value="emelt" ${tKozep() ? '' : 'selected'}>Emelt – minden feladat együtt</option><option value="kozep" ${tKozep() ? 'selected' : ''}>Közép – emelt feladatok külön</option></select></label>
       <button class="btn" id="tszs">Mentés</button><span class="small" id="tszst"></span></div></section>
     <section class="blk"><h3>Csoportszintű nyitás</h3>
@@ -1205,6 +1239,14 @@ function drawTeacher() {
       <button class="btn" id="tks">Mentés</button><span class="small" id="tkst"></span></div></section>
     <section class="blk"><div class="tabs"><button class="chip" data-tab="attekintes" aria-pressed="${TV.tab === 'attekintes'}">Áttekintés</button><button class="chip" data-tab="megoldasok" aria-pressed="${TV.tab === 'megoldasok'}">Megoldások</button><button class="chip" data-tab="probak" aria-pressed="${TV.tab === 'probak'}">Próbák</button><button class="chip" data-tab="hazi" aria-pressed="${TV.tab === 'hazi'}">Házi feladat</button><button class="chip" data-tab="proba" aria-pressed="${TV.tab === 'proba'}">Próba-témazáró</button></div>
     <div id="tview"></div></section>`;
+  $('#tsrment').onclick = async () => {
+    const st = $('#tsrst'); st.textContent = 'Mentés…';
+    try {
+      const r = await api('tSzabaly', Object.assign(auth(), { group: TV.group, course: TV.course.id, mod: t.id, szabaly: { streak: $('#tsrs').value, kombo: $('#tsrk').value, macProba: $('#tsrm').value } }));
+      if (!r.ok) throw new Error(r.error);
+      TV.data.groupRules = r.groupRules || {}; st.textContent = 'Elmentve.'; drawView();
+    } catch (e) { st.textContent = 'Nem sikerült menteni: ' + e.message; }
+  };
   $('#tks').onclick = async () => {
     const idx = +$('#tk2').value, st = $('#tkst'); st.textContent = 'Mentés…';
     try {
@@ -1369,7 +1411,7 @@ async function boot() {
     if (!res.ok) { if (res.error === 'auth') return authLost(); throw new Error(res.error); }
     const oldCourses = kurzusLista().join(',');
     applyProfile(res.profile);
-    store.gu = res.groupUnlock || {}; store.gl = res.groupLevel || {}; store.gk = res.groupLimit || {}; store.hk = res.hazik || []; store.pb = res.probaBeall || {};
+    store.gu = res.groupUnlock || {}; store.gl = res.groupLevel || {}; store.gk = res.groupLimit || {}; store.hk = res.hazik || []; store.pb = res.probaBeall || {}; store.gr = res.groupRules || {};
     store.state = Szabalyok.normal(res.state);
     if (kurzusLista().join(',') !== oldCourses) { await startCourse(); }
     store.queue.forEach(ev => Szabalyok.alkalmaz(store.state, ev, ctx()));
