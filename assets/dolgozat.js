@@ -39,6 +39,9 @@ function render(helpers) {
       <label class="chk"><input type="checkbox" id="dgjegy" ${DG.jegy ? 'checked' : ''}> Ponthatárok (jegyek)</label>
       <label class="chk"><input type="checkbox" id="dgkulcs" ${DG.kulcs ? 'checked' : ''}> Megoldókulcs</label>
       <label class="chk"><input type="checkbox" id="dgreszl" ${DG.reszl ? 'checked' : ''}> Részletes megoldások a kulcsban</label>
+      <label class="chk"><input type="checkbox" id="dgrpm" ${DG.rpMutat ? 'checked' : ''}> Részfeladatok pontja (pl. „(1 p)”)</label>
+      <label class="chk"><input type="checkbox" id="dgegy" ${DG.egysor ? 'checked' : ''}> Rövid részfeladatok egy sorban</label>
+      <label class="chk"><input type="checkbox" id="dgomml" ${DG.omml ? 'checked' : ''}> Szerkeszthető képletek a Wordben</label>
     </div><div class="tctrl dg-hatar">
       <label for="dghm">Ponthatárok megadása<select id="dghm"><option value="pct" ${DG.hm === 'pct' ? 'selected' : ''}>százalékban</option><option value="pont" ${DG.hm === 'pont' ? 'selected' : ''}>pontban</option></select></label>
       ${[5, 4, 3, 2].map((j, i) => `<label>${SORSZ[j]} alsó határa<span class="dg-egys"><input type="number" min="0" data-hat="${i}" value="${hatarErtekek()[i]}" style="width:5.5em"><span class="dg-me">${DG.hm === 'pont' ? 'pont' : '%'}</span></span></label>`).join('')}
@@ -58,7 +61,8 @@ function render(helpers) {
     DG.cim = $('#dgc').value; DG.valt = Math.max(1, Math.min(26, Math.round(+$('#dgv').value || 1))); DG.hely = +$('#dgh').value; DG.pont = Math.max(1, Math.min(10, +$('#dgp').value || 1));
     $('#dgvb').textContent = csopBetuk(DG.valt);
     if (regiPont !== DG.pont) document.querySelectorAll('[data-rp]').forEach(x => { x.placeholder = DG.pont; });
-    DG.nev = $('#dgnev').checked; DG.jegy = $('#dgjegy').checked; DG.ptab = $('#dgptab').checked; DG.kulcs = $('#dgkulcs').checked; DG.reszl = $('#dgreszl').checked; ment(); osszesit();
+    DG.nev = $('#dgnev').checked; DG.jegy = $('#dgjegy').checked; DG.ptab = $('#dgptab').checked; DG.kulcs = $('#dgkulcs').checked; DG.reszl = $('#dgreszl').checked;
+    DG.rpMutat = $('#dgrpm').checked; DG.egysor = $('#dgegy').checked; DG.omml = $('#dgomml').checked; ment(); osszesit();
   };
   $('.dg-beall').addEventListener('change', e => { if (!e.target.closest('.dg-hatar')) opt(); });
   $('#dgc').addEventListener('input', opt); $('#dgv').addEventListener('input', opt);
@@ -116,7 +120,7 @@ function render(helpers) {
 
 function alapAllapot(kid) {
   let s = null; try { s = JSON.parse(localStorage.getItem(lsKey(kid)) || 'null'); } catch (e) {}
-  const d = Object.assign({ kid, cim: 'Dolgozat', valt: 2, hely: 2, pont: 1, nev: true, jegy: true, ptab: true, kulcs: true, reszl: false, csak: false,
+  const d = Object.assign({ kid, cim: 'Dolgozat', valt: 2, hely: 2, pont: 1, nev: true, jegy: true, ptab: true, kulcs: true, reszl: false, csak: false, rpMutat: true, egysor: true, omml: true,
     db: {}, rp: {}, fsz: {}, hm: 'pct', hp: ALAP_PCT.slice(), hpt: [0, 0, 0, 0] }, s || {}, { kid });
   ['db', 'rp', 'fsz'].forEach(k => { if (!d[k] || typeof d[k] !== 'object') d[k] = {}; });
   delete d.fp;   // régi formátum (feladatonkénti összpont) – már részfeladatonkénti pont van
@@ -214,12 +218,17 @@ function feladatResz(x) {
 function feladat(tipusok) {
   const reszek = tipusok.map(feladatResz).filter(r => r.items.length);
   if (!reszek.length) return null;
-  let utasitas = '';
-  if (reszek.length === 1) utasitas = reszek[0].utasitas || H.esc(reszek[0].nev);
-  else if (reszek[0].utasitas && reszek.every(r => r.utasitas === reszek[0].utasitas)) utasitas = reszek[0].utasitas;
-  else reszek.forEach(r => { if (r.utasitas) r.items[0].elo = r.utasitas; });   // a típus saját utasítása az első részfeladata előtt
+  let utasitas = '', dolt = false, felkover = false;
   const items = [].concat(...reszek.map(r => r.items));
-  return { utasitas, items, pont: items.reduce((a, i) => a + i.rp, 0) };
+  if (reszek.length === 1) { utasitas = reszek[0].utasitas || H.esc(reszek[0].nev); dolt = !!reszek[0].utasitas && items.length > 1; }
+  else if (reszek[0].utasitas && reszek.every(r => r.utasitas === reszek[0].utasitas)) { utasitas = reszek[0].utasitas; dolt = true; }
+  else { utasitas = 'Feladat'; felkover = true; reszek.forEach(r => { if (r.utasitas) r.items[0].elo = r.utasitas; }); }   // a típus saját utasítása az első részfeladata előtt
+  // rövid részfeladatok egy sorban (pl. „a) 0,87 □ 1,95   b) 27/12 □ 2,25”)
+  const hossz = it => it.kerdes.replace(/<[^>]+>/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\s]/g, '').length;
+  const blokk = it => (it.kerdes.match(/<p[\s>]|\\\[|<table|<div/g) || []).length;
+  const egysor = DG.egysor && items.length > 1 && items.length <= 4 && items.every(it => !it.elo && !(it.valasz && it.valasz.valasztas) && blokk(it) <= 1 && hossz(it) <= 40)
+    && items.reduce((a, it) => a + hossz(it), 0) <= 100;
+  return { utasitas, dolt, felkover, egysor, items, pont: items.reduce((a, i) => a + i.rp, 0) };
 }
 function generalas(K) {
   const l = kivalasztott(K);
@@ -239,7 +248,7 @@ function generalas(K) {
   out.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 const helyPx = h => [0, 50, 110, 200][h] || 0;
-function valasztasHtml(v) { return v && v.valasztas ? `<p class="dg-val">${v.valasztas.map((o, i) => `<span>${String.fromCharCode(65 + i)}) ${H.esc(o)}</span>`).join('\u2003\u2003')}</p>` : ''; }
+function valasztasHtml(v) { return v && v.valasztas ? `<p class="dg-val">${v.valasztas.map((o, i) => `<span><b>${String.fromCharCode(65 + i)})</b> ${H.esc(o)}</span>`).join('\u2003\u2003')}</p>` : ''; }
 function nyomtatHtml(E) {
   const o = E.opt;
   const lapok = E.valtozatok.map((V, vi) => {
@@ -247,8 +256,9 @@ function nyomtatHtml(E) {
     return `<div class="dg-lap" data-v="${vi}">
       <div class="dg-fejlec"><div class="dg-cim">${H.esc(o.cim)}${V.betu ? ` <span class="dg-csop">${V.betu} csoport</span>` : ''}</div>
       ${o.nev ? '<div class="dg-nevsor"><span>Név: ______________________________</span><span>Osztály: ________</span><span>Dátum: ____________</span></div>' : ''}</div>
-      ${V.feladatok.map((f, fi) => `<div class="dg-f"><div class="dg-fcim" data-u="${vi}-${fi}"><b>${fi + 1}.</b> <span class="dg-ut">${f.utasitas}</span><span class="dg-pont">…… / ${f.pont} pont</span></div>
-        ${f.items.map((it, ii) => `${it.elo ? `<div class="dg-elo" data-e="${vi}-${fi}-${ii}">${it.elo}</div>` : ''}<div class="dg-r" data-k="${vi}-${fi}-${ii}"><span class="dg-betu">${f.items.length > 1 ? BETUK[ii] + ')' : ''}</span><div class="dg-rt">${it.kerdes}${valasztasHtml(it.valasz)}</div>${f.items.length > 1 ? `<span class="dg-rpont">(${it.rp} p)</span>` : ''}</div>${o.hely ? `<div class="dg-hely" style="height:${helyPx(o.hely)}px"></div>` : ''}`).join('')}</div>`).join('')}
+      ${V.feladatok.map((f, fi) => `<div class="dg-f"><div class="dg-fcim" data-u="${vi}-${fi}"><b>${fi + 1}.</b> <span class="dg-ut${f.dolt ? ' dolt' : ''}${f.felkover ? ' felkover' : ''}">${f.utasitas}</span><span class="dg-pont">…… / ${f.pont} pont</span></div>
+        ${f.egysor ? `<div class="dg-egysor">${f.items.map((it, ii) => `<div class="dg-r" data-k="${vi}-${fi}-${ii}"><span class="dg-betu">${BETUK[ii]})</span><div class="dg-rt">${it.kerdes}</div>${o.rpMutat ? `<span class="dg-rpont">(${it.rp} p)</span>` : ''}</div>`).join('')}</div>${o.hely ? `<div class="dg-hely" style="height:${helyPx(o.hely)}px"></div>` : ''}`
+        : f.items.map((it, ii) => `${it.elo ? `<div class="dg-elo" data-e="${vi}-${fi}-${ii}">${it.elo}</div>` : ''}<div class="dg-r" data-k="${vi}-${fi}-${ii}"><span class="dg-betu">${f.items.length > 1 ? BETUK[ii] + ')' : ''}</span><div class="dg-rt">${it.kerdes}${valasztasHtml(it.valasz)}</div>${f.items.length > 1 && o.rpMutat ? `<span class="dg-rpont">(${it.rp} p)</span>` : ''}</div>${o.hely ? `<div class="dg-hely" style="height:${helyPx(o.hely)}px"></div>` : ''}`).join('')}</div>`).join('')}
       ${o.ptab ? ponttablazat(V.feladatok, ossz).map(sorok => `<table class="dg-ptab">${sorok.map((r, ri) => `<tr>${r.map((c, ci) => ci === 0 ? `<th>${c}</th>` : ri === 0 ? `<th>${c}</th>` : `<td>${c}</td>`).join('')}</tr>`).join('')}</table>`).join('') : `<div class="dg-ossz">Összesen: …… / ${ossz} pont</div>`}
       ${o.jegy ? `<table class="dg-jegy"><tr><th>Jegy</th>${JEGYEK.map(j => `<td>${j}</td>`).join('')}</tr><tr><th>Pont</th>${hatarok(ossz, o).map(h => `<td>${h}</td>`).join('')}</tr></table>` : ''}
     </div>`;
@@ -307,6 +317,9 @@ async function docx() {
   await new Promise(r => setTimeout(r, 30));
   const root = $('#dgnyomtat'), E = EREDMENY, o = E.opt;
   kepSzam = 0; kepOssz = root.querySelectorAll('mjx-container').length;
+  /* szerkeszthető képletek: a MathJax képletelemeihez a TeX-forrás (OMML-hez) */
+  TEX = new Map();
+  if (o.omml && window.Omml) try { for (const it of MathJax.startup.document.math) if (it.typesetRoot) TEX.set(it.typesetRoot, it); } catch (e) { TEX = new Map(); }
   const base = parseFloat(getComputedStyle($('.dg-rt', root) || root).fontSize) || 16;
   const skala = PX_PT / base;
   const B = [];
@@ -318,8 +331,19 @@ async function docx() {
     for (let fi = 0; fi < V.feladatok.length; fi++) {
       const f = V.feladatok[fi];
       const fej = root.querySelector(`[data-u="${vi}-${fi}"] .dg-ut`);
-      const fr = await inline(fej, skala);
+      const fr = (await inline(fej, skala)).map(r => r.text != null ? Object.assign({}, r, f.dolt ? { i: true } : {}, f.felkover ? { b: true } : {}) : r);
       B.push({ t: 'p', keepNext: true, before: 200, after: 80, tabs: [-TW], runs: [{ text: `${fi + 1}. `, b: true }, ...fr, { tab: true }, { text: `…… / ${f.pont} pont` }] });
+      if (f.egysor) {   // rövid részfeladatok egy bekezdésben, tabulátorokkal
+        const n = f.items.length, lep = Math.floor((TW - 567) / n), runs = [];
+        for (let ii = 0; ii < n; ii++) {
+          const el = root.querySelector(`[data-k="${vi}-${fi}-${ii}"] .dg-rt`);
+          if (ii) runs.push({ tab: true });
+          runs.push({ text: BETUK[ii] + ') ' }, ...(await inline(el, skala)));
+          if (o.rpMutat) runs.push({ text: ` (${f.items[ii].rp} p)`, color: '555555' });
+        }
+        B.push({ t: 'p', runs, indent: { left: 567 }, tabs: Array.from({ length: n - 1 }, (_, j) => 567 + lep * (j + 1)), after: o.hely ? [0, 600, 1300, 2300][o.hely] : 80 });
+        continue;
+      }
       for (let ii = 0; ii < f.items.length; ii++) {
         const eloEl = f.items[ii].elo && root.querySelector(`[data-e="${vi}-${fi}-${ii}"]`);
         if (eloEl) B.push({ t: 'p', keepNext: true, before: 80, after: 40, indent: { left: 340 }, runs: (await inline(eloEl, skala)).map(r => Object.assign({ i: !r.img }, r)) });
@@ -328,7 +352,7 @@ async function docx() {
         const betu = f.items.length > 1 ? BETUK[ii] + ')' : '';
         if (bl.length && bl[0].t === 'p' && betu) { bl[0].runs.unshift({ text: betu }, { tab: true }); bl[0].indent = { left: 567, hanging: 340 }; bl[0].tabs = [567, -TW]; }
         else if (betu) bl.unshift({ t: 'p', runs: [{ text: betu }], indent: { left: 567, hanging: 340 }, tabs: [567, -TW] });
-        if (betu && bl.length) bl[0].runs.push({ tab: true }, { text: `(${f.items[ii].rp} p)`, color: '555555' });
+        if (betu && bl.length && o.rpMutat) bl[0].runs.push({ tab: true }, { text: `(${f.items[ii].rp} p)`, color: '555555' });
         if (o.hely && bl.length) bl[bl.length - 1].after = [0, 600, 1300, 2300][o.hely];
         B.push(...bl);
       }
@@ -371,13 +395,19 @@ async function docx() {
 const BLOKK = /^(P|DIV|H[1-6]|UL|OL|LI|TABLE|SECTION)$/;
 async function blokkok(el, skala, indent, balra) {
   const out = []; let cur = [];
-  const flush = (extra) => { if (cur.some(r => r.img || (r.text && r.text.trim()))) out.push(Object.assign({ t: 'p', runs: cur, indent: indent ? { left: indent.left } : undefined }, extra || {})); cur = []; };
+  const flush = (extra) => { if (cur.some(r => r.img || r.omml || (r.text && r.text.trim()))) out.push(Object.assign({ t: 'p', runs: cur, indent: indent ? { left: indent.left } : undefined }, extra || {})); cur = []; };
   async function jar(n, fmt) {
     if (n.nodeType === 3) { const tx = n.nodeValue.replace(/\s+/g, ' '); if (tx.trim() || (tx && cur.length)) cur.push(Object.assign({ text: tx }, fmt)); return; }
     if (n.nodeType !== 1) return;
     const tag = n.tagName;
     if (tag === 'MJX-CONTAINER') {
       const disp = n.getAttribute('display') === 'true';
+      const mi = TEX.get(n), om = mi && window.Omml ? Omml.fromTex(mi.math, mi.display) : null;
+      if (om) {   // szerkeszthető Word-egyenlet
+        if (disp && !balra) { flush(); out.push({ t: 'p', align: 'center', runs: [{ omml: om }], indent: indent ? { left: indent.left } : undefined, before: 40, after: 80 }); }
+        else { cur.push({ omml: om }); if (disp) flush(); }
+        return;
+      }
       const kep = await svgKep(n, skala);
       if (!kep) return;
       if (disp && balra) { cur.push({ img: kep.img, pos: -Math.max(0, kep.img.h * 0.75 - 8) }); flush(); }   // részfeladatban: a betűjel mellé, balra
@@ -414,7 +444,7 @@ async function inline(el, skala) {
   return runs;
 }
 /* MathJax SVG → PNG (a globális glifgyorsítótár hivatkozásait beemeli) */
-let kepSzam = 0, kepOssz = 0;
+let kepSzam = 0, kepOssz = 0, TEX = new Map();
 async function svgKep(cont, skala) {
   kepSzam++;
   if (kepSzam % 10 === 0) { const st = $('#dgst'); if (st) st.textContent = `Word-fájl készítése… (${kepSzam}/${kepOssz} képlet)`; }

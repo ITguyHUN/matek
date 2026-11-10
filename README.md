@@ -67,7 +67,7 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
   - Egy típus számlálója legfeljebb a beállított értékig nő, tehát nem lehet egy típusból „előre gyűjteni”; a cukorka után minden számláló újraindul.
   - Közép szintű csoportnál csak a közép típusok kötelezők; egy emelt feladat jó megoldása 2-t ér, és a leghátrébb álló típushoz adódik.
   - Csak olyan feladat számít, amelyet a diák korábban még nem oldott meg, és nem nézte meg előtte a megoldását.
-  - Hibás válasz, vagy ha megnézi a megoldást, annak a típusnak a számlálóját nullázza.
+  - Nem egymás utáni jó megoldásokat számol, hanem **új (még meg nem oldott) feladatok helyes megoldását**: a hibás válasz nem nulláz, a megoldás megnézése után megoldott feladat pedig nem számít.
   - A már korábban megoldott feladat nem számít bele a sorozatba, de nem is nullázza.
 - **Fejezetnyitás:** ha összegyűlt a következő fejezet ára (`cukorkaNyitashoz`, fejezetenként eltérhet), a fejezet tetején megjelenik a **Megnyitom** gomb. A diák erre kattintva nyitja meg a fejezetet, és az ára ekkor jön le a cukorkáiból. Amíg nem kattint, a cukorkák megmaradnak, és tovább gyűlnek.
 - **Macaron:** a már **teljesített** fejezetekben (a legutolsó nyitott fejezet előttiekben, illetve a próba megnyitása után mindegyikben) gyűlik cukorka helyett. **Típusonként külön** számol: ha egy feladattípusból újra összegyűlik `joValaszCukorkahoz` új jó megoldás egymás után, az 1 macaron. Hibás válasz vagy a megoldás megnézése annak a típusnak a macaron-számlálóját nullázza.
@@ -75,7 +75,8 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
 - **Emelt fejezetek közép szintű csoportnál:** macaronért nyílnak (`macaronEmelthez`, alapból 2), ha az előttük álló fejezet már nyitva van.
 - **Próba-témazáró összeállítása:** a Tanári felület **Próba-témazáró** fülén csoportonként és témakörönként megadható, mely feladattípusokból hány feladat kerüljön a diákok próbájába (különben véletlenszerű). Tanári fiókkal és helyi módban mindig nyitva van.
 - **Témakör- és évfolyamválasztás:** ha egy évfolyamnak több témaköre van, vagy a diáknak több évfolyama, a kezdőlapon választhat közöttük. Az oldal megjegyzi a választást, a menü pedig mindig a kiválasztott témakört mutatja.
-- **Napi sorozat:** az a nap számít, amelyen a diák legalább `streakNapiMin` (alapból 1, évfolyamonként eltérhet) új feladatot old meg egy évfolyam legutolsó nyitott fejezetében. Több évfolyamnál a sorozat közös, de mindegyik évfolyamban a saját feltétele számít.
+- **Napi sorozat:** az a nap számít, amelyen a diák legalább `streakNapiMin` (alapból 1) új feladatot old meg **egy témakör** legutolsó nyitott fejezetében. A fejlécben a sorozatra kattintva lenyílik, mely témakörökben szerezheti meg a mai napot, és hol tart bennük.
+- **Témakörönkénti szabályok a tanári felületen:** a Tanári felületen csoportonként és témakörönként beállítható a napi sorozat feltétele (új feladat / nap), a cukorkához/macaronhoz szükséges új jó megoldások száma típusonként, és a próba-témazáró ára macaronban (új „Csoportszabály” lap). Üresen hagyva a tananyag alapértéke érvényes. Több évfolyamnál a sorozat közös, de mindegyik évfolyamban a saját feltétele számít.
   - Ha kihagy egy napot, a sorozat újraindul.
   - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
 - **Közép / emelt szint:** a fejezetek, feladattípusok és igaz-hamis állítások megjelölhetők emelt szintűként (`szint: 'emelt'`). A Tanári felületen csoportonként és évfolyamonként beállítható a szint. Közép szintnél az emelt feladatok külön, alatta jelennek meg: ott egy jó megoldás kettőt ér, és csak a második hibás válasz (ugyanarra a feladatra) vagy a megoldás megnézése nullázza a sorozatot. Emelt szintnél minden feladat egy felületen van. Részletek: `tananyag/README.md`.
@@ -101,7 +102,8 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 - **Pontozás:** a feladat pontszáma a részfeladatai pontjainak összege. Ebből készül a **ponttáblázat** (Feladat / Max. pont / Elért pont, összesen).
 - **Ponthatárok:** az 5-ös, 4-es, 3-as, 2-es alsó határa megadható **százalékban** (alapból 85/70/55/40%) vagy **pontban**; váltáskor az értékek átszámolódnak. Az előnézet a pontsávokat is mutatja, és szól, ha a határok nem csökkenőek.
 - Beállítható még: cím, csoportok száma (számmal; a betűjel A, B, C, … – mindegyik csoport más feladatokat kap), hely a megoldásnak, név-osztály-dátum sor, megoldókulcs (részletes megoldásokkal is).
-- **Letöltés:** Word (.docx) – a képletek képként, a szöveg szerkeszthető; PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”.
+- **Elrendezés:** a rövid részfeladatok egy sorban, egymás mellett (kapcsolható), a közös utasítás dőlttel, a választási lehetőségek egy sorban; a részfeladatok pontja („(1 p)”) kikapcsolható.
+- **Letöltés:** Word (.docx) – a képletek **szerkeszthető Word-egyenletként** (kikapcsolva: képként); PDF – a böngésző nyomtatási ablakában „Mentés PDF-ként”.
 
 ## Táblázat lapjai
 
@@ -113,6 +115,7 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 | Próbák | beadott próba-témazárók pontszámmal és jeggyel |
 | Csoportnyitás | a Tanári felületen beállított nyitások |
 | Csoportszint | a Tanári felületen beállított feladatszint (közép / emelt) csoportonként és évfolyamonként |
+| Csoportszabály | témakörönkénti szabályok (napi sorozat, cukorka/macaron, próba ára) |
 | Csoportkorlát | meddig nyithatnak a diákok cukorkával (haladási korlát) |
 | Házi feladatok | a kiadott házi feladatok (a Törölve oszlop kitöltésével el is rejthető) |
 

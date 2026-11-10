@@ -4,13 +4,13 @@
  * ezért ha módosítod, a Code.gs-be is másold át.
  *
  * Szabályok
- *  - Jó-válasz-sorozat: a témakör LEGUTOLSÓ NYITOTT fejezetében minden olyan helyes megoldás számít,
+ *  - Számlálás: a témakör LEGUTOLSÓ NYITOTT fejezetében minden olyan helyes megoldás számít,
  *    amelyet a tanuló korábban még nem oldott meg, és nem nézte meg előtte a megoldást.
- *    Hibás válasz vagy a megoldás megnézése (ebben a fejezetben) nullázza a sorozatot.
+ *    Hibás válasz nem nulláz (nem egymás utáni jó megoldásokat, hanem új megoldott feladatokat számol).
  *  - Cukorka: a legutolsó nyitott fejezet MINDEN feladattípusából (ctx.tipusok[fejezet]) össze kell
  *    gyűlnie `kombo` (alapból 10) jó megoldásnak; ekkor jár 1 cukorka (témakörönkénti „pénztárcába”),
- *    és minden típus számlálója újraindul (egy típus számlálója legfeljebb `kombo`). Hibás válasz vagy a megoldás megnézése
- *    csak annak a típusnak a számlálóját nullázza. (Ha a ctx nem adja meg a típusokat: egyetlen
+ *    és minden típus számlálója újraindul (egy típus számlálója legfeljebb `kombo`). Csak az ÚJ feladatok
+ *    helyes megoldása számít; hibás válasz vagy a megoldás megnézése nem nulláz. (Ha a ctx nem adja meg a típusokat: egyetlen
  *    közös számláló, a régi szabály szerint.)
  *  - A következő fejezetet a tanuló GOMBBAL nyitja meg ('nyitas' esemény), ha van elég cukorkája;
  *    a nyitás levonja az árát a pénztárcából. Az ár fejezetenként eltérhet (need[témakör][i] =
@@ -25,9 +25,8 @@
  *    Az emelt szintű fejezetek ilyenkor nem részei a nyitási láncnak: ctx.kieg[fejezet] = az a láncbeli
  *    fejezet, amelyhez tartoznak; akkor gyűlik bennük cukorka, ha az a legutolsó nyitott fejezet.
  *  - Macaron: a TELJESÍTETT fejezetekben (a legutolsó nyitott előttiek, ill. a próba megnyitása után
- *    mind) típusonként gyűlik: ha egy feladattípusból újra összegyűlik `kombo` jó megoldás (egymás
- *    után, új feladat), az 1 macaron (témakörönkénti „dobozba”: st.mac). Hibás válasz / a megoldás
- *    megnézése annak a típusnak a számlálóját nullázza. Macaronnal nyílik a próba-témazáró
+ *    mind) típusonként gyűlik: ha egy feladattípusból újra összegyűlik `kombo` új feladat helyes
+ *    megoldása, az 1 macaron (témakörönkénti „dobozba”: st.mac). Macaronnal nyílik a próba-témazáró
  *    (ctx.macar[témakör].proba), közép szintű csoportnál pedig az emelt (láncon kívüli) fejezetek is
  *    (ctx.macar[témakör].emelt; st.kiegNy[fejezet]).
  *  - Nyitási korlát: ctx.limit[témakör] = az a láncpozíció, ameddig a tanuló cukorkával nyithat
@@ -38,7 +37,7 @@
  *    Házi sorozat (st.hs): határidőre kész házi +1; ha egy házi határideje lejár, és nincs kész, nullázódik.
  *    ctx.hazi = { azonosító: { tetel: { 'fejezet|típus': db }, hatarido: 'ÉÉÉÉ-HH-NN' } }
  *  - Napi sorozat (streak): az a nap számít, amelyen a tanuló legalább `streakMin` új feladatot
- *    old meg egy évfolyam legutolsó nyitott fejezetében (a `streakMin` évfolyamonként eltérhet). Ha egy nap kimarad, újraindul – KIVÉVE, ha már
+ *    old meg egy témakör legutolsó nyitott fejezetében (a `streakMin` évfolyamonként / témakörönként eltérhet). Ha egy nap kimarad, újraindul – KIVÉVE, ha már
  *    egyik témakörben sincs megnyitható új fejezet: ilyenkor a sorozat nem vész el.
  *
  * ctx = { order: {temakorId: [fejezetId, …]}, groupUnlock: {temakorId: index},
@@ -112,7 +111,7 @@ var Szabalyok = (function () {
   /* Évfolyamonként megadható érték (szám vagy {évfolyam: szám}); a témakör kulcsa 'évfolyam/témakör'. */
   function kurzusOf(mod) { return String(mod || '').split('/')[0]; }
   function evfErtek(v, mod, def) {
-    if (v && typeof v === 'object') { var x = v[kurzusOf(mod)]; return x == null ? def : x; }
+    if (v && typeof v === 'object') { var x = v[kurzusOf(mod)]; if (x == null) x = v['*']; return x == null ? def : x; }
     return v == null ? def : v;
   }
   function kombo(ctx, mod) {
@@ -120,7 +119,11 @@ var Szabalyok = (function () {
     if (v && typeof v === 'object' && v[mod] != null) return Math.max(1, Number(v[mod]) || 10);   // témakörönként
     return Math.max(1, evfErtek(v, mod, 10) || 10);
   }
-  function streakMin(ctx, mod) { return Math.max(1, evfErtek(ctx.streakMin, mod, 1) || 1); }
+  function streakMin(ctx, mod) {
+    var v = ctx.streakMin;
+    if (v && typeof v === 'object' && v[mod] != null) return Math.max(1, Number(v[mod]) || 1);   // témakörönként
+    return Math.max(1, evfErtek(v, mod, 1) || 1);
+  }
   /* Igaz, ha a csoport beállított szintje ebben az évfolyamban közép (az emelt feladatok külön, kedvezménnyel). */
   function kozepSzint(ctx, mod) { return evfErtek(ctx.szint, mod, '') === 'kozep'; }
 
@@ -264,24 +267,13 @@ var Szabalyok = (function () {
       if (req) { fx.tipus = cel; fx.kombo = cel ? (tc[cel] || 0) : 0; fx.keszTipus = req.filter(function (g) { return (tc[g] || 0) >= kb; }).length; fx.osszTipus = req.length; }
       else fx.kombo = st.combo[ev.mod] || 0;
     };
-    var nullaz = function () {
-      if (keszben) { fx.nullazva = (mcs[mk] || 0) > 0; mcs[mk] = 0; fx.macTipus = true; }
-      if (frontban) {
-        if (req) { fx.nullazva = (tc[cel] || 0) > 0; tc[cel] = 0; }
-        else { fx.nullazva = (st.combo[ev.mod] || 0) > 0; st.combo[ev.mod] = 0; }
-      }
-      delete st.hiba[ev.mod];
-    };
+    /* A cukorka- és macaron-számlálók az ÚJ (még meg nem oldott) feladatok helyes megoldását számolják;
+       hibás válasz vagy a megoldás megnézése nem nulláz (a megnézett feladat utólagos megoldása nem számít). */
     allas();
-    if (ev.kind === 'megoldas') { nullaz(); allas(); return fx; }
+    if (ev.kind === 'megoldas') return fx;
     var c = st.ch[ev.ch] || (st.ch[ev.ch] = { ok: 0, tried: 0, candy: 0 });
     c.tried++;
-    if (!ev.ok) {
-      // emelt feladat közép szinten: az első hibás válasz még nem nulláz (csak a második ugyanarra a feladatra)
-      if (bonusz && (frontban || keszben) && st.hiba[ev.mod] !== ev.sig) { st.hiba[ev.mod] = ev.sig; fx.elsoHiba = true; }
-      else nullaz();
-      allas(); return fx;
-    }
+    if (!ev.ok) { allas(); return fx; }
     delete st.hiba[ev.mod];
     c.ok++;
     if (ev.helped) { fx.ok2 = 'segitseg'; return fx; }
@@ -304,9 +296,9 @@ var Szabalyok = (function () {
     if (s.day && day < s.day) day = s.day;
     if (s.day !== day) { s.day = day; s.dayCount = 0; s.napi = {}; }
     s.dayCount++;
-    var kid = kurzusOf(ev.mod);
-    s.napi[kid] = (s.napi[kid] || 0) + 1;
-    if (s.napi[kid] >= streakMin(ctx, ev.mod) && s.last !== day && (!s.last || day > s.last)) {
+    // témakörönként számol: a napi sorozathoz egy témakörben kell meglennie aznap streakMin új feladatnak
+    s.napi[ev.mod] = (s.napi[ev.mod] || 0) + 1;
+    if (s.napi[ev.mod] >= streakMin(ctx, ev.mod) && s.last !== day && (!s.last || day > s.last)) {
       s.cur = (s.last === elozoNap(day) || (s.fagy && s.cur > 0)) ? s.cur + 1 : 1;
       s.last = day;
       if (s.cur > s.best) s.best = s.cur;
