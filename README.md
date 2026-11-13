@@ -22,8 +22,9 @@ assets/
 tananyag/
   README.md                ← új fejezet / témakör / évfolyam hozzáadása
   sablon-fejezet.js
-  11/kurzus.js             11. évfolyam: témakörök, fejezetsorrend
+  11/kurzus.js             11. évfolyam: témakörök, fejezetsorrend (az elején a trigonometria segédfüggvényei: M11)
   11/hatvany-gyok-log/     10 fejezet, mindegyik külön fájlban
+  11/trigonometria/        9 fejezet (7 közép + 2 emelt: skaláris szorzat, trig. egyenletek)
   7/kurzus.js              7. évfolyam (Sokszínű matematika 7., 1–4. lecke)
   7/racionalis-arany-szazalek/  6 fejezet: alakok, számegyenes, műveletek, sorrend, arányosság, százalék
   10/kurzus.js             10. évfolyam (Sokszínű matematika 10.); az elején a közös segédfüggvények (M10) és a parabola-rajzoló
