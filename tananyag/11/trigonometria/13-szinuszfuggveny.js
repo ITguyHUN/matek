@@ -1,6 +1,6 @@
 /*
- * Kiegészítő anyag (10. évfolyam) 2. – A szinusz- és a koszinuszfüggvény (Sokszínű matematika 10., Szögfüggvények 1–3. lecke)
- * Témakör: Kiegészítő anyag (10.) a 11.-es trigonometriához · segédfüggvények: TR (tananyag/11/kurzus.js)
+ * 13. fejezet – A szinusz- és a koszinuszfüggvény (Sokszínű matematika 10., Szögfüggvények 1–3. lecke; emelt)
+ * Témakör: Trigonometria (11. évfolyam) · segédfüggvények: TR (tananyag/11/kurzus.js)
  */
 (function () {
   const { f, FN, mc } = TR;
@@ -65,10 +65,12 @@
   Tananyag.fejezet({
     id: 'trigk2',
     szint: 'emelt',
-    cim: 'A szinusz- és a koszinuszfüggvény (10.)',
+    cim: 'A szinusz- és a koszinuszfüggvény',
     rovid: 'Szinuszfüggvény',
     bevezeto: T`A 10. évfolyam anyaga: a szögfüggvények mint függvények – grafikon, értékkészlet, periódus, transzformációk.`,
-    elmelet: T`<div class="prose"><p><b>Tulajdonságok</b> (\(x\) fokban):</p><ul>
+    elmelet: T`<div class="prose"><p><b>Hogyan lesz az egységkörből grafikon?</b> Az egységkörön az \(x\) szöghöz tartozó pont \(P(\cos x;\ \sin x)\). Ha a pontot körbejáratjuk, és minden szögnél felrajzoljuk a pont <b>magasságát</b> (az \(y\) koordinátáját) a szög függvényében, a <b>szinuszgörbét</b> kapjuk; ha a pont <b>vízszintes koordinátáját</b>, a <b>koszinuszgörbét</b>. A vízszintes tengelyen a szög áll – radiánban ez éppen a bejárt ív hossza, vagyis az ívet „letekerjük” a tengelyre. Az ábrán indítsd el a lejátszást!</p>
+<ul><li>Egy teljes kör után minden ismétlődik: ezért a periódus \(360^{\circ}=2\pi\).</li><li>A pont magassága \(-1\) és \(1\) között mozog: ezért az értékkészlet \([-1;\ 1]\).</li><li>A \(\cos\) görbe a \(\sin\) görbe \(90^{\circ}\)-kal balra tolva: \(\cos x=\sin(x+90^{\circ})\).</li></ul>
+<p><b>Tulajdonságok</b> (\(x\) fokban):</p><ul>
 <li>Értelmezési tartomány: minden valós szám; értékkészlet: \([-1;\ 1]\).</li>
 <li>Periódus: \(360^{\circ}\) (\(2\pi\)).</li>
 <li>\(\sin x\): zérushelyek \(k\cdot180^{\circ}\); maximum \(90^{\circ}+k\cdot360^{\circ}\)-nál; páratlan függvény.</li>
@@ -93,7 +95,7 @@
         T`Maximum, ha \(x-30^{\circ}=90^{\circ}\), azaz \(x=120^{\circ}\).`
       ]
     },
-    grafikon: TR.gorbe(), grafikonCim: 'Szinusz- és koszinuszgörbe', grafikonTag: 'vízszintes egyenessel',
+    grafikon: TR.korGorbe(), grafikonCim: 'Az egységkörtől a grafikonig', grafikonTag: 'nyomd meg a lejátszást',
     feladatok
   });
 })();

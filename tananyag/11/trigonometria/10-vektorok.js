@@ -1,6 +1,6 @@
 /*
- * Kiegészítő anyag (10. évfolyam) 3. – Vektorok a koordináta-rendszerben (Sokszínű matematika 10., Vektorok 1–4. lecke)
- * Témakör: Kiegészítő anyag (10.) a 11.-es trigonometriához · segédfüggvények: TR (tananyag/11/kurzus.js)
+ * 10. fejezet – Vektorok a koordináta-rendszerben (Sokszínű matematika 10., Vektorok 1–4. lecke)
+ * Témakör: Trigonometria (11. évfolyam) · segédfüggvények: TR (tananyag/11/kurzus.js)
  */
 (function () {
   const { n2, v2 } = TR;
@@ -71,7 +71,7 @@
 
   Tananyag.fejezet({
     id: 'trigk3',
-    cim: 'Vektorok a koordináta-rendszerben (10.)',
+    cim: 'Vektorok a koordináta-rendszerben (ismétlés)',
     rovid: 'Vektorok',
     bevezeto: T`A skaláris szorzathoz és a koordináta-geometriához szükséges 10.-es alapok: vektorműveletek koordinátákkal, felezőpont, súlypont, felbontás.`,
     elmelet: T`<div class="prose"><p>Az \(\vec i(1;\ 0)\) és \(\vec j(0;\ 1)\) bázisvektorokkal minden síkvektor egyértelműen felírható: \(\vec a=a_1\vec i+a_2\vec j\), ekkor \(\vec a(a_1;\ a_2)\).</p></div>

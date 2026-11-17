@@ -1,6 +1,6 @@
 /*
- * Kiegészítő anyag (10. évfolyam) 4. – Síkbeli és térbeli számítások szögfüggvényekkel (Sokszínű matematika 10., Hegyesszögek szögfüggvényei 6. lecke)
- * Témakör: Kiegészítő anyag (10.) a 11.-es trigonometriához · segédfüggvények: TR (tananyag/11/kurzus.js)
+ * 3. fejezet – Síkbeli és térbeli számítások szögfüggvényekkel (Sokszínű matematika 10., Hegyesszögek szögfüggvényei 6. lecke)
+ * Témakör: Trigonometria (11. évfolyam) · segédfüggvények: TR (tananyag/11/kurzus.js)
  */
 (function () {
   const { atgD, tgD, sinD, cosD, n2, fok, v2, vSzog } = TR;
@@ -69,7 +69,7 @@
 
   Tananyag.fejezet({
     id: 'trigk4',
-    cim: 'Síkbeli és térbeli számítások (10.)',
+    cim: 'Síkbeli és térbeli számítások (ismétlés)',
     rovid: 'Térbeli számítások',
     bevezeto: T`A 10.-es anyag: derékszögű háromszögek keresése síkidomokban és testekben – testátló, hajlásszögek, kúp nyílásszöge.`,
     elmelet: T`<div class="prose"><p><b>Módszer:</b> keress a testben derékszögű háromszöget, amelyben két adat ismert, és ebből számold ki a harmadikat.</p><ul>
