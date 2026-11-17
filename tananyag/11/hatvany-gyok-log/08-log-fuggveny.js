@@ -56,7 +56,7 @@
     const novo = ((fv(B.f) > 1) !== tukor) === (c > 0);
     const f = T`f(x)=${c === 1 ? '' : c === -1 ? '-' : c}${lgB(B)}\left(${arg}\right)${pt(v)}`;
     return { kerdes: T`<p>Milyen a függvény menete az értelmezési tartományán?</p>\[${f}\]`, valasz: { valasztas: ['szigorúan növekvő', 'szigorúan csökkenő'], helyes: novo ? 0 : 1 },
-      tipp: T`\(\log_a x\) nő, ha \(a>1\), és csökken, ha \(0<a<1\). A negatív szorzó és a \(-x\) (tükrözés) megfordítja a menetet, az eltolás nem.`,
+      tipp: T`\(\log_a x\) nő, ha \(a>1\), és csökken, ha \(0\lt a\lt 1\). A negatív szorzó és a \(-x\) (tükrözés) megfordítja a menetet, az eltolás nem.`,
       megoldas: [T`Az alap ${fv(B.f) > 1 ? 'nagyobb 1-nél' : '0 és 1 közé esik'}.${tukor ? ' A −x tükrözi a grafikont az y tengelyre: ez megfordítja a menetet.' : ''}${c < 0 ? ' A negatív szorzó is megfordítja.' : ''}`, `Tehát a függvény szigorúan ${novo ? 'növekvő' : 'csökkenő'}.`] };
   } };
 
@@ -68,7 +68,7 @@
       const in1 = p === 1 ? xs(-a) : (p + 'x' + pt(-p * a)); const n = b - a - 1;
       return { kerdes: T`<p>Hány egész szám tartozik az értelmezési tartományba?</p>\[f(x)=${L1}\left(${in1}\right)-${L2}\left(${b}-x\right)\]`, valasz: { ertekek: [n] }, formatum: 'egész szám (darab)',
         tipp: 'Írd fel külön-külön, mikor pozitív a két logaritmus mögötti kifejezés, és vedd a közös részt.',
-        megoldas: [T`\[${in1}>0\Rightarrow x>${a},\qquad ${b}-x>0\Rightarrow x<${b}\]`, T`Közös rész: \(${a}<x<${b}\), ebben ${n} egész szám van.`] }; }
+        megoldas: [T`\[${in1}>0\Rightarrow x>${a},\qquad ${b}-x>0\Rightarrow x<${b}\]`, T`Közös rész: \(${a}\lt x<${b}\), ebben ${n} egész szám van.`] }; }
     if (kind === 1) { // log_{x−a}(b − x): x > a, x ≠ a+1, x < b
       const a = R(-3, 4), b = R(a + 3, a + 9); const n = b - a - 2;
       return { kerdes: T`<p>Hány egész szám tartozik az értelmezési tartományba?</p>\[f(x)=\log_{${xs(-a)}}\left(${b}-x\right)\]`, valasz: { ertekek: [n] }, formatum: 'egész szám (darab)',
@@ -80,7 +80,7 @@
     const q = T`-x^{2}${B === 0 ? '' : B > 0 ? '+' + (B === 1 ? '' : B) + 'x' : '-' + (B === -1 ? '' : -B) + 'x'}${cst(-a * b)}`;
     return { kerdes: T`<p>Hány egész szám tartozik az értelmezési tartományba?</p>\[f(x)=\lg\left(${q}\right)\]`, valasz: { ertekek: [n] }, formatum: 'egész szám (darab)',
       tipp: 'Oldd meg a másodfokú egyenlőtlenséget: a lefelé nyíló parabola a két zérushelye között pozitív.',
-      megoldas: [T`\[${q}>0\iff (x${pt(-a)})(${b}-x)>0\]`, T`A zérushelyek \(${a}\) és \(${b}\), a parabola lefelé nyílik, így \(${a}<x<${b}\): ${n} egész szám.`] };
+      megoldas: [T`\[${q}>0\iff (x${pt(-a)})(${b}-x)>0\]`, T`A zérushelyek \(${a}\) és \(${b}\), a parabola lefelé nyílik, így \(${a}\lt x<${b}\): ${n} egész szám.`] };
   } };
 
   feladatok.lfBecsles = { nev: 'Két egész szám közé', general() {

@@ -66,7 +66,7 @@
     const a = R(-6, 4), b = R(a + 2, 9); const n = b - a - 1;
     return { kerdes: T`<p>Hány egész szám tartozik a függvény értelmezési tartományába?</p>\[f(x)=${L()}\left(${xs(-a)}\right)+${L()}\left(${b}-x\right)\]`, valasz: { ertekek: [n] }, formatum: 'egész szám (darab)',
       tipp: 'Mindkét logaritmus mögött pozitív számnak kell állnia: írd fel a két feltételt, és vedd a közös részüket.',
-      megoldas: [T`\[${xs(-a)}>0\Rightarrow x>${a},\qquad ${b}-x>0\Rightarrow x<${b}\]`, T`Tehát \(${a}<x<${b}\). Az ide eső egészek: \(${Array.from({ length: n }, (_, i) => a + 1 + i).join(';\\ ')}\), összesen ${n} darab.`] };
+      megoldas: [T`\[${xs(-a)}>0\Rightarrow x>${a},\qquad ${b}-x>0\Rightarrow x<${b}\]`, T`Tehát \(${a}\lt x<${b}\). Az ide eső egészek: \(${Array.from({ length: n }, (_, i) => a + 1 + i).join(';\\ ')}\), összesen ${n} darab.`] };
   } };
 
   feladatok.logBeagy = { nev: 'Egymásba ágyazott logaritmus', general() {
