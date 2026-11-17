@@ -112,7 +112,7 @@
     return { kerdes: T`<p>Oldd meg a valós számok halmazán!</p>\[${L}\left(${lin}\right)${relT[rel]}${k}\]`, valasz: { valasztas: ord.map(i => opts[i]), helyes: ord.indexOf(0) },
       tipp: T`Két dologra figyelj: (1) feltétel: \(${lin}>0\); (2) írd fel a jobb oldalt is \(${B.t}\) alapú logaritmusként. ${small ? 'Az alap 1-nél kisebb, ezért a logaritmus elhagyásakor megfordul a reláció!' : 'Az alap nagyobb 1-nél, a reláció marad.'}`,
       megoldas: [T`Feltétel: \(${lin}>0\Rightarrow x>${ft(dom)}\).`, T`\[${L}\left(${lin}\right)${relT[rel]}${L} ${ft(bk)}\quad\Rightarrow\quad ${lin}${relT[rel2]}${ft(bk)}\quad\Rightarrow\quad x${relT[rel2]}${ft(Bd)}\]`,
-        (rel2 === '>' || rel2 === '≥') ? T`Ez a feltételt is biztosítja (mert \(${ft(Bd)}>${ft(dom)}\)), így a megoldás: \(x${relT[rel2]}${ft(Bd)}\).` : T`A feltétellel együtt: \(${ft(dom)}<x${relT[rel2]}${ft(Bd)}\).`] };
+        (rel2 === '>' || rel2 === '≥') ? T`Ez a feltételt is biztosítja (mert \(${ft(Bd)}>${ft(dom)}\)), így a megoldás: \(x${relT[rel2]}${ft(Bd)}\).` : T`A feltétellel együtt: \(${ft(dom)}\lt x${relT[rel2]}${ft(Bd)}\).`] };
   } };
 
   Tananyag.fejezet({

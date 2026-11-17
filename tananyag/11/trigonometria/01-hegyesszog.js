@@ -148,7 +148,7 @@
 <div class="prose"><ul><li>Hegyesszögre \(0\lt\sin\alpha\lt 1\) és \(0\lt\cos\alpha\lt 1\), mert a befogó rövidebb az átfogónál. A tangens bármilyen pozitív szám lehet.</li>
 <li>Ha \(\alpha\) nő, \(\sin\alpha\) és \(\operatorname{tg}\alpha\) nő, \(\cos\alpha\) csökken.</li>
 <li><b>Számológép:</b> fok (DEG) módban számolj! Szögből értéket a sin, cos, tan gombbal, értékből szöget a \(\sin^{-1}\), \(\cos^{-1}\), \(\tan^{-1}\) (SHIFT + sin…) gombbal kapsz.</li>
-<li><b>Megoldási terv:</b> 1) ábra, a derékszög és a szög megjelölése; 2) melyik oldal adott, melyik a keresett az adott szöghöz képest; 3) a két oldalt összekapcsoló szögfüggvény; 4) rendezés, számolás; 5) mértékegység, ésszerűség (az átfogó a leghosszabb!).</li></ul></div>`,
+<li><b>Megoldási terv:</b> 1) ábra, a derékszög és a szög megjelölése; 2) melyik oldal adott, melyik a keresett az adott szöghöz képest; 3) a két oldalt összekapcsoló szögfüggvény; 4) rendezés, számolás; 5) mértékegység, ésszerűség (az átfogó a leghosszabb!).</li></ul></div>` + TR.videok([{ url: 'https://vm.tiktok.com/ZN8a8or67/', cim: '1. videó (TikTok)' }, { url: 'https://vm.tiktok.com/ZN8a8oG21/', cim: '2. videó (TikTok)' }]),
     igazHamisDb: 4,
     igazHamis: [
       { allitas: T`\(\sin 30^\circ=\cos 60^\circ\)`, igaz: true, miert: T`A \(30^\circ\) és a \(60^\circ\) pótszögek, ezért \(\sin 30^\circ=\cos 60^\circ=\frac12\).` },

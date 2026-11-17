@@ -12,6 +12,9 @@ tananyag/
                                a 08 (skaláris szorzat) és a 09 (trig. egyenletek) emelt szintű.
                                Közös segédfüggvények a 11/kurzus.js elején: M11 (fokos sin/cos, kerekítés,
                                közelítő válasz tűréssel, interaktív egységkör és háromszög).
+                               A 10. fejezet (összegzési tételek, emelt) és a kiegészítő témakör a TR segédfüggvényeket
+                               használja (ugyancsak a 11/kurzus.js-ben; szinuszgörbe-rajzoló, videó-blokk).
+    trigonometria-10/        ← Kiegészítő anyag (10. évf.): forgásszögek, szinuszfüggvény, vektorok, térbeli számítások
   7/
     kurzus.js                ← a 7. évfolyam leírója (az elején a 7.-es fejezetek közös segédfüggvényei: M7)
     racionalis-arany-szazalek/  ← 6 fejezet (Sokszínű matematika 7., 1–4. lecke)

@@ -217,6 +217,90 @@ const nv = l => /^(a|e|f|l|m|n|r|s|x|A|E|F|\\alpha|\\varepsilon|α)$/.test(l) ? 
 window.M11 = { nv, RAD, sinD, cosD, tgD, asinD, acosD, atgD, kerek, tiz, sz, fk, hs, hossz, szog, FH, NEV, fnT, fnV, negyzetF, PIT, EIS, haromszogSAS, egysegkor, haromszog, abraHaromszog, abraDerek };
 })();
 
+/* ---------- Kiegészítő (10. évf.) és összegzési tételek: további segédfüggvények (window.TR) ---------- */
+(function () {
+/* ---------- szögek, kerekítés ---------- */
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+const sinD = d => Math.sin(rad(d)), cosD = d => Math.cos(rad(d)), tgD = d => Math.tan(rad(d));
+const asinD = x => deg(Math.asin(x)), acosD = x => deg(Math.acos(Math.max(-1, Math.min(1, x)))), atgD = x => deg(Math.atan(x));
+const r2 = x => +(+x).toFixed(2);
+/* szám TeX-ben két tizedesre (kerekítve), illetve fok-jellel */
+const n2 = x => nt(r2(x));
+const fok = x => T`${nt(+(+x).toFixed(2))}^{\circ}`;
+/* hossz/terület válasz: két tizedesre, a részeredmények kerekítése miatt kis tűréssel */
+const v2 = x => ({ ertekek: [r2(x)], tol: Math.max(0.015, 0.002 * Math.abs(x)), forma: 'tizedes' });
+/* szög válasz (fok, két tizedes) – több megoldás is lehet */
+const vSzog = (...xs) => ({ ertekek: xs.map(r2), tol: 0.035, forma: 'tizedes' });
+/* függvénynevek TeX-ben (magyar jelölés: tg) */
+const FN = { sin: T`\sin`, cos: T`\cos`, tg: T`\operatorname{tg}` };
+const f = (nev, d) => nev === 'sin' ? sinD(d) : nev === 'cos' ? cosD(d) : tgD(d);
+/* nevezetes értékek: szám → { tex, txt } (txt a feleletválasztós gombokhoz) */
+const S2 = Math.SQRT2 / 2, S3 = Math.sqrt(3) / 2, T3 = Math.sqrt(3), T33 = Math.sqrt(3) / 3;
+const NEV = [[0, '0', '0'], [0.5, T`\frac{1}{2}`, '1/2'], [S2, T`\frac{\sqrt{2}}{2}`, '√2/2'], [S3, T`\frac{\sqrt{3}}{2}`, '√3/2'], [1, '1', '1'], [T3, T`\sqrt{3}`, '√3'], [T33, T`\frac{\sqrt{3}}{3}`, '√3/3']];
+function pontos(x) { // x egy nevezetes érték (előjellel) → { tex, txt }; ha nem nevezetes: null
+  if (!isFinite(x) || Math.abs(x) > 1e6) return { tex: T`\text{nincs értelmezve}`, txt: 'nincs értelmezve' };
+  const a = Math.abs(x), e = NEV.find(n => Math.abs(n[0] - a) < 1e-9); if (!e) return null;
+  const neg = x < -1e-9; return { tex: (neg ? '-' : '') + e[1], txt: (neg ? '−' : '') + e[2] };
+}
+/* nevezetes szög függvényértéke (tg 90°-nál „nincs értelmezve”) */
+function nevErtek(nev, d) { const m = ((d % 360) + 360) % 360; if (nev === 'tg' && (m === 90 || m === 270)) return pontos(Infinity); return pontos(f(nev, d)); }
+function keverd(t) { const a = t.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+/* feleletválasztós válasz: helyes + rossz opciók összekeverve */
+function mc(helyes, rosszak) { const o = [helyes, ...rosszak.filter((x, i, a) => x !== helyes && a.indexOf(x) === i)].slice(0, 4); const k = keverd(o); return { valasztas: k, helyes: k.indexOf(helyes) }; }
+/* [0°; 360°) intervallumba */
+const mod360 = d => ((d % 360) + 360) % 360;
+
+/* ---------- rajzolók (interaktív elemek) ---------- */
+let rajz = 0;
+function vaszon(box, cv, cb, rajzolo) {
+  function draw() {
+    if (!document.body.contains(cv)) return;
+    const W = cb.clientWidth || 400, H = cb.clientHeight || W, dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr; cv.height = H * dpr; const c = cv.getContext('2d'); if (!c) return; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cs = getComputedStyle(document.documentElement), col = n => cs.getPropertyValue(n).trim() || '#888';
+    c.fillStyle = col('--card'); c.fillRect(0, 0, W, H);
+    rajzolo(c, W, H, col);
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => draw()).observe(cb);
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw); } catch (e) {}
+  return draw;
+}
+
+/* Szinusz/koszinusz görbe vízszintes egyenessel: a metszéspontok az egyenlet megoldásai [0°; 360°]-ban */
+function gorbe() {
+  return function (box) {
+    const id = 'sg' + (++rajz); let fn = 'sin', cc = 0.5;
+    box.innerHTML = `<div class="plot"><div class="canvasbox" style="aspect-ratio:1.6"><canvas aria-label="Szögfüggvény grafikonja"></canvas></div>
+      <div class="ctrl"><div class="row" id="${id}f"><button class="chip" data-v="sin" aria-pressed="true">sin x</button><button class="chip" data-v="cos" aria-pressed="false">cos x</button></div>
+      <label for="${id}c">Jobb oldal: c = <b id="${id}cv">0,5</b><input type="range" id="${id}c" min="-1.2" max="1.2" step="0.05" value="0.5"></label>
+      <dl class="props" id="${id}p"></dl></div></div>`;
+    const cv = box.querySelector('canvas'), cb = box.querySelector('.canvasbox');
+    const megold = () => { if (Math.abs(cc) > 1) return []; const a = fn === 'sin' ? asinD(cc) : acosD(cc); const s = fn === 'sin' ? [a, 180 - a] : [a, 360 - a]; return [...new Set(s.map(x => r2(mod360(x))))].sort((x, y) => x - y); };
+    const draw = vaszon(box, cv, cb, (c, W, H, col) => {
+      const X = x => 30 + (x / 360) * (W - 45), Y = y => H / 2 - y * (H / 2 - 20);
+      c.strokeStyle = col('--gridline'); c.lineWidth = 1; for (let x = 0; x <= 360; x += 30) { c.beginPath(); c.moveTo(X(x), 0); c.lineTo(X(x), H); c.stroke(); }
+      [-1, -0.5, 0.5, 1].forEach(y => { c.beginPath(); c.moveTo(0, Y(y)); c.lineTo(W, Y(y)); c.stroke(); });
+      c.strokeStyle = col('--muted'); c.lineWidth = 1.2; c.beginPath(); c.moveTo(0, Y(0)); c.lineTo(W, Y(0)); c.moveTo(X(0), 0); c.lineTo(X(0), H); c.stroke();
+      c.fillStyle = col('--muted'); c.font = `11px ${col('--f-mono') || 'monospace'}`; c.textAlign = 'center'; for (let x = 90; x <= 360; x += 90) c.fillText(x + '°', X(x), Y(0) + 14);
+      c.textAlign = 'right'; c.fillText('1', X(0) - 4, Y(1) + 4); c.fillText('−1', X(0) - 4, Y(-1) + 4); c.textAlign = 'left';
+      c.strokeStyle = col('--pen'); c.lineWidth = 2.6; c.beginPath(); for (let i = 0; i <= 360; i++) { const y = f(fn, i); i ? c.lineTo(X(i), Y(y)) : c.moveTo(X(i), Y(y)); } c.stroke();
+      c.strokeStyle = col('--red'); c.lineWidth = 1.6; c.setLineDash([6, 4]); c.beginPath(); c.moveTo(0, Y(cc)); c.lineTo(W, Y(cc)); c.stroke(); c.setLineDash([]);
+      c.fillStyle = col('--red'); megold().forEach(x => { c.beginPath(); c.arc(X(x), Y(cc), 5, 0, 7); c.fill(); });
+    });
+    const upd = () => { box.querySelector(`#${id}cv`).textContent = hu(cc); const m = megold();
+      box.querySelector(`#${id}p`).innerHTML = [['Egyenlet', `${fn} x = ${hu(cc)}`], ['Megoldások [0°; 360°)-ban', m.length ? m.map(x => hu(x) + '°').join('; ') : 'nincs (|c| > 1)'], ['Periódus', '360°']].map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join(''); draw(); };
+    box.querySelector(`#${id}f`).onclick = e => { const b = e.target.closest('.chip'); if (!b) return; fn = b.dataset.v; box.querySelectorAll(`#${id}f .chip`).forEach(x => x.setAttribute('aria-pressed', x === b)); upd(); };
+    const sl = box.querySelector(`#${id}c`); sl.oninput = () => { cc = +sl.value; upd(); };
+    upd();
+  };
+}
+
+/* videó-blokk az elméletbe */
+function videok(lista) { return `<div class="video-blokk"><h4>Videós magyarázat</h4><ul>${lista.map(v => `<li><a href="${v.url}" target="_blank" rel="noopener">${v.cim}</a></li>`).join('')}</ul></div>`; }
+
+window.TR = { rad, deg, sinD, cosD, tgD, asinD, acosD, atgD, r2, n2, fok, v2, vSzog, FN, f, pontos, nevErtek, keverd, mc, mod360, gorbe, videok };
+})();
+
 Tananyag.kurzus({
   cim: 'Matek 11',
   alcim: '11. évfolyam · középszintű érettségi',
@@ -263,7 +347,22 @@ Tananyag.kurzus({
         '06-haromszog-megoldasa.js',
         '07-alkalmazasok.js',
         '08-skalaris-szorzat.js',     // emelt szint (a fájlban: szint: 'emelt')
-        '09-trig-egyenletek.js'       // emelt szint
+        '09-trig-egyenletek.js',      // emelt szint
+        '10-osszegzesi-tetelek.js'    // emelt szint (Mozaik 11: összegzési tételek és alkalmazásaik)
+      ]
+    },
+    {
+      id: 'trigk',
+      cim: 'Kiegészítő anyag (10.): szögfüggvények, vektorok',
+      mappa: 'trigonometria-10',
+      cukorkaNyitashoz: 0,          // kiegészítő anyag: minden fejezet ingyen (egy kattintással) nyitható
+      joValaszCukorkahoz: 5,
+      proba: { feladatszam: 10 },
+      fejezetek: [
+        '01-forgasszogek.js',         // emelt (2024-től a forgásszög nem középszintű)
+        '02-szinuszfuggveny.js',      // emelt
+        '03-vektorok.js',
+        '04-terbeli.js'
       ]
     }
   ]
