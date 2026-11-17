@@ -118,4 +118,27 @@ A menü tetején, a **Dolgozatkészítő** pontban (tanári fiókkal, illetve he
 
 ## Helyi kipróbálás
 
+Fejlesztői előnézet az összes évfolyammal, a valódi szerver megkeresése nélkül:
+
+```sh
+npm ci
+npm test
+npm run dev
+```
+
+A kiírt helyi címen minden fejezet kipróbálható. Ez az előnézeti szerver csak a kiszolgált
+beállításokat írja felül; a `config.js` fájlt és a távoli adatokat nem módosítja.
+
+### Interaktív szemléltetések
+
+Az `assets/szemleltetesek.js` a korábban grafikon nélküli 56 alapfejezethez és 17
+vizsgafejezethez ad témához illeszkedő szemléltetést. A meglévő 15 interaktív elem
+változatlan marad. A vizsgafejezetek a tananyaggal közös szemléltetéseket használják.
+
+A szemléltetések az oldal saját témaszíneivel, vezérlőivel és reszponzív
+grafikonelrendezésével jelennek meg; futtatásukhoz nem kell új külső könyvtár.
+A tesztek ellenőrzik a teljes fejezetlefedettséget, a régi grafikonok megőrzését,
+a vezérlők szélső értékeit, a másodfokú egyenlet elfajuló eseteit és a
+szinusztétel nulla/egy/két háromszöges eseteit.
+
 Ha a `vegpont` üres, az oldal belépés nélkül, helyi módban fut: nincs cukorka, napi sorozat és zárolás. Ez új fejezetek kipróbálására jó. Megnyithatod közvetlenül az `index.html`-t is. Ha a böngésző így nem tölti be a fejezeteket, indíts a mappában egy kis webszervert, például `python -m http.server`, majd nyisd meg a http://localhost:8000 címet.

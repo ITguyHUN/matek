@@ -127,6 +127,17 @@ button{font:inherit;cursor:pointer}
 .props dt{color:var(--muted)}
 .props dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .chk{flex-direction:row !important;align-items:center;gap:8px !important}
+/* A pótló szemléltetések a meglévő grafikonok vezérlőit és témaszíneit használják. */
+.szemleltetes{grid-template-columns:minmax(0,1fr) 280px}
+.szemleltetes .szem-abra{aspect-ratio:auto;max-width:none}
+.szem-abra svg{display:block;width:100%;height:auto;font-family:var(--f-body)}
+.szem-abra svg text{font-size:12px}
+.szemleltetes .ftex,.szemleltetes .props dd{overflow-wrap:anywhere}
+.szemleltetes .props{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+.szemleltetes .ctrl{min-width:0}
+.szemleltetes input[type=range]{margin-inline:0}
+.szem-select{width:100%;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+@media(max-width:760px){.szemleltetes{grid-template-columns:minmax(0,1fr)}}
 /* kezdőlap */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .ccard{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid var(--line);border-radius:6px;text-decoration:none;color:var(--ink);background:var(--card)}

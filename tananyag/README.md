@@ -104,6 +104,13 @@ Hozz létre egy `tananyag/9/kurzus.js` fájlt a fentiek szerint, a táblázatban
 | `grafikonCim`, `grafikonTag` | nem | a grafikon-szakasz címe és címkéje (alapból „Grafikonrajzoló”, „kísérletezz”) |
 | `feladatok` | igen | `{ azonosito: { nev, general() } }` |
 
+**Közös szemléltetések:** az `assets/szemleltetesek.js` útvonal alapján egészíti ki a
+grafikon nélküli fejezeteket a betöltéskor. Az `add(évfolyam, mappa, fájlnév, típus,
+cím, beállítások)` bejegyzéssel új fejezet is hozzárendelhető egy szemléltetéshez.
+A vizsga–tananyag kapcsolatokat az `examAliases` tartalmazza. Egy fejezet saját
+`grafikon` mezője mindig elsőbbséget kap. Az azonosítókat, feladatgenerátorokat és
+haladási szabályokat a kiegészítés nem változtatja meg.
+
 A `general()` minden hívásra **új, véletlenszerű** feladatot ad vissza:
 
 ```js

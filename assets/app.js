@@ -91,6 +91,7 @@ async function betoltKurzus(id) {
       const f = fajlNev(f0);
       const d = FEJEZET_DEF[`${id}/${t.id}/${i}`];
       if (!d) return;
+      if (window.Szemleltetesek) Szemleltetesek.kiegeszit(d, `${id}/${t.mappa ? t.mappa + '/' : ''}${f}`);
       const hibak = [];
       if (!d.id) hibak.push('hiányzik az id');
       if (!d.feladatok || !Object.keys(d.feladatok).length) hibak.push('nincs egy feladattípus sem');
