@@ -436,3 +436,4 @@ button.stat{font:inherit;border:0;cursor:pointer}
 .dg-egysor{display:flex;flex-wrap:wrap;gap:4px 34px;padding-left:18px;margin:4px 0}
 .dg-egysor .dg-r{padding-left:0;margin:0;flex:0 1 auto}
 .dg-egysor .dg-rt mjx-container[display="true"]{display:inline-block !important;margin:0 !important}
+.video-blokk{border:1px solid var(--line);border-radius:6px;padding:8px 14px;margin-top:14px}.video-blokk h4{margin:4px 0 6px}.video-blokk ul{margin:0;padding-left:20px}

@@ -66,7 +66,7 @@
     const eff = flip ? 1 / fv(B.f) : fv(B.f); const novo = (eff > 1) === (fv(cc) > 0);
     const f = T`f(x)=${coefT(fv(cc) === 1 ? 1 : fv(cc) === -1 ? -1 : cc)}${par(B)}^{${ex}}${pt(v)}`;
     return { kerdes: T`<p>Milyen a függvény menete a valós számok halmazán?</p>\[${f}\]`, valasz: { valasztas: ['szigorúan növekvő', 'szigorúan csökkenő'], helyes: novo ? 0 : 1 },
-      tipp: T`Az \(a^x\) nő, ha \(a>1\), és csökken, ha \(0<a<1\). A \(-x\) a kitevőben tükrözés az \(y\) tengelyre, a negatív szorzó tükrözés az \(x\) tengelyre: mindkettő megfordítja a menetet. Az eltolás nem változtat rajta.`,
+      tipp: T`Az \(a^x\) nő, ha \(a>1\), és csökken, ha \(0\lt a\lt 1\). A \(-x\) a kitevőben tükrözés az \(y\) tengelyre, a negatív szorzó tükrözés az \(x\) tengelyre: mindkettő megfordítja a menetet. Az eltolás nem változtat rajta.`,
       megoldas: [T`Az alap: \(${B.t}\), ${fv(B.f) > 1 ? 'nagyobb 1-nél' : '0 és 1 közé esik'}.${flip ? ' A kitevőben −x áll: ez megfordítja a menetet.' : ''}${fv(cc) < 0 ? ' A negatív szorzó is megfordítja.' : ''}`, `Tehát a függvény szigorúan ${novo ? 'növekvő' : 'csökkenő'}.`] };
   } };
 
