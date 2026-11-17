@@ -295,10 +295,75 @@ function gorbe() {
   };
 }
 
+/* Egységkör → grafikon: a kör pontjának magassága (sin) / vízszintes koordinátája (cos) az ívhossz (radián) függvényében.
+   opt.radian: a vízszintes tengelyen π/2, π, … feliratok és az ívhossz kiemelése; opt.fn: 'sin' | 'cos' (kezdeti) */
+function korGorbe(opt = {}) {
+  return function (box) {
+    const id = 'kg' + (++rajz); let t = 60, fn = opt.fn || 'sin', fut = false, utolso = 0, radT = !!opt.radian;
+    box.innerHTML = `<div class="canvasbox" style="max-width:none;aspect-ratio:3"><canvas aria-label="Egységkör és a ${fn} függvény grafikonja"></canvas></div>
+      <div class="ctrl" style="margin-top:12px">
+        <div class="row"><button class="chip" id="${id}p">▶ Lejátszás</button>
+          <span id="${id}f"><button class="chip" data-v="sin" aria-pressed="${fn === 'sin'}">sin x</button> <button class="chip" data-v="cos" aria-pressed="${fn === 'cos'}">cos x</button></span>
+          <button class="chip" id="${id}u" aria-pressed="${radT}">tengely radiánban</button></div>
+        <label for="${id}s">A szög (az egységkör ívének hossza): <b id="${id}v"></b><input type="range" id="${id}s" min="0" max="360" step="1" value="60"></label>
+        <dl class="props" id="${id}d"></dl></div>`;
+    const cv = box.querySelector('canvas'), cb = box.querySelector('.canvasbox');
+    const piT = d => { if (d === 0) return '0'; const g = (a, b) => b ? g(b, a % b) : a; const k = g(d, 180), n = d / k, q = 180 / k; return (n === 1 ? '' : n) + 'π' + (q === 1 ? '' : '/' + q); };
+    const draw = vaszon(box, cv, cb, (c, W, H, col) => {
+      const R = Math.min(H * 0.4, (W - 100) / (2 + 2 * Math.PI)), cx = R + 24, cy = H / 2, gx0 = cx + R + 50, gw = 2 * Math.PI * R, X = tt => gx0 + gw * tt / 360, Y = y => cy - y * R;   // valódi lépték: a 2π hosszú ív = 2πR pixel
+      const r = rad(t), px = Math.cos(r), py = Math.sin(r), val = fn === 'sin' ? py : px;
+      const pen = col('--pen'), red = col('--red'), grn = col('--green'), mut = col('--muted'), grid = col('--gridline'), ink = col('--ink');
+      c.lineWidth = 1; c.strokeStyle = grid; [-1, -0.5, 0.5, 1].forEach(y => { c.beginPath(); c.moveTo(gx0, Y(y)); c.lineTo(gx0 + gw, Y(y)); c.stroke(); });
+      for (let d = 90; d <= 360; d += 90) { c.beginPath(); c.moveTo(X(d), Y(1.15)); c.lineTo(X(d), Y(-1.15)); c.stroke(); }
+      // tengelyek
+      c.strokeStyle = mut; c.lineWidth = 1.2; c.beginPath(); c.moveTo(cx - R - 14, cy); c.lineTo(cx + R + 14, cy); c.moveTo(cx, cy - R - 14); c.lineTo(cx, cy + R + 14);
+      c.moveTo(gx0, cy); c.lineTo(gx0 + gw, cy); c.moveTo(gx0, Y(1.2)); c.lineTo(gx0, Y(-1.2)); c.stroke();
+      c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.stroke();
+      c.fillStyle = mut; c.font = `11px ${col('--f-mono') || 'monospace'}`; c.textAlign = 'center';
+      for (let d = 90; d <= 360; d += 90) c.fillText(radT ? piT(d) : d + '°', X(d), cy + 15);
+      c.textAlign = 'right'; c.fillText('1', gx0 - 4, Y(1) + 4); c.fillText('−1', gx0 - 4, Y(-1) + 4); c.textAlign = 'left';
+      // a teljes görbe halványan, a bejárt rész erősen
+      const gorb = (to, color, w) => { c.strokeStyle = color; c.lineWidth = w; c.beginPath(); for (let d = 0; d <= to; d += 1) { const y = fn === 'sin' ? Math.sin(rad(d)) : Math.cos(rad(d)); d ? c.lineTo(X(d), Y(y)) : c.moveTo(X(d), Y(y)); } c.stroke(); };
+      gorb(360, grid, 2); gorb(t, pen, 2.8);
+      // ív a körön = szakasz a vízszintes tengelyen (letekert ív)
+      c.strokeStyle = red; c.lineWidth = 4; c.beginPath(); c.arc(cx, cy, R, 0, -r, true); c.stroke();
+      c.beginPath(); c.moveTo(gx0, cy); c.lineTo(X(t), cy); c.stroke();
+      // sugár, pont
+      c.strokeStyle = pen; c.lineWidth = 1.6; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + px * R, cy - py * R); c.stroke();
+      // vetület: sin → függőleges szakasz a körön, cos → vízszintes
+      c.strokeStyle = grn; c.lineWidth = 3; c.beginPath();
+      if (fn === 'sin') { c.moveTo(cx + px * R, cy); c.lineTo(cx + px * R, cy - py * R); } else { c.moveTo(cx, cy); c.lineTo(cx + px * R, cy); }
+      c.stroke();
+      c.beginPath(); c.moveTo(X(t), cy); c.lineTo(X(t), Y(val)); c.stroke();
+      // összekötő: sin esetén vízszintes vonal a kör pontjától a grafikon pontjáig
+      c.setLineDash([5, 4]); c.strokeStyle = mut; c.lineWidth = 1.2; c.beginPath();
+      if (fn === 'sin') { c.moveTo(cx + px * R, cy - py * R); c.lineTo(X(t), Y(val)); }
+      else { c.moveTo(cx + px * R, cy); c.lineTo(cx + px * R, cy + R + 8); c.moveTo(X(t), Y(val)); c.lineTo(X(t), Y(val)); }
+      c.stroke(); c.setLineDash([]);
+      [[cx + px * R, cy - py * R], [X(t), Y(val)]].forEach(q => { c.fillStyle = pen; c.beginPath(); c.arc(q[0], q[1], 5, 0, 7); c.fill(); });
+      c.font = `12px ${col('--f-body') || 'sans-serif'}`;
+      const leg = [[red, 'ív a körön = x a tengelyen'], [grn, fn === 'sin' ? 'sin x (magasság)' : 'cos x (vízszintes koord.)']];
+      leg.forEach((l, i) => { c.fillStyle = l[0]; c.fillRect(gx0 + gw * 0.55, 10 + i * 18, 14, 3); c.fillStyle = ink; c.fillText(l[1], gx0 + gw * 0.55 + 20, 15 + i * 18); });
+    });
+    const upd = () => {
+      const r = rad(t); box.querySelector(`#${id}v`).textContent = `${t}° = ${hu(+r.toFixed(3))} rad${t % 15 === 0 ? ' (' + piT(t) + ')' : ''}`;
+      box.querySelector(`#${id}d`).innerHTML = [['ívhossz az egységkörön', hu(+r.toFixed(3))], ['a kör pontja', `P(${hu(+Math.cos(r).toFixed(3))}; ${hu(+Math.sin(r).toFixed(3))})`],
+        [fn === 'sin' ? 'sin x = a pont y koordinátája' : 'cos x = a pont x koordinátája', hu(+(fn === 'sin' ? Math.sin(r) : Math.cos(r)).toFixed(3))]].map(q => `<dt>${q[0]}</dt><dd>${q[1]}</dd>`).join('');
+      draw(); };
+    const sl = box.querySelector(`#${id}s`); sl.oninput = () => { t = +sl.value; upd(); };
+    box.querySelector(`#${id}f`).onclick = e => { const b = e.target.closest('.chip'); if (!b) return; fn = b.dataset.v; box.querySelectorAll(`#${id}f .chip`).forEach(x => x.setAttribute('aria-pressed', x === b)); upd(); };
+    const ub = box.querySelector(`#${id}u`); ub.onclick = () => { radT = !radT; ub.setAttribute('aria-pressed', radT); upd(); };
+    const pb = box.querySelector(`#${id}p`);
+    const lep = ts => { if (!fut || !document.body.contains(cv)) { fut = false; return; } if (ts - utolso > 30) { utolso = ts; t = (t + 2) % 361; sl.value = t; upd(); } requestAnimationFrame(lep); };
+    pb.onclick = () => { fut = !fut; pb.textContent = fut ? '❚❚ Megállítás' : '▶ Lejátszás'; if (fut) requestAnimationFrame(lep); };
+    upd();
+  };
+}
+
 /* videó-blokk az elméletbe */
 function videok(lista) { return `<div class="video-blokk"><h4>Videós magyarázat</h4><ul>${lista.map(v => `<li><a href="${v.url}" target="_blank" rel="noopener">${v.cim}</a></li>`).join('')}</ul></div>`; }
 
-window.TR = { rad, deg, sinD, cosD, tgD, asinD, acosD, atgD, r2, n2, fok, v2, vSzog, FN, f, pontos, nevErtek, keverd, mc, mod360, gorbe, videok };
+window.TR = { rad, deg, sinD, cosD, tgD, asinD, acosD, atgD, r2, n2, fok, v2, vSzog, FN, f, pontos, nevErtek, keverd, mc, mod360, gorbe, korGorbe, videok };
 })();
 
 Tananyag.kurzus({
@@ -339,30 +404,21 @@ Tananyag.kurzus({
       joValaszCukorkahoz: 5,        // számológépes feladatok: típusonként 5 új jó megoldás ér egy cukorkát
       proba: { feladatszam: 12 },
       fejezetek: [
-        '01-hegyesszog.js',
-        '02-tompaszog.js',
-        '03-terulet.js',
-        '04-szinusztetel.js',
-        '05-koszinusztetel.js',
-        '06-haromszog-megoldasa.js',
-        '07-alkalmazasok.js',
-        '08-skalaris-szorzat.js',     // emelt szint (a fájlban: szint: 'emelt')
-        '09-trig-egyenletek.js',      // emelt szint
-        '10-osszegzesi-tetelek.js'    // emelt szint (Mozaik 11: összegzési tételek és alkalmazásaik)
-      ]
-    },
-    {
-      id: 'trigk',
-      cim: 'Kiegészítő anyag (10.): szögfüggvények, vektorok',
-      mappa: 'trigonometria-10',
-      cukorkaNyitashoz: 0,          // kiegészítő anyag: minden fejezet ingyen (egy kattintással) nyitható
-      joValaszCukorkahoz: 5,
-      proba: { feladatszam: 10 },
-      fejezetek: [
-        '01-forgasszogek.js',         // emelt (2024-től a forgásszög nem középszintű)
-        '02-szinuszfuggveny.js',      // emelt
-        '03-vektorok.js',
-        '04-terbeli.js'
+        '01-radian.js',               // fok és radián (ívmérték)
+        '02-hegyesszog.js',           // 10. évf. ismétlés
+        '03-terbeli.js',              // 10. évf.: síkbeli és térbeli számítások
+        '04-tompaszog.js',
+        '05-terulet.js',
+        '06-szinusztetel.js',
+        '07-koszinusztetel.js',
+        '08-haromszog-megoldasa.js',
+        '09-alkalmazasok.js',
+        '10-vektorok.js',             // 10. évf.: vektorok koordinátákkal
+        '11-skalaris-szorzat.js',     // emelt szint (a fájlban: szint: 'emelt')
+        '12-forgasszogek.js',         // emelt; 10. évf.: szögfüggvények tetszőleges szögre
+        '13-szinuszfuggveny.js',      // emelt; 10. évf.: a szinusz- és a koszinuszfüggvény
+        '14-trig-egyenletek.js',      // emelt szint
+        '15-osszegzesi-tetelek.js'    // emelt szint (Mozaik 11: összegzési tételek és alkalmazásaik)
       ]
     }
   ]

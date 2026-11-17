@@ -1,6 +1,6 @@
 /*
- * Kiegészítő anyag (10. évfolyam) 1. – Szögfüggvények tetszőleges szögre (forgásszögek)
- * Témakör: Kiegészítő anyag (10.) a 11.-es trigonometriához · segédfüggvények: TR (tananyag/11/kurzus.js)
+ * 12. fejezet – Szögfüggvények tetszőleges szögre, forgásszögek (10. évf. anyaga; emelt)
+ * Témakör: Trigonometria (11. évfolyam) · segédfüggvények: TR (tananyag/11/kurzus.js)
  */
 (function () {
   const { f, FN, nevErtek, mc, mod360 } = TR;
@@ -35,15 +35,6 @@
         : [T`${d !== m ? T`\(${d}^{\circ}\equiv ${m}^{\circ}\). ` : ''}\(${m}^{\circ}\) a ${negyed(m)} síknegyedben van, a hozzá tartozó hegyesszög \(${ref}^{\circ}\).`, T`\[${FN[fn]}\left(${d}^{\circ}\right)=${e.tex.startsWith('-') ? '-' : ''}${FN[fn]}\,${ref}^{\circ}=${e.tex}\]`] };
   } };
 
-  feladatok.sfAtvaltas = { nev: 'Fok és radián', general() {
-    const fr = P([F(1, 6), F(1, 4), F(1, 3), F(1, 2), F(2, 3), F(3, 4), F(5, 6), F(1), F(7, 6), F(5, 4), F(4, 3), F(3, 2), F(5, 3), F(7, 4), F(11, 6), F(2), F(1, 12), F(5, 12), F(7, 12), F(1, 5), F(2, 5), F(1, 9), F(5, 18), F(9, 4), F(-1, 3), F(-3, 4), F(R(1, 72) * 5, 180), F(R(1, 72) * 5, 180), F(R(-36, 72) * 10, 180)]); if (fr.n === 0) return this.general();
-    const d = 180 * fr.n / fr.d; const piT = fr.d === 1 ? (fr.n === 1 ? T`\pi` : fr.n === -1 ? T`-\pi` : T`${fr.n}\pi`) : T`${fr.n < 0 ? '-' : ''}\frac{${Math.abs(fr.n) === 1 ? '' : Math.abs(fr.n)}\pi}{${fr.d}}`;
-    if (R(0, 1)) return { kerdes: T`<p>Hány fokos az a szög, amelynek radiánban mért nagysága</p>\[${piT}\ ?\]`, valasz: { ertekek: [d] }, formatum: 'szám (fok)',
-      tipp: T`\(\pi\) radián \(=180^{\circ}\).`, megoldas: [T`\[${piT}=${ft(fr)}\cdot 180^{\circ}=${nt(d)}^{\circ}\]`] };
-    return { kerdes: T`<p>Add meg radiánban a \(${nt(d)}^{\circ}\)-os szöget! Melyik szám kerül a négyzet helyére?</p>\[${nt(d)}^{\circ}=\square\cdot\pi\]`, valasz: { ertekek: [fv(fr)] }, formatum: FMT.frac,
-      tipp: T`\(1^{\circ}=\frac{\pi}{180}\) radián.`, megoldas: [T`\[${nt(d)}^{\circ}=\frac{${nt(d)}}{180}\pi=${ft(fr)}\pi\]`] };
-  } };
-
   const TRIP = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29], [9, 40, 41]];
   feladatok.sfPitagorasz = { nev: 'Egyik értékből a többi', general() {
     const [p, q, h] = P(TRIP); const sw = R(0, 1); const s0 = sw ? p : q, c0 = sw ? q : p; // |sin| = s0/h, |cos| = c0/h
@@ -72,14 +63,14 @@
   Tananyag.fejezet({
     id: 'trigk1',
     szint: 'emelt',
-    cim: 'Szögfüggvények tetszőleges szögre (10.)',
+    cim: 'Szögfüggvények tetszőleges szögre (ismétlés)',
     rovid: 'Forgásszögek',
     bevezeto: T`A szinusztétel, a koszinusztétel és a trigonometrikus egyenletek tompaszögekkel és 360°-nál nagyobb szögekkel is dolgoznak: ehhez kell az egységkör.`,
     elmelet: T`<div class="prose"><p><b>Egységkör:</b> az origó körüli 1 sugarú körön az \(\alpha\) szöghöz tartozó pont koordinátái \(P(\cos\alpha;\ \sin\alpha)\). A tangens: \(\operatorname{tg}\alpha=\frac{\sin\alpha}{\cos\alpha}\) (ha \(\cos\alpha\ne0\)).</p>
 <p><b>Előjelek:</b> I. negyed: mind pozitív; II.: csak a sin pozitív; III.: csak a tg pozitív; IV.: csak a cos pozitív.</p>
 <p><b>Visszavezetés hegyesszögre:</b></p></div>
 <div class="mathbox">\[\sin(180^{\circ}-\alpha)=\sin\alpha\qquad \cos(180^{\circ}-\alpha)=-\cos\alpha\qquad \sin(-\alpha)=-\sin\alpha\qquad \cos(-\alpha)=\cos\alpha\]\[\sin(\alpha+360^{\circ})=\sin\alpha\qquad \cos(\alpha+360^{\circ})=\cos\alpha\qquad \operatorname{tg}(\alpha+180^{\circ})=\operatorname{tg}\alpha\]</div>
-<div class="prose"><p><b>Pitagoraszi összefüggés:</b> \(\sin^2\alpha+\cos^2\alpha=1\) minden szögre. <b>Radián:</b> \(180^{\circ}=\pi\) radián.</p></div>`,
+<div class="prose"><p><b>Pitagoraszi összefüggés:</b> \(\sin^2\alpha+\cos^2\alpha=1\) minden szögre. A radiánról az 1. fejezetben olvashatsz: \(180^{\circ}=\pi\).</p></div>`,
     igazHamis: [
       { allitas: T`\(\sin 150^{\circ}=\sin 30^{\circ}\)`, igaz: true, miert: T`\(\sin(180^{\circ}-\alpha)=\sin\alpha\).` },
       { allitas: T`\(\cos 120^{\circ}=\cos 60^{\circ}\)`, igaz: false, miert: T`\(\cos 120^{\circ}=-\cos 60^{\circ}=-\frac12\).` },

@@ -8,13 +8,12 @@ tananyag/
     hatvany-gyok-log/        ← egy témakör mappája
       01-hatvanyozas.js      ← egy fejezet = egy fájl
       …
-    trigonometria/           ← 9 fejezet (Sokszínű matematika 11., A trigonometria alkalmazásai);
-                               a 08 (skaláris szorzat) és a 09 (trig. egyenletek) emelt szintű.
+    trigonometria/           ← 15 fejezet (Sokszínű matematika 11., A trigonometria alkalmazásai + a 10.-es alapok:
+                               radián, térbeli számítások, vektorok, forgásszögek, szinuszfüggvény); a 11–15. fejezet emelt.
                                Közös segédfüggvények a 11/kurzus.js elején: M11 (fokos sin/cos, kerekítés,
                                közelítő válasz tűréssel, interaktív egységkör és háromszög).
-                               A 10. fejezet (összegzési tételek, emelt) és a kiegészítő témakör a TR segédfüggvényeket
-                               használja (ugyancsak a 11/kurzus.js-ben; szinuszgörbe-rajzoló, videó-blokk).
-    trigonometria-10/        ← Kiegészítő anyag (10. évf.): forgásszögek, szinuszfüggvény, vektorok, térbeli számítások
+                               Az 1., 3., 10., 12., 13. és 15. fejezet a TR segédfüggvényeket használja (ugyancsak a
+                               11/kurzus.js-ben: egységkör→grafikon animáció, szinuszgörbe, videó-blokk).
   7/
     kurzus.js                ← a 7. évfolyam leírója (az elején a 7.-es fejezetek közös segédfüggvényei: M7)
     racionalis-arany-szazalek/  ← 6 fejezet (Sokszínű matematika 7., 1–4. lecke)
