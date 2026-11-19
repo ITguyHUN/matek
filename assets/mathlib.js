@@ -77,6 +77,7 @@ function valaszEllenoriz(valasz, ertelmezett) {
 function valaszSzoveg(valasz) {
   if (!valasz) return '';
   if (valasz.valasztas) return valasz.valasztas[valasz.helyes];
+  if (valasz.kifejezes) return valasz.kifejezes;        // kifejezés típusú válasz: a LaTeX-forrás (megjelenítéshez \( … \) közé kell tenni)
   if (valasz.nincs) return 'nincs';
   if (valasz.kozott) return valasz.pelda ? `pl. ${valasz.pelda}` : `${hu(valasz.kozott[0], 4)} és ${hu(valasz.kozott[1], 4)} között`;
   if (valasz.forma === 'tizedes') return (valasz.ertekek || []).map(x => hu(x)).join('; ');

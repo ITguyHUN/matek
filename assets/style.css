@@ -448,3 +448,33 @@ button.stat{font:inherit;border:0;cursor:pointer}
 .dg-egysor .dg-r{padding-left:0;margin:0;flex:0 1 auto}
 .dg-egysor .dg-rt mjx-container[display="true"]{display:inline-block !important;margin:0 !important}
 .video-blokk{border:1px solid var(--line);border-radius:6px;padding:8px 14px;margin-top:14px}.video-blokk h4{margin:4px 0 6px}.video-blokk ul{margin:0;padding-left:20px}
+
+/* képletmező és jelbillentyűzet (kifejezés típusú válaszok) – assets/kepletmezo.js */
+.ansrow .kepletmezo{flex:1 1 240px;width:auto;max-width:560px;min-width:0}
+math-field.kepletmezo{min-height:46px;font-size:1.3rem;padding:4px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--pen);
+  --caret-color:var(--pen);--selection-background-color:var(--pen-soft);--contains-highlight-background-color:transparent}
+math-field.kepletmezo:focus-within{border-color:var(--pen);outline:none}
+math-field.kepletmezo::part(virtual-keyboard-toggle),math-field.kepletmezo::part(menu-toggle){display:none}
+math-field.kepletmezo[read-only]{color:var(--ink)}
+.kb{margin-top:10px}
+.kb-fej{display:flex;gap:6px;margin-bottom:8px}
+.kb-lap{min-height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .88rem var(--f-body)}
+.kb-lap[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.kb-racs{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,56px)}
+.kb-racs[hidden],.kb .csak-mobil{display:none}
+.kb-gomb{min-height:44px;padding:0;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:600 1.05rem var(--f-body);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.kb-gomb:hover,.kb-gomb:active{background:var(--pen-soft)}
+.kb-gomb.jel{color:var(--pen)}
+.kb-gomb.kis{font-size:.84rem;white-space:nowrap}
+.kb-gomb sup,.kb-gomb sub{font-size:.65em}
+.kb-gomb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kb-tort{display:inline-grid;font-size:.72em;line-height:1.05}
+.kb-tort i{font-style:normal;padding:0 3px}
+.kb-tort i:first-child{border-bottom:1.5px solid currentColor}
+@media (max-width:759px){
+  .kb-racs{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .kb-lap{flex:1;min-height:40px;padding:0 4px}
+  .kb .kb-lap.csak-mobil{display:block}
+  .kb .kb-gomb.csak-mobil{display:grid}
+}
+@media print{.kb,.kepletmezo{display:none}}

@@ -9,6 +9,7 @@
   const el0 = c => c === 0 ? '' : (c > 0 ? '+' : '-') + Math.abs(c);
   const xT = (k, v) => k === 0 ? '' : (k > 0 ? '+' : '-') + (Math.abs(k) === 1 ? '' : Math.abs(k)) + v;
   const negyzetSzam = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144];
+  const SZORZAT = 'szorzat alak, pl. 3x(x−2)(x+2)';   // a válasz maga a kifejezés (valasz.kifejezes), teljesen szorzattá alakítva
 
   /* ---------- kiemelés ---------- */
   feladatok.kiemeles = { nev: 'Kiemelés', general() {
@@ -27,13 +28,7 @@
       const kiem = ketValt ? { [u]: ku, [w]: kw } : { [u]: ku };
       const teljes = bels.map(([c, v]) => [c * k, { [u]: v[u] + ku, ...(ketValt ? { [w]: v[w] + kw } : {}) }]);
       const kif = tagokT(teljes); const belsT = tagokT(bels);
-      const mit = R(0, 3);
-      let jobb, ans;
-      if (mit === 0) { jobb = T`\square\, ${valtozoT(kiem)}\left(${belsT}\right)`; ans = k; }
-      else if (mit === 1) { jobb = T`${k}${u}^{\square}${ketValt ? valtozoT({ [w]: kw }) : ''}\left(${belsT}\right)`; ans = ku; }
-      else { const i = R(1, n - 1); const c = bels[i][0]; const hely = tagokT(bels.map(([cc, v], j) => j === i ? (Object.values(v).some(e => e) ? T`${cc < 0 ? '-' : '+'}\square\, ${valtozoT(v)}` : T`${cc < 0 ? '-' : '+'}\square`) : [cc, v])).replace('++', '+');
-        jobb = T`${tagT(k, kiem)}\left(${hely}\right)`; ans = Math.abs(c); }
-      return { kerdes: T`<p>Emeld ki a legnagyobb közös tényezőt! Mi kerül a négyzet helyére? (Pozitív számot írj!)</p>\[${kif}=${jobb}\]`, valasz: { ertekek: [ans] }, formatum: FMT9.egesz,
+      return { kerdes: T`<p>Emeld ki a legnagyobb közös tényezőt!</p>\[${kif}\]`, valasz: { kifejezes: T`${tagT(k, kiem)}\left(${belsT}\right)`, alak: 'szorzat' }, formatum: SZORZAT,
         tipp: 'Kiemeléskor az együtthatók legnagyobb közös osztóját és minden változónak a legkisebb előforduló kitevőjű hatványát emeljük ki.',
         megoldas: [T`A közös tényező: \(${tagT(k, kiem)}\).`, T`\[${kif}=${tagT(k, kiem)}\left(${belsT}\right)\]`] };
     }
@@ -46,32 +41,28 @@
     // (k·u + p)(m·w + q) = km·uw + kq·u + pm·w + pq
     const tagok = keverd([[k * m, { [u]: 1, [w]: 1 }], [k * q, { [u]: 1 }], [p * m, { [w]: 1 }], [p * q, {}]]);
     const kif = tagokT(tagok);
-    const mit = P(['p', 'q']);
-    const alak = T`(${k === 1 ? '' : k}${u}+p)(${m === 1 ? '' : m}${w}+q)`;
-    return { kerdes: T`<p>Alakítsd szorzattá csoportosítással! Az eredményt \(${alak}\) alakban írva mennyi ${mit === 'p' ? T`a \(p\)` : T`a \(q\)`}?</p>\[${kif}\]`,
-      valasz: { ertekek: [mit === 'p' ? p : q] }, formatum: FMT9.egesz,
+    return { kerdes: T`<p>Alakítsd szorzattá csoportosítással!</p>\[${kif}\]`,
+      valasz: { kifejezes: T`(${linT(k, p, u)})(${linT(m, q, w)})`, alak: 'szorzat' }, formatum: SZORZAT,
       tipp: T`Csoportosítsd a tagokat úgy, hogy mindkét csoportból ugyanaz a kéttagú kifejezés legyen kiemelhető! Pl. \(ab+3b-2a-6=b(a+3)-2(a+3)\).`,
-      megoldas: [T`\[${tagokT([[k * m, { [u]: 1, [w]: 1 }], [p * m, { [w]: 1 }], [k * q, { [u]: 1 }], [p * q, {}]])}=${m === 1 ? '' : m}${w}(${linT(k, p, u)})${q > 0 ? '+' : '-'}${Math.abs(q)}(${linT(k, p, u)})\]`, T`\[=(${linT(k, p, u)})(${linT(m, q, w)})\]`, T`Tehát \(p=${p}\) és \(q=${q}\).`] };
+      megoldas: [T`\[${tagokT([[k * m, { [u]: 1, [w]: 1 }], [p * m, { [w]: 1 }], [k * q, { [u]: 1 }], [p * q, {}]])}=${m === 1 ? '' : m}${w}(${linT(k, p, u)})${q > 0 ? '+' : '-'}${Math.abs(q)}(${linT(k, p, u)})\]`, T`\[=(${linT(k, p, u)})(${linT(m, q, w)})\]`] };
   } };
 
   /* ---------- nevezetes szorzatok visszafelé ---------- */
   feladatok.nevezetes = { nev: 'Nevezetes szorzatokkal', general() {
     const v = P(['x', 'a', 'y']); const t = R(0, 5);
     const a = R(1, 7), b = R(1, 11); const aT = (a === 1 ? '' : a) + v;
-    if (t <= 1) { const kerd = R(0, 1) ? 'a' : 'b';
-      const jobb = kerd === 'a' ? T`(\square\,${v}-${b})(\square\,${v}+${b})` : T`(${aT}-\square)(${aT}+\square)`;
-      return { kerdes: T`<p>Alakítsd szorzattá! Mi kerül a négyzetek helyére (mindkét helyre ugyanaz)?</p>\[${a * a === 1 ? '' : a * a}${v}^2-${b * b}=${jobb}\]`, valasz: { ertekek: [kerd === 'a' ? a : b] }, formatum: FMT9.egesz,
+    if (t <= 1) {
+      return { kerdes: T`<p>Alakítsd szorzattá!</p>\[${a * a === 1 ? '' : a * a}${v}^2-${b * b}\]`, valasz: { kifejezes: T`(${aT}-${b})(${aT}+${b})`, alak: 'szorzat' }, formatum: SZORZAT,
         tipp: T`\(A^2-B^2=(A-B)(A+B)\). Melyik kifejezés négyzete \(${a * a === 1 ? '' : a * a}${v}^2\), és melyik számé ${b * b}?`, megoldas: [T`\[${a * a === 1 ? '' : a * a}${v}^2-${b * b}=(${aT})^2-${b}^2=(${aT}-${b})(${aT}+${b})\]`] }; }
-    if (t <= 3) { const s = P([1, -1]); const kerd = R(0, 1) ? 'a' : 'b';
+    if (t <= 3) { const s = P([1, -1]);
       const kif = T`${a * a === 1 ? '' : a * a}${v}^2${s > 0 ? '+' : '-'}${2 * a * b}${v}+${b * b}`;
-      const jobb = kerd === 'a' ? T`(\square\, ${v}${s > 0 ? '+' : '-'}${b})^2` : T`(${aT}${s > 0 ? '+' : '-'}\square)^2`;
-      return { kerdes: T`<p>Írd fel teljes négyzetként! Mi kerül a négyzet helyére?</p>\[${kif}=${jobb}\]`, valasz: { ertekek: [kerd === 'a' ? a : b] }, formatum: FMT9.egesz,
+      return { kerdes: T`<p>Írd fel teljes négyzetként!</p>\[${kif}\]`, valasz: { kifejezes: T`(${aT}${s > 0 ? '+' : '-'}${b})^2`, alak: 'szorzat' }, formatum: SZORZAT,
         tipp: T`\(A^2\pm2AB+B^2=(A\pm B)^2\): keresd meg, minek a négyzete az első és az utolsó tag!`, megoldas: [T`\[${kif}=(${aT})^2${s > 0 ? '+' : '-'}2\cdot ${aT}\cdot ${b}+${b}^2=(${aT}${s > 0 ? '+' : '-'}${b})^2\]`] }; }
     if (t === 4) { const c = R(1, 5); const kob = c ** 3; const s = P([1, -1]);
-      return { kerdes: T`<p>Alakítsd szorzattá! Mi kerül a négyzet helyére?</p>\[${v}^3${s > 0 ? '+' : '-'}${kob}=(${v}${s > 0 ? '+' : '-'}${c})(${v}^2${s > 0 ? '-' : '+'}\square\, ${v}+${c * c})\]`, valasz: { ertekek: [c] }, formatum: FMT9.egesz,
+      return { kerdes: T`<p>Alakítsd szorzattá!</p>\[${v}^3${s > 0 ? '+' : '-'}${kob}\]`, valasz: { kifejezes: T`(${v}${s > 0 ? '+' : '-'}${c})(${v}^2${s > 0 ? '-' : '+'}${c}${v}+${c * c})`, alak: 'szorzat' }, formatum: SZORZAT,
         tipp: T`\(A^3-B^3=(A-B)(A^2+AB+B^2)\) és \(A^3+B^3=(A+B)(A^2-AB+B^2)\).`, megoldas: [T`\(${kob}=${c}^3\), így \[${v}^3${s > 0 ? '+' : '-'}${c}^3=(${v}${s > 0 ? '+' : '-'}${c})(${v}^2${s > 0 ? '-' : '+'}${c}${v}+${c * c})\]`] }; }
     const k = R(2, 6), b2 = R(1, 9);   // k·x² − k·b² = k(x−b)(x+b)
-    return { kerdes: T`<p>Alakítsd szorzattá (kiemeléssel, majd nevezetes szorzattal)! Mi kerül a négyzet helyére?</p>\[${k}${v}^2-${k * b2 * b2}=${k}(${v}-\square)(${v}+\square)\]`, valasz: { ertekek: [b2] }, formatum: FMT9.egesz,
+    return { kerdes: T`<p>Alakítsd szorzattá (kiemeléssel, majd nevezetes szorzattal)!</p>\[${k}${v}^2-${k * b2 * b2}\]`, valasz: { kifejezes: T`${k}(${v}-${b2})(${v}+${b2})`, alak: 'szorzat' }, formatum: SZORZAT,
       tipp: T`Először emeld ki a ${k}-${k === 2 || k === 5 ? (k === 2 ? 't' : 'öt') : k === 3 ? 'at' : k === 6 ? 'ot' : 'et'}, aztán a zárójelben \(A^2-B^2\) áll.`, megoldas: [T`\[${k}${v}^2-${k * b2 * b2}=${k}(${v}^2-${b2 * b2})=${k}(${v}-${b2})(${v}+${b2})\]`] };
   } };
 
@@ -80,7 +71,7 @@
     const v = P(['x', 'a', 'y']); const [p, q] = kulonbozo(2, -9, 9).map(x => x || 1);
     if (p === q) return this.general();
     const poli = pMul([p, 1], [q, 1]);
-    return { kerdes: T`<p>Alakítsd szorzattá \((${v}+p)(${v}+q)\) alakban! Add meg \(p\) és \(q\) értékét (mindkettőt, pontosvesszővel)!</p>\[${pT(poli, v)}\]`, valasz: { ertekek: [p, q] }, formatum: FMT9.halmaz,
+    return { kerdes: T`<p>Alakítsd szorzattá!</p>\[${pT(poli, v)}\]`, valasz: { kifejezes: T`(${linT(1, p, v)})(${linT(1, q, v)})`, alak: 'szorzat' }, formatum: SZORZAT,
       tipp: T`Keress két számot, amelyek összege \(${p + q}\) és szorzata \(${p * q}\)! (Mert \((${v}+p)(${v}+q)=${v}^2+(p+q)${v}+pq\).)`,
       megoldas: [T`\(${p}+${zjn(q)}=${p + q}\) és \(${p}\cdot ${zjn(q)}=${p * q}\).`, T`\[${pT(poli, v)}=(${linT(1, p, v)})(${linT(1, q, v)})\]`] };
   } };
@@ -91,10 +82,8 @@
     const kx = (() => { const r = Array(m + 1).fill(0); r[m] = k; return r; })();
     const belso = t === 0 ? pMul([p, 1], [p, 1]) : pMul([p, 1], [-p, 1]);
     const poli = pMul(kx, belso);
-    const alak = t === 0 ? T`k\cdot x^{m}\,(x+p)^2` : T`k\cdot x^{m}\,(x-p)(x+p)`;
-    const mit = P(['k', 'm', 'p']); const ans = { k, m, p: t === 0 ? p : Math.abs(p) }[mit];
     const jobb = t === 0 ? T`${tagT(k, { x: m })}(${linT(1, p)})^2` : T`${tagT(k, { x: m })}(${linT(1, -Math.abs(p))})(${linT(1, Math.abs(p))})`;
-    return { kerdes: T`<p>Alakítsd szorzattá \(${alak}\) alakban${t === 1 ? T` (\(p>0\))` : ''}! Mennyi ${mit === 'k' ? T`a \(k\)` : mit === 'm' ? T`az \(m\)` : T`a \(p\)`}?</p>\[${pT(poli)}\]`, valasz: { ertekek: [ans] }, formatum: FMT9.egesz,
+    return { kerdes: T`<p>Alakítsd szorzattá, amennyire csak lehet!</p>\[${pT(poli)}\]`, valasz: { kifejezes: jobb, alak: 'szorzat' }, formatum: SZORZAT,
       tipp: 'Először emeld ki a közös tényezőt, aztán nézd meg, nevezetes szorzat maradt-e a zárójelben!',
       megoldas: [T`\[${pT(poli)}=${tagT(k, { x: m })}\left(${pT(belso)}\right)=${jobb}\]`] };
   } };

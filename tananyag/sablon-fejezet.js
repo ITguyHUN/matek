@@ -22,6 +22,21 @@
     }
   };
 
+  /* Kifejezés mint válasz: a diák képletmezőbe ír, és bármelyik egyenértékű alak jó. Részletek: tananyag/README.md */
+  feladatok.peldaKifejezes = {
+    nev: 'Szorzattá alakítás',
+    general() {
+      const a = R(2, 9);
+      return {
+        kerdes: T`<p>Alakítsd szorzattá!</p>\[x^2-${a * a}\]`,
+        valasz: { kifejezes: T`(x-${a})(x+${a})`, alak: 'szorzat' },   // alak nélkül csak az érték számít
+        formatum: 'szorzat alak',
+        tipp: T`\(A^2-B^2=(A-B)(A+B)\)`,
+        megoldas: [T`\[x^2-${a * a}=(x-${a})(x+${a})\]`]
+      };
+    }
+  };
+
   /* Feleletválasztós típus (a próba-témazáróba nem kerül be). */
   feladatok.peldaValasztos = {
     nev: 'Melyik nagyobb?',

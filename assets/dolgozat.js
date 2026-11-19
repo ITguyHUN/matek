@@ -198,6 +198,7 @@ const tisztit = html => {
   d.querySelectorAll('input,button,canvas,script,style,.ansrow,.fmt').forEach(x => x.remove());
   return d.innerHTML.trim();
 };
+const kifE = it => !!(it.valasz && it.valasz.kifejezes);   // kifejezés típusú válasz: a megoldókulcsban képletként jelenik meg
 const elsoP = html => { const m = /^\s*(<p>[\s\S]*?<\/p>)/.exec(html); return m ? m[1] : null; };
 function feladatResz(x) {
   const items = [], seen = new Set();
@@ -266,7 +267,7 @@ function nyomtatHtml(E) {
     </div>`;
   }).join('');
   const kulcs = o.kulcs ? E.valtozatok.map((V, vi) => `<div class="dg-lap dg-kulcs"><div class="dg-cim">Megoldókulcs – ${H.esc(o.cim)}${V.betu ? ` · ${V.betu} csoport` : ''}</div>
-    ${V.feladatok.map((f, fi) => `<div class="dg-kf"><b>${fi + 1}.</b> ${f.items.map((it, ii) => `<span class="dg-kv">${f.items.length > 1 ? BETUK[ii] + ') ' : ''}${H.esc(H.valaszSzoveg(it.valasz))}</span>`).join('')}
+    ${V.feladatok.map((f, fi) => `<div class="dg-kf"><b>${fi + 1}.</b> ${f.items.map((it, ii) => `<span class="dg-kv" data-kv="${vi}-${fi}-${ii}">${f.items.length > 1 ? BETUK[ii] + ') ' : ''}${kifE(it) ? `\\(${H.esc(it.valasz.kifejezes)}\\)` : H.esc(H.valaszSzoveg(it.valasz))}</span>`).join('')}
       ${o.reszl ? f.items.map((it, ii) => `<div class="dg-reszl" data-m="${vi}-${fi}-${ii}">${f.items.length > 1 ? `<b>${BETUK[ii]})</b> ` : ''}${it.megoldas.map(x => /^\s*\\\[/.test(x) ? `<div>${x}</div>` : `<p>${x}</p>`).join('')}</div>`).join('') : ''}</div>`).join('')}</div>`).join('') : '';
   return lapok + kulcs;
 }
@@ -428,7 +429,7 @@ function texDolgozat(E) {
   if (o.kulcs) E.valtozatok.forEach(V => {
     ki.push(`\\newpage\n{\\large\\bfseries Megoldókulcs -- ${texSzoveg(o.cim)}${V.betu ? ` -- ${V.betu} csoport` : ''}}\\par\\medskip`);
     V.feladatok.forEach((f, fi) => {
-      ki.push(`\\textbf{${fi + 1}.} ` + f.items.map((it, ii) => `${f.items.length > 1 ? BETUK[ii] + ')~' : ''}${texSzoveg(H.valaszSzoveg(it.valasz))}`).join(';\\quad ') + '\\par');
+      ki.push(`\\textbf{${fi + 1}.} ` + f.items.map((it, ii) => `${f.items.length > 1 ? BETUK[ii] + ')~' : ''}${kifE(it) ? `$${texMat(it.valasz.kifejezes)}$` : texSzoveg(H.valaszSzoveg(it.valasz))}`).join(';\\quad ') + '\\par');
       if (o.reszl) f.items.forEach((it, ii) => ki.push(`\\begin{reszek}\\item[${f.items.length > 1 ? BETUK[ii] + ')' : ''}] ${it.megoldas.map(x => html2tex(/^\s*\\\[/.test(x) ? x : `<p>${x}</p>`, false)).join('\n\n')}\\end{reszek}`));
     });
   });
@@ -515,7 +516,13 @@ async function docx() {
       for (let fi = 0; fi < V.feladatok.length; fi++) {
         const f = V.feladatok[fi];
         const runs = [{ text: `${fi + 1}. `, b: true }];
-        f.items.forEach((it, ii) => { runs.push({ text: `${f.items.length > 1 ? BETUK[ii] + ') ' : ''}${H.valaszSzoveg(it.valasz)}${ii < f.items.length - 1 ? ';   ' : ''}` }); });
+        for (let ii = 0; ii < f.items.length; ii++) {
+          const it = f.items[ii], veg = ii < f.items.length - 1 ? ';   ' : '';
+          // kifejezés típusú válasz: az előnézet már kiszedett képletéből (Word-egyenlet vagy kép), a betűjelével együtt
+          const kv = kifE(it) && kulcsLapok[vi] && kulcsLapok[vi].querySelector(`[data-kv="${vi}-${fi}-${ii}"]`);
+          if (kv) { (await blokkok(kv, skala)).forEach(b => runs.push(...(b.runs || []))); if (veg) runs.push({ text: veg }); }
+          else runs.push({ text: `${f.items.length > 1 ? BETUK[ii] + ') ' : ''}${H.valaszSzoveg(it.valasz)}${veg}` });
+        }
         B.push({ t: 'p', runs, after: 60 });
         if (o.reszl) for (let ii = 0; ii < f.items.length; ii++) {
           const el = kulcsLapok[vi] && kulcsLapok[vi].querySelector(`[data-m="${vi}-${fi}-${ii}"]`);

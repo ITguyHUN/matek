@@ -737,7 +737,15 @@ function feladatKeszit(ch, gid) {
   const sig = Szabalyok.azonosito(ch.id + '/' + gid + '|' + p.kerdes);
   return { gid, g, p, sig };
 }
+/* A helyes válasz megjelenítve: a kifejezés típusú képletként (MathJax szedi), a többi szövegként. */
+const valaszHtml = v => v && v.kifejezes ? `\\(${esc(v.kifejezes)}\\)` : esc(valaszSzoveg(v));
+/* Kifejezés típusú válasz ellenőrzése a régi eredményalakra hozva: { ok } | { ok: false, kifUzenet } | { forma: true, kifUzenet } */
+function kifejezesEredmeny(valasz, be) {
+  try { const e = Kifejezes.ellenoriz(valasz, be); return e.ok ? { ok: true } : { ok: false, forma: !!e.forma, kifUzenet: e.uzenet }; }
+  catch (e) { return { ok: false, forma: true, kifUzenet: 'Ennek a feladatnak hibás a megadott válasza – szólj a tanárodnak!' }; }
+}
 function fbText(res) {
+  if (res.kifUzenet) return esc(res.kifUzenet);
   if (res.rossz) return 'Ezt nem tudom számként értelmezni. Törtet így írj: 3/2, tizedest így: 1,5, több megoldást pontosvesszővel: 1; 2.';
   if (res.forma === 'tizedes') return 'Az érték jó, de <b>tizedes tört alakban</b> kérjük (pl. 0,375).';
   if (res.forma === 'tort') return 'Az érték jó, de <b>tört alakban</b> kérjük (pl. 3/8).';
@@ -807,12 +815,32 @@ function makePractice(box, ch, resz) {
     const badge = !jatek() ? '' : known ? '<span class="badge old">már megoldottad</span>' : '<span class="badge new">új feladat</span>';
     const lvl = mutatSzint || resz.emeltResz ? szintCimke(ch.genSzint[id], K0) : '';
     $('#q', box).innerHTML = `<div class="eyebrow" style="margin-bottom:4px">${esc(cur.g.nev || id)} ${lvl} ${badge}</div>${cur.p.kerdes}
-      ${isTeacher() ? `<div class="teach">Helyes válasz: <b>${esc(valaszSzoveg(cur.p.valasz))}</b></div>` : ''}`;
+      ${isTeacher() ? `<div class="teach">Helyes válasz: <b>${valaszHtml(cur.p.valasz)}</b></div>` : ''}`;
     $('#fb', box).hidden = true; $('#sol', box).hidden = true;
     const inp = $('#inp', box), v = cur.p.valasz;
     if (v.valasztas) {
       inp.innerHTML = `<div class="choices">${v.valasztas.map((o, i) => `<button class="btn" data-c="${i}">${esc(o)}</button>`).join('')}</div>`;
       inp.querySelector('.choices').onclick = e => { const b = e.target.closest('[data-c]'); if (!b || solved) return; submit(+b.dataset.c === v.helyes, v.valasztas[+b.dataset.c]); };
+    } else if (v.kifejezes) {   // algebrai kifejezés, reláció, intervallum, halmaz: képletmező + jelbillentyűzet
+      const ez = cur;
+      inp.innerHTML = '<p class="small">Képletmező betöltése…</p>';
+      Kepletmezo.betolt(() => {
+        if (cur !== ez) return;   // közben új feladat jött
+        inp.innerHTML = `<div class="ansrow"></div><div class="fmt">${cur.p.formatum ? `Formátum: ${esc(cur.p.formatum)} · ` : ''}${Kepletmezo.SUGO}</div><div class="kb-hely"></div>`;
+        const sor = $('.ansrow', inp);
+        const go = () => {
+          if (solved || !mezo.ertek()) return;
+          const res = kifejezesEredmeny(v, mezo.ertek());
+          if (res.forma) { fb('info', fbText(res) + ' Ez nem számít hibának, javítsd tovább.'); return; }   // alaki gond: nem számít rossz válasznak
+          if (!res.ok) res.kifUzenet = 'Nem egyenlő a helyes válasszal. ' + res.kifUzenet;
+          submit(res.ok, mezo.ertek(), res);
+          if (solved) mezo.lezar();
+        };
+        const mezo = Kepletmezo.mezo(sor, { cimke: 'Válasz', enter: go, kbHely: $('.kb-hely', inp), lap: cur.p.billentyuzet, mutat: true });
+        sor.insertAdjacentHTML('beforeend', '<button class="btn primary" id="chk">Ellenőrzés</button>');
+        $('#chk', inp).onclick = go;
+        try { if (matchMedia('(pointer:fine)').matches) mezo.fokusz(); } catch (e) {}
+      });
     } else {
       inp.innerHTML = `<div class="ansrow"><input id="ans-${esc(ch.id)}-${resz.id}" type="text" autocomplete="off" spellcheck="false" aria-label="Válasz" placeholder="Válasz"><button class="btn primary" id="chk">Ellenőrzés</button></div>
        <div class="fmt">Formátum: ${esc(cur.p.formatum || '')} · tört: <code>3/2</code> · tizedes: <code>1,5</code> · vegyes szám: <code>2 1/4</code> · szakaszos: <code>0,(3)</code> · több megoldás: <code>1; 2</code> · ha nincs: <code>nincs</code></div>`;
@@ -967,14 +995,23 @@ function renderProba(t) {
    <div class="ansrow" style="margin-top:18px"><button class="btn primary" id="sub">Beadás</button><button class="btn" id="again">Új feladatsor</button></div>
    <div id="res" style="margin-top:18px"></div>`;
   $('#tl').innerHTML = items.map((it, i) => `<div class="titem" id="ti${i}"><div class="num">${i + 1}.</div><div class="body"><div class="prob">${it.p.kerdes}</div>
-     ${isTeacher() ? `<div class="teach">Helyes válasz: <b>${esc(valaszSzoveg(it.p.valasz))}</b></div>` : ''}
-     <div class="ansrow"><input id="pa${i}" type="text" autocomplete="off" spellcheck="false" aria-label="${i + 1}. feladat válasza" placeholder="Válasz"><span class="fmt">${esc(it.p.formatum || '')}</span></div>
+     ${isTeacher() ? `<div class="teach">Helyes válasz: <b>${valaszHtml(it.p.valasz)}</b></div>` : ''}
+     ${it.p.valasz.kifejezes ? `<div class="ansrow" id="pk${i}"></div><div class="kb-hely"></div>`
+       : `<div class="ansrow"><input id="pa${i}" type="text" autocomplete="off" spellcheck="false" aria-label="${i + 1}. feladat válasza" placeholder="Válasz"><span class="fmt">${esc(it.p.formatum || '')}</span></div>`}
      <div class="fb" hidden></div><div class="solbox" hidden></div></div></div>`).join('');
+  /* kifejezés típusú feladatok: képletmező; a billentyűzet mindig annál a feladatnál jelenik meg, amelyikbe épp írnak */
+  const mezok = {};
+  if (items.some(it => it.p.valasz.kifejezes)) Kepletmezo.betolt(() => items.forEach((it, i) => {
+    const sor = $('#pk' + i); if (!sor || mezok[i] || !it.p.valasz.kifejezes) return;
+    mezok[i] = Kepletmezo.mezo(sor, { cimke: `${i + 1}. feladat válasza`, kbHely: sor.nextElementSibling, lap: it.p.billentyuzet });
+  }));
   $('#again').onclick = () => renderProba(t);
   $('#sub').onclick = () => {
     let pts = 0; const byCh = {};
     items.forEach((it, i) => {
-      const row = $('#ti' + i), val = $('#pa' + i).value, res = valaszEllenoriz(it.p.valasz, valaszErtelmez(val));
+      const row = $('#ti' + i), kif = !!it.p.valasz.kifejezes, mezo = mezok[i], val = kif ? (mezo ? mezo.ertek() : '') : $('#pa' + i).value;
+      const res = kif ? (val ? kifejezesEredmeny(it.p.valasz, val) : { ok: false }) : valaszEllenoriz(it.p.valasz, valaszErtelmez(val));
+      if (mezo) mezo.lezar();
       byCh[it.ch.key] = byCh[it.ch.key] || [0, 0]; byCh[it.ch.key][1]++; if (res.ok) { pts++; byCh[it.ch.key][0]++; }
       row.className = 'titem ' + (res.ok ? 'ok' : 'no');
       const f = row.querySelector('.fb'); f.hidden = false; f.className = 'fb ' + (res.ok ? 'ok' : 'no'); f.innerHTML = res.ok ? 'Helyes, 1 pont.' : (val.trim() ? (res.forma ? fbText(res) + ' 0 pont.' : 'Nem jó, 0 pont.') : 'Nincs válasz, 0 pont.');

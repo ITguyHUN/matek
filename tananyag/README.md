@@ -132,6 +132,49 @@ További válaszfajták:
 
 Alaki hiba esetén az oldal szól („tizedes tört alakban kérjük”, „egyszerűsítsd tovább”), de ez nem számít rossz válasznak, és nem nullázza a sorozatot. A diák beírhat vegyes számot (`2 1/4`), szakaszos tizedes törtet (`0,(3)` vagy `1,2(3)`), és a válasz végén mértékegységet vagy százalékjelet is (`12 000 Ft`, `37,5%`, `1,6 km`).
 
+### Kifejezés mint válasz
+
+Ha a válasz nem szám, hanem **algebrai kifejezés, reláció, intervallum vagy halmaz**, a `valasz` a helyes választ TeX-ben adja meg:
+
+```js
+valasz: { kifejezes: T`(x-4)(x+4)`, alak: 'szorzat' }
+```
+
+Ilyenkor a diák képletmezőt és jelbillentyűzetet kap (törtvonal, kitevő, gyök, sin, log, intervallum …), és bármelyik **egyenértékű** alakot beírhatja: `(x+4)(x-4)`, `(4+x)(x-4)`. Az ellenőrzés behelyettesítéssel történik (`assets/kifejezes.js`), ezért hibánál ellenpéldát is ad: „x = 2 esetén a tiéd 5, a helyes −12”.
+
+| `valasz.kifejezes` | A diák ezeket is írhatja |
+|---|---|
+| `(x+3)^2` | `(3+x)(x+3)` |
+| `x<5` | `5>x`, `]-∞;5[`, `x ∈ ]-∞;5[` |
+| `]-\infty;-2[\cup]3;\infty[` | `x<-2 vagy x>3` |
+| `\lbrace-2;3\rbrace` | `x=-2 vagy x=3`, `x₁=3; x₂=-2` |
+| `x=\frac{\pi}{6}+2k\pi\lor x=\frac{5\pi}{6}+2k\pi` | fokban (`30°+k·360°`), más paraméterrel (`n`, `m`, `l`), `k ∈ ℤ` kiegészítéssel, `(-1)^k·π/6+kπ` |
+| `x=\pm\frac{\pi}{3}+2k\pi` | a két ág külön kiírva |
+| `\mathbb{R}\setminus\lbrace2\rbrace` | `x≠2` |
+
+Használható: `+ − · : /`, `\frac`, hatvány, `\sqrt` (n-edik is), abszolút érték, `\sin \cos \tg \ctg`, `\lg \ln \log_{a}`, fok (`30\degree`), `\pi`, `e`; relációk (`< > \le \ge \ne =`), `\lor` (vagy), `\land` (és); intervallum magyar jelöléssel (`]a;b[`, `[a;b]`), `\infty`, `\cup \cap \setminus`, `\lbrace…\rbrace`, `\emptyset`, `\mathbb{R}`, `\mathbb{Z}`, `\mathbb{N}`, `\mathbb{Q}` (`\mathbb{R}^+` is).
+
+Az `alak` (elhagyható) azt mondja meg, milyen alakban kell lennie a válasznak. Ha az érték jó, de az alak nem, az oldal szól, és ez **nem számít rossz válasznak**:
+
+| `alak` | Elvárás |
+|---|---|
+| `'szorzat'` | szorzat alak, legalább annyi tényezőre bontva, mint a megadott válasz; ha abban nincs kiemelhető szám, a diákéban se maradjon |
+| `'kifejtett'` | nincs felbontatlan zárójel; `tagok: 3` megadásával az összevonást is megköveteli |
+| `'gyok'` | a gyökjel alatt nem marad négyzetszám tényező (`\sqrt{50}` helyett `5\sqrt{2}`) |
+| `'egyfv'` | egyetlen szögfüggvény vagy logaritmus (`minek: 'logaritmus'` a hibaüzenetbe, `argSzam: true`: az argumentum egyetlen szám) |
+| `'fvNelkul'` | pontos érték függvény nélkül (`\sin 30\degree` helyett `\frac{1}{2}`) |
+
+Tudnivalók:
+
+- Reláció, intervallum, halmaz esetén a feladat visszaírását (pl. `2x+1<7`) az oldal nem fogadja el: megoldott alak kell, ahol az ismeretlen egyedül áll.
+- Az ismeretlen az első nem paraméter betű a válaszban; ha a válaszban nincs betű (pl. `]1;5[`), akkor `x`. Más betűhöz: `valtozo: 'y'`.
+- A `k`, `n`, `m`, `l` betű relációban és halmazban egész paramétert jelent. Állításonként egy paraméter használható.
+- `billentyuzet: 'fv'` vagy `'halmaz'` a feladatban: gépen ez a billentyűzetlap nyílik meg (alapból a `Jelek`).
+- A próba-témazáró és a dolgozatkészítő is kezeli; a megoldókulcsba képletként kerül.
+- A `npm test` minden ilyen feladatra ellenőrzi, hogy a megadott válasz átmegy-e a saját ellenőrzésén.
+
+Minta: `9/algebra-szamelmelet/07-szorzatta-alakitas.js`.
+
 A `kurzus.js`-ben a `jelek` mező adja meg a fejléc fölötti jelsort (pl. `jelek: 'a/b · 0,375 · p%'`).
 
 Ha egy feladattípus ne kerüljön be a próba-témazáróba, add hozzá: `proba: false`.
