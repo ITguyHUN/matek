@@ -89,33 +89,3 @@ const T = [
     [jo('\\sin 2x+\\log_{2}x+\\sqrt{2}\\pi', 'sin(2x)+log_2(x)+sqrt(2)pi').ok === true, 'betűvel gépelt függvénynevek']
 ];
 for (const [siker, nev] of T) test(nev, () => assert.ok(siker));
-
-/* A tananyag kifejezés típusú feladatai: a feladatíró saját válasza menjen át az ellenőrzésen (érték és kért alak is),
- * különben a diák a helyes megoldást sem tudná beadni. Minden évfolyam minden fejezetét végignézi. */
-test('a tananyag minden kifejezés típusú válasza megfelel a saját ellenőrzésének', () => {
-  const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
-  const { JSDOM } = require('jsdom');   // a kurzusfájlok a document-et is használják
-  const dom = new JSDOM('<!doctype html><html><body></body></html>', { runScripts: 'outside-only', url: 'https://example.test/' });
-  const gyoker = path.resolve(__dirname, '..'), kor = dom.getInternalVMContext();
-  const fut = f => vm.runInContext(fs.readFileSync(path.join(gyoker, f), 'utf8'), kor, { filename: f });
-  let kurzus, fejezet, db = 0;
-  dom.window.Tananyag = { kurzus(d) { kurzus = d; }, fejezet(d) { fejezet = d; } };
-  fut('assets/mathlib.js');
-  for (const evf of [7, 9, 10, 11]) {
-    fut(`tananyag/${evf}/kurzus.js`);
-    for (const tk of kurzus.temakorok.filter(t => t.aktiv !== false)) for (const e of tk.fejezetek) {
-      if (String(e).startsWith('//')) continue;
-      const fajl = `tananyag/${evf}/${tk.mappa}/${typeof e === 'string' ? e : e.fajl}`;
-      fejezet = null; fut(fajl);
-      for (const [tipus, g] of Object.entries(fejezet.feladatok || {})) for (let i = 0; i < 60; i++) {
-        const p = (g.general || g.make).call(g);
-        if (!p.valasz || !p.valasz.kifejezes) break;
-        const e2 = ellenoriz(p.valasz, p.valasz.kifejezes);
-        assert.ok(e2.ok, `${fajl} / ${tipus}: ${p.valasz.kifejezes} → ${e2.uzenet}`);
-        db++;
-      }
-    }
-  }
-  assert.ok(db > 0, 'nincs egyetlen kifejezés típusú feladat sem');
-  dom.window.close();
-});

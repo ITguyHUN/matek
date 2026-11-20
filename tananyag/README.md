@@ -175,6 +175,42 @@ Tudnivalók:
 
 Minta: `9/algebra-szamelmelet/07-szorzatta-alakitas.js`.
 
+### Grafikon mint válasz
+
+**Függvényábrázolás:** a diák a koordináta-rendszerben két rácspontot jelöl be, a görbét a program húzza meg. A helyes függvényt TeX-ben kell megadni:
+
+```js
+valasz: { grafikon: T`\left(x-2\right)^2-1`, fajta: 'parabola' }
+```
+
+| `fajta` | A két pont | Alak |
+|---|---|---|
+| `'egyenes'` (alap) | a grafikon bármely két pontja | `mx + b` |
+| `'parabola'` | a tengelypont, majd még egy pont | `a(x − u)² + v` |
+| `'abs'` | a töréspont, majd még egy pont | `a·\|x − u\| + v` |
+| `'gyok'` | a kezdőpont, majd egy tőle jobbra eső pont | `a·√(x − u) + v` |
+
+- A `grafikon` bármilyen alakban megadható (`x^2-4x+3` ugyanaz, mint a fenti); az ellenőrzés a két pontból kapott függvényt hasonlítja össze vele.
+- `ablak: [xmin, xmax, ymin, ymax]` (alapból `[-6, 6, -6, 6]`), `lepes: 0.5` (alapból egész rács).
+- **A helyes grafikonnak megrajzolhatónak kell lennie:** legyen a jellegzetes pontja és még egy pontja rácspont az ablakon belül. Ezt a `npm test` minden ilyen feladatra ellenőrzi.
+- Hibánál a diák ellenpéldát kap: „az x = 3 helyen a rajzolt grafikon 1 magasan jár, a függvény értéke ott 0”.
+
+**Pontok bejelölése** (zérushely, tengelypont, metszéspont): a rácson a `rajz` görbéje látszik, a diák a kért pontokat jelöli be; a sorrend nem számít.
+
+```js
+valasz: { pontok: [[-2, 0], [3, 0]], rajz: '(x+2)(x-3)', ablak: [-6, 6, -8, 8] }
+```
+
+**Ábra a kérdésben vagy a megoldásban:** `Grafikon.kep({ ablak, gorbek: ['2x-3'], pontok: [{ x: 0, y: -3, c: 'A' }] })` kész ábrát ad, amely beilleszthető a `kerdes` és a `megoldas` szövegébe. Így készül a „szabály leolvasása grafikonról” feladat: a kérdésben ábra, a válasz `kifejezes`.
+
+A nyomtatott dolgozatban az ábrázolós feladat alá üres koordináta-rendszer kerül (PDF és Word; a LaTeX-változatban csak a helye van jelölve).
+
+Minta: `10/masodfoku-egyenlet/01-masodfoku-fuggveny.js` (`abrazol`, `leolvas`), `sablon-fejezet.js`.
+
+### Új választípus készítése
+
+A szám és a feleletválasztás kivételével minden választípus az `assets/valasztipusok.js`-ben jelentkezik be (`Valasztipus.regisztral({ … })`). Egy típus megadja, mely `valasz` tartozik hozzá, hogyan épül fel a beviteli felülete, és hogyan ellenőrzi a választ; ettől kezdve a gyakorlás, a házi, a próba-témazáró, a tanári nézet és a dolgozatkészítő magától kezeli. A mezők leírása a fájl elején van; minta a `grafikon` és a `pontok` típus.
+
 A `kurzus.js`-ben a `jelek` mező adja meg a fejléc fölötti jelsort (pl. `jelek: 'a/b · 0,375 · p%'`).
 
 Ha egy feladattípus ne kerüljön be a próba-témazáróba, add hozzá: `proba: false`.
@@ -215,4 +251,16 @@ A csoport szintjét lehetőleg a témakör elején állítsd be: a nyitott fejez
 
 ## Ellenőrzés
 
-Bejelentkezés nélkül, helyi módban (amikor a `config.js` → `vegpont` üres) a kezdőlap kiírja, ha valamelyik fejezetfájl nem töltődött be vagy hibás. Tanári fiókkal ugyanez a kezdőlapon látszik. Tanári fiókkal minden fejezet nyitva van, és a gyakorlásnál a helyes válasz is megjelenik, így az új feladattípusokat gyorsan ki lehet próbálni.
+**Géppel:** a `npm run feladat -- tananyag/9/…/fajl.js` típusonként kiír néhány legenerált feladatot (kérdés, válasz, tipp, megoldás), és jelzi a formai hibákat – akkor is, ha a fájl még nincs a `kurzus.js`-ben. A `npm test` a teljes tananyagot és a sablont végigjárja: minden típust 60-szor legenerál, és ellenőrzi, hogy
+
+- a `general()` nem dob hibát, a `kerdes` és a `valasz` megvan, a válasz ismert fajtájú és érvényes (véges számok, létező `helyes` sorszám, `kozott` alsó < felső);
+- kifejezésnél és grafikonnál a megadott válasz átmegy a saját ellenőrzésén; ha van `_ell` próba, a válasz azt is teljesíti;
+- a szövegekben nincs `undefined`, `NaN`, páratlan képlethatároló, és képletben a `<` után nem áll közvetlenül betű;
+- 60 húzásból legalább 15 különböző kérdés jön ki;
+- a fejezet `id`-je egyedi, a `cim`, az `igazHamis` és a `mintapelda` alakja rendben van.
+
+**`_ell` – saját próba:** számos feladatnál megadható egy függvény, amely a választ a feladatba helyettesítve ellenőrzi (`_ell: w => Math.abs(a * w + b) < 1e-9`; `nincs: true` esetén a `'nincs'` szöveget kapja). Az oldal nem használja, a teszt igen: így a hibásan kiszámolt válasz nem jut ki a diákokhoz.
+
+A sablon (`sablon-fejezet.js`) mintatár: minden válaszfajtára van benne működő példa, és a teszt azt is ellenőrzi, hogy egyik se hiányozzon. Feladatírás forrás alapján (Claude-dal): lásd a gyökérben a `CLAUDE.md`-t.
+
+**Szemmel:** bejelentkezés nélkül, helyi módban (amikor a `config.js` → `vegpont` üres) a kezdőlap kiírja, ha valamelyik fejezetfájl nem töltődött be vagy hibás. Tanári fiókkal ugyanez a kezdőlapon látszik. Tanári fiókkal minden fejezet nyitva van, és a gyakorlásnál a helyes válasz is megjelenik, így az új feladattípusokat gyorsan ki lehet próbálni.

@@ -738,12 +738,13 @@ function feladatKeszit(ch, gid) {
   return { gid, g, p, sig };
 }
 /* A helyes válasz megjelenítve: a kifejezés típusú képletként (MathJax szedi), a többi szövegként. */
-const valaszHtml = v => v && v.kifejezes ? `\\(${esc(v.kifejezes)}\\)` : esc(valaszSzoveg(v));
-/* Kifejezés típusú válasz ellenőrzése a régi eredményalakra hozva: { ok } | { ok: false, kifUzenet } | { forma: true, kifUzenet } */
-function kifejezesEredmeny(valasz, be) {
-  try { const e = Kifejezes.ellenoriz(valasz, be); return e.ok ? { ok: true } : { ok: false, forma: !!e.forma, kifUzenet: e.uzenet }; }
+const valaszHtml = v => { const t = Valasztipus.keres(v); return t ? `\\(${esc(t.keplet(v))}\\)` : esc(valaszSzoveg(v)); };
+/* Bejelentett választípus (valasztipusok.js) ellenőrzése a régi eredményalakra hozva: { ok } | { ok: false, kifUzenet } | { forma: true, kifUzenet } */
+function tipusEredmeny(tip, valasz, be) {
+  try { const e = tip.ellenoriz(valasz, be); return e.ok ? { ok: true } : { ok: false, forma: !!e.forma, kifUzenet: e.uzenet }; }
   catch (e) { return { ok: false, forma: true, kifUzenet: 'Ennek a feladatnak hibás a megadott válasza – szólj a tanárodnak!' }; }
 }
+const azonnal = cb => cb();
 function fbText(res) {
   if (res.kifUzenet) return esc(res.kifUzenet);
   if (res.rossz) return 'Ezt nem tudom számként értelmezni. Törtet így írj: 3/2, tizedest így: 1,5, több megoldást pontosvesszővel: 1; 2.';
@@ -821,23 +822,24 @@ function makePractice(box, ch, resz) {
     if (v.valasztas) {
       inp.innerHTML = `<div class="choices">${v.valasztas.map((o, i) => `<button class="btn" data-c="${i}">${esc(o)}</button>`).join('')}</div>`;
       inp.querySelector('.choices').onclick = e => { const b = e.target.closest('[data-c]'); if (!b || solved) return; submit(+b.dataset.c === v.helyes, v.valasztas[+b.dataset.c]); };
-    } else if (v.kifejezes) {   // algebrai kifejezés, reláció, intervallum, halmaz: képletmező + jelbillentyűzet
-      const ez = cur;
-      inp.innerHTML = '<p class="small">Képletmező betöltése…</p>';
-      Kepletmezo.betolt(() => {
+    } else if (Valasztipus.keres(v)) {   // bejelentett választípus (valasztipusok.js): kifejezés, függvényábrázolás, pontok …
+      const ez = cur, tip = Valasztipus.keres(v);
+      inp.innerHTML = '<p class="small">Betöltés…</p>';
+      (tip.elokeszit || azonnal)(() => {
         if (cur !== ez) return;   // közben új feladat jött
-        inp.innerHTML = `<div class="ansrow"></div><div class="fmt">${cur.p.formatum ? `Formátum: ${esc(cur.p.formatum)} · ` : ''}${Kepletmezo.SUGO}</div><div class="kb-hely"></div>`;
-        const sor = $('.ansrow', inp);
+        inp.innerHTML = '';
         const go = () => {
-          if (solved || !mezo.ertek()) return;
-          const res = kifejezesEredmeny(v, mezo.ertek());
+          if (solved) return;
+          const be = mezo.ertek();
+          if (be == null || be === '') { if (mezo.hiany) fb('info', esc(mezo.hiany())); return; }
+          const res = tipusEredmeny(tip, v, be);
           if (res.forma) { fb('info', fbText(res) + ' Ez nem számít hibának, javítsd tovább.'); return; }   // alaki gond: nem számít rossz válasznak
-          if (!res.ok) res.kifUzenet = 'Nem egyenlő a helyes válasszal. ' + res.kifUzenet;
-          submit(res.ok, mezo.ertek(), res);
+          if (!res.ok) res.kifUzenet = (tip.hibaElotag || 'Nem jó. ') + res.kifUzenet;
+          submit(res.ok, tip.naplo ? tip.naplo(v, be) : be, res);
           if (solved) mezo.lezar();
         };
-        const mezo = Kepletmezo.mezo(sor, { cimke: 'Válasz', enter: go, kbHely: $('.kb-hely', inp), lap: cur.p.billentyuzet, mutat: true });
-        sor.insertAdjacentHTML('beforeend', '<button class="btn primary" id="chk">Ellenőrzés</button>');
+        const mezo = tip.bevitel(inp, cur.p, { cimke: 'Válasz', enter: go, mutat: true });
+        (mezo.gombHely || inp).insertAdjacentHTML('beforeend', mezo.gombHely ? '<button class="btn primary" id="chk">Ellenőrzés</button>' : '<div class="ansrow"><button class="btn primary" id="chk">Ellenőrzés</button></div>');
         $('#chk', inp).onclick = go;
         try { if (matchMedia('(pointer:fine)').matches) mezo.fokusz(); } catch (e) {}
       });
@@ -996,21 +998,22 @@ function renderProba(t) {
    <div id="res" style="margin-top:18px"></div>`;
   $('#tl').innerHTML = items.map((it, i) => `<div class="titem" id="ti${i}"><div class="num">${i + 1}.</div><div class="body"><div class="prob">${it.p.kerdes}</div>
      ${isTeacher() ? `<div class="teach">Helyes válasz: <b>${valaszHtml(it.p.valasz)}</b></div>` : ''}
-     ${it.p.valasz.kifejezes ? `<div class="ansrow" id="pk${i}"></div><div class="kb-hely"></div>`
+     ${Valasztipus.keres(it.p.valasz) ? `<div id="pk${i}"></div>`
        : `<div class="ansrow"><input id="pa${i}" type="text" autocomplete="off" spellcheck="false" aria-label="${i + 1}. feladat válasza" placeholder="Válasz"><span class="fmt">${esc(it.p.formatum || '')}</span></div>`}
      <div class="fb" hidden></div><div class="solbox" hidden></div></div></div>`).join('');
-  /* kifejezés típusú feladatok: képletmező; a billentyűzet mindig annál a feladatnál jelenik meg, amelyikbe épp írnak */
+  /* bejelentett választípusok (kifejezés, grafikon …): mindegyik a saját beviteli felületét kapja */
   const mezok = {};
-  if (items.some(it => it.p.valasz.kifejezes)) Kepletmezo.betolt(() => items.forEach((it, i) => {
-    const sor = $('#pk' + i); if (!sor || mezok[i] || !it.p.valasz.kifejezes) return;
-    mezok[i] = Kepletmezo.mezo(sor, { cimke: `${i + 1}. feladat válasza`, kbHely: sor.nextElementSibling, lap: it.p.billentyuzet });
-  }));
+  items.forEach((it, i) => {
+    const tip = Valasztipus.keres(it.p.valasz); if (!tip) return;
+    (tip.elokeszit || azonnal)(() => { const hely = $('#pk' + i); if (hely && !mezok[i]) mezok[i] = tip.bevitel(hely, it.p, { cimke: `${i + 1}. feladat válasza`, tomor: true }); });
+  });
   $('#again').onclick = () => renderProba(t);
   $('#sub').onclick = () => {
     let pts = 0; const byCh = {};
     items.forEach((it, i) => {
-      const row = $('#ti' + i), kif = !!it.p.valasz.kifejezes, mezo = mezok[i], val = kif ? (mezo ? mezo.ertek() : '') : $('#pa' + i).value;
-      const res = kif ? (val ? kifejezesEredmeny(it.p.valasz, val) : { ok: false }) : valaszEllenoriz(it.p.valasz, valaszErtelmez(val));
+      const row = $('#ti' + i), tip = Valasztipus.keres(it.p.valasz), mezo = mezok[i], be = tip ? (mezo ? mezo.ertek() : null) : $('#pa' + i).value;
+      const val = be == null ? '' : typeof be === 'string' ? be : 'van';   // van-e válasz egyáltalán
+      const res = tip ? (val ? tipusEredmeny(tip, it.p.valasz, be) : { ok: false }) : valaszEllenoriz(it.p.valasz, valaszErtelmez(be));
       if (mezo) mezo.lezar();
       byCh[it.ch.key] = byCh[it.ch.key] || [0, 0]; byCh[it.ch.key][1]++; if (res.ok) { pts++; byCh[it.ch.key][0]++; }
       row.className = 'titem ' + (res.ok ? 'ok' : 'no');

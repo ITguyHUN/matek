@@ -2,7 +2,8 @@
   "name": "matek-gyakorlo",
   "private": true,
   "scripts": {
-    "test": "node --test test/szemleltetesek.test.cjs test/kifejezes.test.cjs",
+    "test": "node --test test/szemleltetesek.test.cjs test/kifejezes.test.cjs test/grafikon.test.cjs test/tananyag.test.cjs",
+    "feladat": "node test/minta-feladatok.cjs",
     "dev": "node test/preview-server.cjs"
   },
   "devDependencies": { "jsdom": "^27.2.0" }

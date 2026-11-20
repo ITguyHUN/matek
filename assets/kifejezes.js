@@ -382,6 +382,9 @@ function kifejezesEllenoriz(valasz, latex) {
   return alak ? { forma: true, uzenet: alak } : { ok: true };
 }
 
-const API = { ellenoriz: kifejezesEllenoriz, ertelmez, halmazKulonbseg };
+/* TeX-ben megadott kifejezés mint egyváltozós függvény: fuggveny('x^2-4')(3) === 5 */
+function fuggveny(tex, valtozo = 'x') { const fa = ertelmez(tex); return x => ertek(fa, { [valtozo]: x }); }
+
+const API = { ellenoriz: kifejezesEllenoriz, ertelmez, halmazKulonbseg, fuggveny };
 if (typeof module === 'object' && module.exports) module.exports = API; else root.Kifejezes = API;
 })(typeof window !== 'undefined' ? window : globalThis);

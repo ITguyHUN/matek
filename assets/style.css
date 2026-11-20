@@ -478,3 +478,19 @@ math-field.kepletmezo[read-only]{color:var(--ink)}
   .kb .kb-gomb.csak-mobil{display:grid}
 }
 @media print{.kb,.kepletmezo{display:none}}
+
+/* koordináta-rendszer (assets/grafikon.js): kész ábra és pontlerakós bevitel */
+.grafikon-kep{max-width:380px;margin:8px 0;color:var(--ink)}
+.grafikon{display:block;width:100%;height:auto}
+.grafikon .g-gorbe{stroke:var(--pen)}
+.grafikon .g-hatter{stroke:var(--muted)}
+.grafikon .g-pont,.grafikon .g-cimke{fill:var(--pen)}
+.grafikon .g-pont.kijelolt{fill:var(--red);stroke:var(--red);stroke-opacity:.25;stroke-width:9}
+.grafikon-mezo .grafikon-kep{cursor:crosshair;touch-action:manipulation;border:1.5px solid var(--line);border-radius:6px;background:var(--card)}
+.grafikon-mezo .grafikon-kep:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+.g-pontok{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:36px}
+.g-pontok .chip{min-height:36px;font-variant-numeric:tabular-nums}
+.dg-rt .grafikon-kep{max-width:260px}
+@media print{.grafikon .g-gorbe,.grafikon .g-hatter{stroke:#000}.grafikon .g-pont,.grafikon .g-cimke{fill:#000}}
+.g-nyilak{display:inline-flex;gap:4px}
+.g-nyilak .btn{min-width:44px;min-height:44px;font-size:1.1rem;padding:0}
