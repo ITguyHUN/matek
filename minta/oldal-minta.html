@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matek gyakorló – az oldal újragondolva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathlive@0.111.4/mathlive-static.css">
+<style>
+/* Az élő oldal színei és betűi (assets/style.css). A füzetlap marad; a margó az egész oldalon ugyanazt jelenti: ami ott áll, az a „javítás” – pipa, sorszám, jel. */
+:root{
+  --paper:#f4f7fb; --card:#ffffff; --gridline:#e2e9f4; --line:#d3dcea;
+  --ink:#16203a; --muted:#56627d; --pen:#2148c9; --pen-soft:#e7edfc; --on-pen:#ffffff;
+  --red:#c2332b; --red-soft:#fcebe9; --green:#1b7a45; --green-soft:#e3f3e9; --margin:#eeb4b0;
+  --candy:#c4307a; --candy-soft:#fbe6f0; --flame:#d9620b; --flame-soft:#fdeedd;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  --gutter:64px; --pad:22px;
+}
+:root[data-theme="dark"]{
+  --paper:#0e1422; --card:#151d2e; --gridline:#1a2338; --line:#28334c;
+  --ink:#e5eaf5; --muted:#9ba7c1; --pen:#86a6ff; --pen-soft:#1d2a4b; --on-pen:#0e1422;
+  --red:#ff8076; --red-soft:#3a1d1c; --green:#62d597; --green-soft:#12301f; --margin:#5d2f33;
+  --candy:#ff7ab8; --candy-soft:#3b1a2b; --flame:#ffa057; --flame-soft:#3a2312; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body);
+  background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:24px 24px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+a{color:var(--pen)}
+h1{font:800 clamp(1.7rem,4vw,2.3rem)/1.1 var(--f-display);letter-spacing:-.02em;margin:2px 0 10px;text-wrap:balance}
+h2{font:800 1.2rem/1.2 var(--f-display);letter-spacing:-.01em;margin:0 0 6px}
+p{margin:0 0 8px;max-width:62ch}
+.halk{color:var(--muted)} .kicsi{font-size:.9rem}
+
+.wrap{max-width:1160px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0}
+.brand{font:800 1.5rem/1 var(--f-display);letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.stats{display:flex;align-items:center;gap:8px}
+.stat{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:.92rem;color:var(--muted)}
+.stat b{color:var(--ink)} .stat.flame svg{color:var(--flame)} .stat.candy svg{color:var(--candy)}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+
+.layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px;align-items:start}
+/* Fő navigáció: három hely, mindig ugyanott. Gépen bal oldalt, telefonon alul. */
+.fonav{position:sticky;top:12px;display:flex;flex-direction:column;gap:4px}
+.fonav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:600}
+.fonav a:hover{background:var(--pen-soft)}
+.fonav a[aria-current]{background:var(--card);box-shadow:inset 0 0 0 1px var(--line);color:var(--pen)}
+.fonav .elv{height:1px;background:var(--line);margin:8px 4px}
+
+.sheet{position:relative;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:26px 26px 26px calc(var(--gutter) + var(--pad))}
+.sheet::before{content:"";position:absolute;top:0;bottom:0;left:var(--gutter);width:2px;background:var(--margin)}
+.sor{position:relative;padding:16px 0;border-top:1px solid var(--line)}
+.sor:first-of-type{border-top:0;padding-top:0}
+.mark{position:absolute;top:16px;left:calc(-1 * (var(--gutter) + var(--pad)));width:var(--gutter);display:grid;justify-items:center;color:var(--muted)}
+.sor:first-of-type .mark{top:0}
+.mark svg{width:26px;height:26px}
+.mark.jo{color:var(--green)} .mark.rossz{color:var(--red)} .mark.toll{color:var(--pen)} .mark.lang{color:var(--flame)} .mark.cukor{color:var(--candy)}
+.mark.szam{font:800 1.1rem/1.6 var(--f-display)}
+.mark.rajz svg path{stroke-dasharray:60;stroke-dashoffset:60;animation:rajz .35s ease-out forwards}
+@keyframes rajz{to{stroke-dashoffset:0}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 .95rem var(--f-body);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background-color .15s}
+.btn:hover{background:var(--pen-soft)}
+.btn.fo{background:var(--pen);border-color:var(--pen);color:var(--on-pen)} .btn.fo:hover{filter:brightness(1.08)}
+.btn.szoveg{border-color:transparent;background:none;color:var(--pen);padding:0 10px}
+.gombsor{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+/* haladás típusonként */
+.tipuslista{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none;max-width:520px}
+.tipuslista li{display:grid;grid-template-columns:minmax(0,1fr) 120px 44px;gap:12px;align-items:center;font-size:.95rem}
+.sav{height:8px;border-radius:99px;background:var(--pen-soft);overflow:hidden}
+.sav i{display:block;height:100%;background:var(--pen);border-radius:99px}
+.sav.kesz i{background:var(--green)}
+.tipuslista .db{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;font-size:.9rem}
+
+/* heti sorozat */
+.het{display:flex;gap:6px;margin-top:10px}
+.nap{width:44px;display:grid;justify-items:center;gap:4px;font-size:.8rem;color:var(--muted)}
+.nap span{width:40px;height:40px;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);color:var(--green)}
+.nap.ma span{border:2px dashed var(--flame);color:var(--flame)}
+.nap.ma{color:var(--ink);font-weight:700}
+
+/* tananyag: tartalomjegyzék */
+.valto{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.valto button{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--ink);font:600 .9rem var(--f-body);cursor:pointer}
+.valto button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.fej{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:baseline}
+.fej a.cim{font-weight:700;color:var(--ink);text-decoration:none;font-size:1.05rem}
+.fej a.cim:hover{color:var(--pen)}
+.fej .all{font-size:.9rem;color:var(--muted);white-space:nowrap}
+.sor.zart .cim{color:var(--muted)}
+.sor.most{background:linear-gradient(90deg,var(--pen-soft),transparent 70%);margin:0 -26px 0 calc(-1 * var(--pad));padding-left:var(--pad);padding-right:26px}
+.sor.most .mark{left:calc(-1 * var(--gutter))}
+.cimke{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:.82rem;font-weight:600}
+.cimke.cukor{background:var(--candy-soft);color:var(--candy)} .cimke.cukor svg{width:15px;height:15px}
+
+/* fejezet */
+.vissza-link{display:inline-flex;align-items:center;gap:4px;min-height:32px;font-weight:600;font-size:.92rem;text-decoration:none}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:8px 0 18px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;min-height:44px;padding:0 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);font:600 .95rem var(--f-body);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pen)}
+table.azon{border-collapse:collapse;margin:8px 0 14px;font-size:1.05rem}
+table.azon td{padding:8px 22px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+.gordul{overflow-x:auto}
+.lepes{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;margin:10px 0}
+.lepes b{width:28px;height:28px;display:grid;place-items:center;border-radius:99px;background:var(--pen-soft);color:var(--pen);font-size:.9rem}
+.ih{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.ih:first-child{border-top:0}
+.ih .all{font-size:1.1rem;overflow-x:auto}
+.ih .miert{grid-column:1/-1;margin:0;font-size:.92rem;padding:8px 12px;border-radius:8px}
+.tipusok{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.tipus{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 .92rem var(--f-body);cursor:pointer}
+.tipus .db{font-weight:500;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tipus.tele .db{color:var(--green)}
+.tipus[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)} .tipus[aria-pressed="true"] .db{color:inherit;opacity:.75}
+.kerdes{margin:0 0 4px;font-size:1.05rem}
+.kif{font-size:1.5rem;padding:8px 0 6px;overflow-x:auto;overflow-y:hidden}
+.valaszsor{display:flex;align-items:flex-end;gap:12px;margin-top:8px}
+.elotag{font-size:1.4rem;color:var(--muted);padding-bottom:9px}
+.vissza{margin:14px 0 0;padding:10px 14px;border-radius:8px}
+.jo-h{background:var(--green-soft);color:var(--green)} .rossz-h{background:var(--red-soft);color:var(--red)} .info-h{background:var(--pen-soft);color:var(--ink)}
+.megoldas{margin:14px 0 0;padding:12px 14px;border:1px dashed var(--line);border-radius:8px}
+
+/* képletmező és billentyűzet: az élő oldal eleme (assets/kepletmezo.js), itt a füzetvonalra igazítva */
+.kepletmezo{flex:1;min-width:0}
+math-field.kepletmezo{min-height:54px;font-size:1.5rem;color:var(--pen);background:transparent;border:0;border-bottom:2px solid var(--line);border-radius:0;padding:6px 2px;
+  --caret-color:var(--pen);--selection-background-color:var(--pen-soft);--contains-highlight-background-color:transparent}
+math-field.kepletmezo:focus-within{outline:none;border-bottom-color:var(--pen);box-shadow:0 1px 0 var(--pen)}
+math-field.kepletmezo::part(virtual-keyboard-toggle),math-field.kepletmezo::part(menu-toggle){display:none}
+input.kepletmezo{min-height:48px;font-size:1.1rem;padding:6px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.kb{margin-top:14px}
+.kb-fej{display:flex;gap:6px;margin-bottom:8px}
+.kb-lap{min-height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .88rem var(--f-body);cursor:pointer}
+.kb-lap[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.kb-racs{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,56px)}
+.kb-racs[hidden],.kb .csak-mobil{display:none}
+.kb-gomb{min-height:44px;padding:0;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:600 1.05rem var(--f-body);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.kb-gomb:hover,.kb-gomb:active{background:var(--pen-soft)}
+.kb-gomb.jel{color:var(--pen)} .kb-gomb.kis{font-size:.84rem;white-space:nowrap}
+.kb-gomb sup,.kb-gomb sub{font-size:.65em}
+.kb-gomb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kb-tort{display:inline-grid;font-size:.72em;line-height:1.05} .kb-tort i{font-style:normal;padding:0 3px} .kb-tort i:first-child{border-bottom:1.5px solid currentColor}
+
+/* tanári napló */
+.jelzesek{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:0 0 18px}
+.jelzes{padding:12px 14px;border-radius:8px;border:1px solid var(--line)}
+.jelzes b{display:block;font:800 1.5rem/1.1 var(--f-display)}
+.jelzes.figy{background:var(--red-soft);border-color:transparent} .jelzes.figy b{color:var(--red)}
+.jelzes.rendben{background:var(--green-soft);border-color:transparent} .jelzes.rendben b{color:var(--green)}
+table.naplo{border-collapse:separate;border-spacing:0;font-size:.92rem;min-width:100%}
+table.naplo th,table.naplo td{padding:0 6px;height:40px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+table.naplo thead th{font-weight:600;color:var(--muted);font-size:.85rem;border-bottom:2px solid var(--line)}
+table.naplo th.nev{position:sticky;left:0;background:var(--card);text-align:left;font-weight:600;color:var(--ink);padding-right:14px;z-index:1}
+table.naplo td.kesz{color:var(--green)} table.naplo td.kesz svg{width:16px;height:16px}
+table.naplo td.most{background:var(--pen-soft);color:var(--pen);font-weight:700;font-variant-numeric:tabular-nums}
+table.naplo td.zart{color:var(--line)}
+table.naplo td.szam{font-variant-numeric:tabular-nums}
+table.naplo tr.figy th.nev{color:var(--red)}
+table.naplo td.elv{border-left:2px solid var(--line)}
+.jelmagy{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:.88rem;color:var(--muted)}
+.megj{margin:18px 0 0;font-size:.85rem;color:var(--muted);max-width:none}
+
+@media (max-width:759px){
+  :root{--gutter:36px;--pad:12px}
+  .brand{font-size:1.25rem} .stat span{display:none}
+  .layout{grid-template-columns:1fr;gap:0}
+  .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .fonav{position:fixed;inset:auto 0 0 0;top:auto;z-index:5;flex-direction:row;gap:0;background:var(--card);border-top:1px solid var(--line);padding:4px 8px calc(4px + env(safe-area-inset-bottom,0px))}
+  .fonav a{flex:1;flex-direction:column;gap:2px;justify-content:center;min-height:56px;padding:0;font-size:.78rem;border-radius:8px}
+  .fonav a[aria-current]{box-shadow:none;background:var(--pen-soft)}
+  .fonav .elv{display:none}
+  .sheet{padding:18px 14px 18px calc(var(--gutter) + var(--pad))}
+  .sor.most{margin-right:-14px;padding-right:14px}
+  .mark svg{width:22px;height:22px}
+  .tipuslista li{grid-template-columns:minmax(0,1fr) 72px 40px;gap:8px}
+  .nap{width:auto;flex:1} .nap span{width:100%}
+  .tipusok{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-right:-14px;padding-right:14px} .tipusok::-webkit-scrollbar{display:none}
+  .valaszsor{flex-wrap:wrap} .valaszsor .btn{flex:1 0 100%}
+  .kif,math-field.kepletmezo{font-size:1.3rem}
+  .kb-racs{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .kb-lap{flex:1;min-height:40px;padding:0 4px}
+  .kb .kb-lap.csak-mobil{display:block} .kb .kb-gomb.csak-mobil{display:grid}
+}
+@media (prefers-reduced-motion:reduce){.mark.rajz svg path{animation:none;stroke-dashoffset:0}.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#ma">Matek gyakorló</a>
+    <div class="stats">
+      <div class="stat flame" title="Napi sorozat"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.5.6-2.6 1.4-3.5C10 6.5 11.5 5 12 3z"/></svg><b>6</b><span>nap</span></div>
+      <div class="stat candy" title="Elkölthető cukorka"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M7.8 10.2 3.5 8v8l4.3-2.2M16.2 10.2 20.5 8v8l-4.3-2.2"/></svg><b>3</b><span>cukorka</span></div>
+      <button class="iconbtn" id="tema" aria-label="Váltás sötét és világos mód között"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="fonav" aria-label="Fő navigáció" id="fonav"></nav>
+    <main class="sheet" id="main" tabindex="-1"><p class="halk">Betöltés…</p></main>
+  </div>
+  <p class="megj">Minta az oldal új felépítéséhez: a nevek, a haladás és a számok példaadatok. A fejezet négy füle és a gyakorlás működik, az ellenőrzést és a képletmezőt az élő oldal moduljai adják.</p>
+</div>
+
+<script src="../assets/kifejezes.js"></script>
+<script src="../assets/kepletmezo.js"></script>
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const tex = s => window.MathLive && MathLive.convertLatexToMarkup ? MathLive.convertLatexToMarkup(s) : s;
+const svg = d => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const IKON = {
+  pipa: svg('<path d="M4 12.5l5 5L20 6.5"/>'), athuz: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  lakat: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+  lang: svg('<path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.5.6-2.6 1.4-3.5C10 6.5 11.5 5 12 3z"/>'),
+  cukor: svg('<circle cx="12" cy="12" r="4.5"/><path d="M7.8 10.2 3.5 8v8l4.3-2.2M16.2 10.2 20.5 8v8l-4.3-2.2"/>'),
+  toll: svg('<path d="M4 20l4-1L19 8l-3-3L5 16l-1 4zM14 7l3 3"/>'), fuzet: svg('<path d="M6 4h11a1 1 0 0 1 1 1v15H7a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1zM9 4v16M12 9h3M12 13h3"/>'),
+  hazi: svg('<path d="M4 11l8-7 8 7M6 10v9h12v-9M10 19v-5h4v5"/>'), naplo: svg('<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16M4 14.5h16M9.5 5v14M15 5v14"/>'),
+  ma: svg('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4M9 15l2 2 4-4"/>'), vissza: svg('<path d="M15 6l-6 6 6 6"/>'),
+  kupa: svg('<path d="M8 4h8v5a4 4 0 0 1-8 0V4zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"/>')
+};
+
+/* ---------- példaadatok ---------- */
+const KELL = 10;
+const FEJEZETEK = ['Betűk, kifejezések', 'Hatványozás', '0 és negatív kitevő', 'Normálalak', 'Polinomok', 'Nevezetes szorzatok', 'Szorzattá alakítás', 'Algebrai törtek', 'Oszthatóság, prímek', 'LNKO, LKKT', 'Számrendszerek'];
+const MOST = 5;   // a 6. fejezetnél tart
+const ej = n => n < 0 ? `${n}` : `+${n}`, egyutt = (n, v) => (n === 1 ? '' : n === -1 ? '-' : n) + v;
+const TIPUSOK = {
+  szorzat: { nev: 'Szorzattá alakítás', db: 3, general() {
+    const a = R(2, 9), j = R(0, 1) ? '+' : '-';
+    if (R(0, 2) === 0) return { kerdes: 'Alakítsd szorzattá!', kif: `x^2-${a * a}`, elotag: '=', valasz: { kifejezes: `(x-${a})(x+${a})`, alak: 'szorzat' }, tipp: 'Két négyzet különbsége: a² − b² = (a − b)(a + b).', megoldas: `x^2-${a * a}=(x-${a})(x+${a})` };
+    return { kerdes: 'Alakítsd szorzattá!', kif: `x^2${j}${2 * a}x+${a * a}`, elotag: '=', valasz: { kifejezes: `(x${j}${a})^2`, alak: 'szorzat' }, tipp: `Teljes négyzet: a középső tag a két tag kétszeres szorzata, az utolsó tag ${a} négyzete.`, megoldas: `x^2${j}2\\cdot ${a}\\cdot x+${a}^2=(x${j}${a})^2` };
+  } },
+  kifejt: { nev: 'Zárójelfelbontás', db: 10, general() {
+    const a = R(1, 4), b = R(1, 7), j = R(0, 1) ? '+' : '-';
+    return { kerdes: 'Végezd el a négyzetre emelést, és vond össze!', kif: `(${egyutt(a, 'x')}${j}${b})^2`, elotag: '=', valasz: { kifejezes: `${egyutt(a * a, 'x')}^2${j}${2 * a * b}x+${b * b}`, alak: 'kifejtett', tagok: 3 },
+      tipp: '(a ± b)² = a² ± 2ab + b² – a kétszeres szorzat nem maradhat el.', megoldas: `(${egyutt(a, 'x')}${j}${b})^2=${egyutt(a * a, 'x')}^2${j}${2 * a * b}x+${b * b}` };
+  } },
+  ugyes: { nev: 'Ügyes számolás', db: 10, general() {
+    const k = R(3, 12) * 10, d = R(1, 3);
+    return { kerdes: 'Számítsd ki ügyesen, számológép nélkül!', kif: `${k - d}\\cdot ${k + d}`, elotag: '=', valasz: { kifejezes: String(k * k - d * d) }, tipp: `(a − b)(a + b) = a² − b², itt a = ${k}, b = ${d}.`, megoldas: `${k - d}\\cdot ${k + d}=${k}^2-${d}^2=${k * k - d * d}` };
+  } },
+  osszetett: { nev: 'Összetett kifejezések', db: 6, general() {
+    const a = R(2, 6), b = R(1, 5);
+    return { kerdes: 'Hozd a legegyszerűbb alakra!', kif: `(x+${a})^2-(x-${b})(x+${b})`, elotag: '=', valasz: { kifejezes: `${2 * a}x+${a * a + b * b}`, alak: 'kifejtett', tagok: 2 }, tipp: 'Bontsd fel mindkét részt, és figyelj a kivonás előjeleire.', megoldas: `x^2+${2 * a}x+${a * a}-x^2+${b * b}=${2 * a}x+${a * a + b * b}` };
+  } }
+};
+const keszTipus = () => Object.values(TIPUSOK).filter(t => t.db >= KELL).length, osszTipus = Object.keys(TIPUSOK).length;
+const tipusLista = () => `<ul class="tipuslista">${Object.values(TIPUSOK).map(t => `<li><span>${t.nev}</span><div class="sav${t.db >= KELL ? ' kesz' : ''}" role="img" aria-label="${t.db} a ${KELL}-ből"><i style="width:${Math.min(100, t.db * 100 / KELL)}%"></i></div><span class="db">${Math.min(t.db, KELL)}/${KELL}</span></li>`).join('')}</ul>`;
+
+/* ---------- 1. Ma: egyetlen kérdésre felel – mit csináljak most? ---------- */
+function ma() {
+  const hatra = osszTipus - keszTipus();
+  return `<div class="sor"><div class="mark toll">${IKON.toll}</div>
+      <p class="halk kicsi">Szia, Anna! Itt tartasz:</p>
+      <h1>${MOST + 1}. ${FEJEZETEK[MOST]}</h1>
+      <p>${hatra ? `Még ${hatra} feladattípus van hátra a következő cukorkáig.` : 'Minden típus megvan – jár a cukorka!'}</p>
+      ${tipusLista()}
+      <div class="gombsor"><a class="btn fo" href="#fejezet/gyakorlas">Gyakorlás folytatása</a><a class="btn szoveg" href="#fejezet/elmelet">Elmélet átnézése</a></div></div>
+    <div class="sor"><div class="mark lang">${IKON.lang}</div>
+      <h2>Hatnapos sorozat</h2>
+      <p>A mai naphoz még egy új feladatot kell megoldanod ebben a fejezetben.</p>
+      <div class="het" role="img" aria-label="Hétfőtől szombatig megvolt, a mai nap még hiányzik">${['H', 'K', 'Sze', 'Cs', 'P', 'Szo'].map(n => `<div class="nap"><span>${IKON.pipa}</span>${n}</div>`).join('')}<div class="nap ma"><span>${IKON.lang}</span>ma</div></div></div>
+    <div class="sor"><div class="mark">${IKON.hazi}</div>
+      <h2>Házi feladat: kiemelés</h2>
+      <p>Határidő csütörtök 8:00. Hat megvan a tízből; a házi nem számít bele a cukorkába.</p>
+      <div class="sav" style="max-width:320px" role="img" aria-label="6 a 10-ből"><i style="width:60%"></i></div>
+      <div class="gombsor"><button class="btn">Házi megnyitása</button></div></div>
+    <div class="sor"><div class="mark cukor">${IKON.cukor}</div>
+      <h2>Három cukorkád van</h2>
+      <p>A következő fejezet, a ${FEJEZETEK[MOST + 1]}, egy cukorkába kerül. Akkor nyitható, ha itt minden típus megvan.</p>
+      <div class="gombsor"><button class="btn" ${hatra ? 'disabled' : ''}>${MOST + 2}. fejezet megnyitása</button></div></div>
+    <div class="sor"><div class="mark">${IKON.kupa}</div>
+      <h2>Próba-témazáró</h2>
+      <p>Akkor nyílik meg, ha a témakör mind a ${FEJEZETEK.length} fejezete megvan. Most ${MOST} van kész.</p>
+      <div class="sav" style="max-width:320px" role="img" aria-label="${MOST} a ${FEJEZETEK.length}-ből"><i style="width:${MOST * 100 / FEJEZETEK.length}%"></i></div></div>`;
+}
+
+/* ---------- 2. Tananyag: tartalomjegyzék, a margón az állapot ---------- */
+function tananyag() {
+  return `<p class="halk kicsi">Matek 9</p><h1>Algebra és számelmélet</h1>
+    <div class="valto" role="group" aria-label="Évfolyam">${['Matek 7', 'Matek 9', 'Matek 10', 'Matek 11'].map(e => `<button aria-pressed="${e === 'Matek 9'}">${e}</button>`).join('')}</div>
+    ${FEJEZETEK.map((c, i) => i < MOST
+      ? `<div class="sor"><div class="mark jo">${IKON.pipa}</div><div class="fej"><a class="cim" href="#fejezet/gyakorlas">${i + 1}. ${c}</a><span class="all">kész – szabadon gyakorolható</span></div></div>`
+      : i === MOST ? `<div class="sor most"><div class="mark toll">${IKON.toll}</div><div class="fej"><a class="cim" href="#fejezet/gyakorlas">${i + 1}. ${c}</a><span class="cimke cukor">${IKON.cukor} itt jár cukorka</span></div>
+          <p class="halk kicsi" style="margin-top:4px">${keszTipus()} típus kész a ${osszTipus}-ből.</p>${tipusLista()}<div class="gombsor"><a class="btn fo" href="#fejezet/gyakorlas">Folytatás</a></div></div>`
+      : `<div class="sor zart"><div class="mark">${IKON.lakat}</div><div class="fej"><span class="cim" style="font-weight:700;font-size:1.05rem">${i + 1}. ${c}</span><span class="all">${i === MOST + 1 ? 'következő – 1 cukorka' : 'zárva'}</span></div></div>`).join('')}
+    <div class="sor zart"><div class="mark">${IKON.kupa}</div><div class="fej"><span class="cim" style="font-weight:700;font-size:1.05rem">Próba-témazáró</span><span class="all">minden fejezet után</span></div></div>`;
+}
+
+/* ---------- 3. Fejezet: négy fül, a gyakorlás egy kattintásra ---------- */
+const FULEK = { elmelet: 'Elmélet', mintapelda: 'Mintapélda', igazhamis: 'Igaz vagy hamis', gyakorlas: 'Gyakorlás' };
+const ALLITASOK = [
+  { a: '(a+b)^2=a^2+b^2', igaz: false, miert: 'A kétszeres szorzat (2ab) nem maradhat el.' },
+  { a: '(2x+5)(5-2x)=25-4x^2', igaz: true, miert: 'Az összeg és a különbség szorzata: 5² − (2x)².' },
+  { a: '(a-b)^2=(b-a)^2', igaz: true, miert: 'Ellentett számok négyzete egyenlő.' }
+];
+function fejezet(ful) {
+  ful = FULEK[ful] ? ful : 'gyakorlas';
+  const torzs = {
+    elmelet: () => `<p>A kéttagú kifejezések négyzete és az összeg–különbség szorzata olyan gyakran kell, hogy érdemes fejből tudni.</p>
+      <div class="gordul"><table class="azon"><tbody>${[['(a+b)^2=a^2+2ab+b^2', '(x+3)^2=x^2+6x+9'], ['(a-b)^2=a^2-2ab+b^2', '(2x-5)^2=4x^2-20x+25'], ['(a+b)(a-b)=a^2-b^2', '(3a+4)(3a-4)=9a^2-16']].map(s => `<tr><td>${tex(s[0])}</td><td class="halk">${tex(s[1])}</td></tr>`).join('')}</tbody></table></div>
+      <p><b>Gyakori hiba:</b> ${tex('(a+b)^2\\neq a^2+b^2')} – a kétszeres szorzat nem maradhat el.</p>
+      <p><b>Fejszámolás:</b> ${tex('98\\cdot 102=100^2-2^2=9996')}.</p>
+      <div class="gombsor"><a class="btn fo" href="#fejezet/gyakorlas">Kipróbálom</a></div>`,
+    mintapelda: () => `<p>Hozzuk egyszerűbb alakra: ${tex('(x+4)^2-(x-3)(x+3)')}</p>
+      ${[['Az első tag teljes négyzet:', '(x+4)^2=x^2+8x+16'], ['A második összeg és különbség szorzata:', '(x-3)(x+3)=x^2-9'], ['Kivonáskor a zárójel minden tagja előjelet vált:', 'x^2+8x+16-x^2+9=8x+25']].map((l, i) => `<div class="lepes"><b>${i + 1}</b><div>${l[0]}<div class="kif" style="font-size:1.2rem">${tex(l[1])}</div></div></div>`).join('')}`,
+    igazhamis: () => `<div id="ih">${ALLITASOK.map((x, i) => `<div class="ih" data-i="${i}"><div class="all">${tex(x.a)}</div><div class="gombsor" style="margin:0"><button class="btn" data-v="1">Igaz</button><button class="btn" data-v="0">Hamis</button></div></div>`).join('')}</div>`,
+    gyakorlas: () => `<div class="tipusok" id="tipusok" role="group" aria-label="Feladattípus"></div>
+      <div class="sor" style="border:0;padding:0"><div class="mark szam" id="mark" style="top:0"></div><p class="kerdes" id="kerdes"></p><div class="kif" id="kif"></div></div>
+      <div class="valaszsor" id="valaszsor"><span class="elotag" aria-hidden="true">=</span></div>
+      <p class="vissza" id="fb" role="status" aria-live="polite" hidden></p><div class="megoldas" id="sol" hidden></div>
+      <div class="kb-hely"></div>
+      <div class="gombsor"><button class="btn szoveg" id="tipp">Tipp</button><button class="btn szoveg" id="megold">Megoldás</button><button class="btn szoveg" id="uj">Másik feladat</button></div>`
+  }[ful]();
+  return `<a class="vissza-link" href="#tananyag">${IKON.vissza} Algebra és számelmélet</a>
+    <h1>${MOST + 1}. ${FEJEZETEK[MOST]}</h1>
+    <p><span class="cimke cukor">${IKON.cukor} itt jár cukorka</span> <span class="halk kicsi" id="fejall">${keszTipus()} típus kész a ${osszTipus}-ből</span></p>
+    <div class="tabs" role="tablist" aria-label="A fejezet részei">${Object.entries(FULEK).map(([id, n]) => `<button role="tab" aria-selected="${id === ful}" data-ful="${id}">${n}</button>`).join('')}</div>
+    <div id="torzs" data-ful="${ful}">${torzs}</div>`;
+}
+/* a gyakorlás működése: ugyanaz a mező és ellenőrző, mint az élő oldalon */
+let tipus = 'szorzat', akt = null, megoldva = false, sorszam = 0, mezo = null;
+function gyakorlasIndit() {
+  const sav = () => { $('#tipusok').innerHTML = Object.entries(TIPUSOK).map(([id, t]) => `<button class="tipus${t.db >= KELL ? ' tele' : ''}" data-t="${id}" aria-pressed="${id === tipus}">${t.nev}<span class="db">${Math.min(t.db, KELL)}/${KELL}</span></button>`).join(''); };
+  const vissza = (fajta, szoveg) => { const fb = $('#fb'); fb.hidden = !fajta; fb.className = 'vissza ' + (fajta ? fajta + '-h' : ''); fb.textContent = szoveg || ''; if (fajta) fb.scrollIntoView({ block: 'nearest' }); };
+  const jel = fajta => { const m = $('#mark'); m.className = 'mark ' + (fajta === 'szam' ? 'szam' : fajta + ' rajz'); m.innerHTML = fajta === 'jo' ? IKON.pipa : fajta === 'rossz' ? IKON.athuz : `${sorszam}.`; };
+  function uj() {
+    akt = TIPUSOK[tipus].general(); megoldva = false; sorszam++;
+    $('#kerdes').textContent = akt.kerdes; $('#kif').innerHTML = tex(akt.kif);
+    const sor = $('#valaszsor'); sor.querySelectorAll('.kepletmezo,.btn').forEach(e => e.remove());
+    mezo = Kepletmezo.mezo(sor, { cimke: 'Válasz', enter: ell, kbHely: $('.kb-hely'), mutat: true });
+    sor.insertAdjacentHTML('beforeend', '<button class="btn fo" id="chk">Ellenőrzés</button>'); $('#chk').onclick = ell;
+    jel('szam'); vissza(); $('#sol').hidden = true;
+    if (matchMedia('(pointer:fine)').matches) mezo.fokusz();
+  }
+  function ell() {
+    if (megoldva) { uj(); return; }
+    if (!mezo.ertek()) { vissza('info', 'Írd be a válaszodat a vonalra.'); return; }
+    const e = Kifejezes.ellenoriz(akt.valasz, mezo.ertek());
+    if (e.forma) { vissza('info', e.uzenet + ' Ez nem számít hibának, javítsd tovább.'); return; }
+    if (!e.ok) { jel('rossz'); vissza('rossz', 'Nem egyenlő a helyes válasszal. ' + e.uzenet); return; }
+    megoldva = true; mezo.lezar();
+    const t = TIPUSOK[tipus]; t.db = Math.min(KELL, t.db + 1);
+    jel('jo'); sav(); $('#chk').textContent = 'Következő feladat'; $('#fejall').textContent = `${keszTipus()} típus kész a ${osszTipus}-ből`;
+    vissza('jo', t.db >= KELL ? `Helyes! Ebből a típusból megvan mind a ${KELL}.` : `Helyes! ${t.nev}: ${t.db}/${KELL}.`);
+  }
+  $('#tipusok').onclick = e => { const b = e.target.closest('.tipus'); if (!b) return; tipus = b.dataset.t; sav(); uj(); };
+  $('#uj').onclick = uj;
+  $('#tipp').onclick = () => vissza('info', 'Tipp: ' + akt.tipp);
+  $('#megold').onclick = () => { const s = $('#sol'); s.hidden = false; s.innerHTML = `<p><b>Megoldás</b></p><div class="kif" style="font-size:1.2rem">${tex(akt.megoldas)}</div>`; s.scrollIntoView({ block: 'nearest' }); };
+  sav(); uj();
+}
+
+/* ---------- 4. Tanári napló: előbb az, amire figyelni kell, utána a rács ---------- */
+const DIAKOK = [['Balogh Dóra', 7, 9, 4, 10], ['Fekete Máté', 4, 0, 1, 3], ['Kiss Anna', 6, 6, 3, 6], ['Kovács Bence', 6, 12, 2, 10], ['Lakatos Zoé', 5, 0, 0, 0], ['Molnár Gergő', 8, 21, 5, 10], ['Nagy Lili', 6, 3, 1, 8], ['Papp Áron', 3, 0, 2, 0], ['Szabó Hanna', 7, 14, 3, 10], ['Tóth Milán', 6, 5, 0, 10]];
+function tanari() {
+  const lemaradt = DIAKOK.filter(d => d[1] <= 4), nemAktiv = DIAKOK.filter(d => d[2] === 0), haziKesz = DIAKOK.filter(d => d[4] >= 10).length;
+  return `<p class="halk kicsi">Tanári felület</p><h1>9.B napló</h1>
+    <div class="valto" role="group" aria-label="Csoport">${['9.A', '9.B', '11.C'].map(c => `<button aria-pressed="${c === '9.B'}">${c}</button>`).join('')}</div>
+    <div class="tabs" role="tablist" aria-label="Tanári eszközök">${['Napló', 'Házi feladat', 'Próba-témazáró', 'Dolgozatkészítő', 'Szabályok'].map((t, i) => `<button role="tab" aria-selected="${i === 0}">${t}</button>`).join('')}</div>
+    <div class="jelzesek">
+      <div class="jelzes figy"><b>${nemAktiv.length} diák</b>megszakadt a sorozata: ${nemAktiv.map(d => d[0].split(' ')[1]).join(', ')}</div>
+      <div class="jelzes figy"><b>${lemaradt.length} diák</b>lemaradt, a 4. fejezetnél vagy előtte tart</div>
+      <div class="jelzes rendben"><b>${haziKesz} / ${DIAKOK.length}</b>kész a házival, határidő csütörtök 8:00</div>
+    </div>
+    <div class="gordul"><table class="naplo"><thead><tr><th class="nev">Név</th>${FEJEZETEK.map((c, i) => `<th title="${c}">${i + 1}.</th>`).join('')}<th class="elv">Sorozat</th><th>Cukorka</th><th>Házi</th></tr></thead>
+      <tbody>${DIAKOK.map(([nev, hol, sorozat, cukor, hazi]) => `<tr class="${hol <= 4 || !sorozat ? 'figy' : ''}"><th class="nev" scope="row">${nev}</th>${FEJEZETEK.map((_, i) => i + 1 < hol ? `<td class="kesz" title="kész">${IKON.pipa}</td>` : i + 1 === hol ? `<td class="most" title="itt tart: kész típusok">${(nev.length * 3 + hol) % 4}/4</td>` : '<td class="zart">·</td>').join('')}<td class="elv szam">${sorozat ? sorozat + ' nap' : '–'}</td><td class="szam">${cukor}</td><td class="szam">${hazi}/10</td></tr>`).join('')}</tbody></table></div>
+    <div class="jelmagy"><span>✓ kész fejezet</span><span><b style="color:var(--pen)">2/4</b> itt tart: kész típusok száma</span><span>· még zárva</span><span style="color:var(--red)">piros név: figyelmet kér</span></div>`;
+}
+
+/* ---------- útválasztás ---------- */
+const HELYEK = [['ma', 'Ma', IKON.ma], ['tananyag', 'Tananyag', IKON.fuzet], ['tanari', 'Tanári', IKON.naplo]];
+function megjelenit() {
+  const [hely, resz] = (location.hash.slice(1) || 'ma').split('/');
+  const aktiv = hely === 'fejezet' ? 'tananyag' : HELYEK.some(h => h[0] === hely) ? hely : 'ma';
+  $('#fonav').innerHTML = HELYEK.map(([id, nev, ik], i) => `${i === 2 ? '<span class="elv"></span>' : ''}<a href="#${id}" ${id === aktiv ? 'aria-current="page"' : ''}>${ik}${nev}</a>`).join('');
+  $('#main').innerHTML = hely === 'fejezet' ? fejezet(resz) : aktiv === 'tananyag' ? tananyag() : aktiv === 'tanari' ? tanari() : ma();
+  if (hely === 'fejezet' && $('#torzs').dataset.ful === 'gyakorlas') gyakorlasIndit();
+  scrollTo(0, 0);
+}
+document.addEventListener('click', e => {
+  const ful = e.target.closest('.tabs [data-ful]'); if (ful) { location.hash = '#fejezet/' + ful.dataset.ful; return; }
+  const ih = e.target.closest('.ih [data-v]'); if (ih) {
+    const sor = ih.closest('.ih'), x = ALLITASOK[+sor.dataset.i], jo = (ih.dataset.v === '1') === x.igaz;
+    sor.querySelectorAll('.miert').forEach(m => m.remove()); sor.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    sor.insertAdjacentHTML('beforeend', `<p class="miert ${jo ? 'jo-h' : 'rossz-h'}">${jo ? 'Helyes.' : 'Nem jó.'} Az állítás ${x.igaz ? 'igaz' : 'hamis'}: ${x.miert}</p>`);
+  }
+});
+$('#tema').onclick = () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; };
+addEventListener('hashchange', megjelenit);
+Kepletmezo.betolt(megjelenit);   // a képletekhez és a mezőhöz kell a MathLive; ha nem jön le, szövegmezővel is megy
+</script>
+</body>
+</html>
