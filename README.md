@@ -18,6 +18,10 @@ assets/
   dolgozat.js              dolgozat- és témazáró-készítő (tanári eszköz)
   docx.js                  Word-fájl (.docx) készítése a dolgozatkészítőhöz
   mathlib.js               segédfüggvények a feladatgenerátorokhoz
+  kifejezes.js             kifejezés, reláció, intervallum, halmaz típusú válaszok ellenőrzése
+  kepletmezo.js            képletmező és jelbillentyűzet ezekhez a válaszokhoz
+  grafikon.js              koordináta-rendszer: ábra a feladatokba, pontlerakós függvényábrázolás és ellenőrzése
+  valasztipusok.js         választípusok nyilvántartása – új feladattípus itt vehető fel
   style.css                megjelenés
 tananyag/
   README.md                ← új fejezet / témakör / évfolyam hozzáadása
@@ -79,6 +83,8 @@ Ezek csak bejelentkezett diákra vonatkoznak. Belépés nélkül, helyi módban 
 - **Témakörönkénti szabályok a tanári felületen:** a Tanári felületen csoportonként és témakörönként beállítható a napi sorozat feltétele (új feladat / nap), a cukorkához/macaronhoz szükséges új jó megoldások száma típusonként, és a próba-témazáró ára macaronban (új „Csoportszabály” lap). Üresen hagyva a tananyag alapértéke érvényes. Több évfolyamnál a sorozat közös, de mindegyik évfolyamban a saját feltétele számít.
   - Ha kihagy egy napot, a sorozat újraindul.
   - **Kivétel:** ha már egyik témakörben sincs megnyitható új fejezet, a sorozat nem vész el. Ha később új fejezet kerül a tananyagba, a diák következő belépésétől számítva újra a szokásos szabály él.
+- **Kifejezés mint válasz:** ahol a feladat kifejezést, relációt, intervallumot vagy halmazt vár (`valasz: { kifejezes: … }`), a diák képletmezőbe ír, jelbillentyűzettel vagy gépelve. Bármelyik egyenértékű alak jó; ha az érték helyes, de nem a kért alakban van (pl. még nem szorzat), az oldal szól, és ez nem számít rossz válasznak. A képletmező (MathLive) az első ilyen feladatnál töltődik le; ha nem érhető el, sima szövegmező lesz belőle. Részletek: `tananyag/README.md`.
+- **Függvényábrázolás és pontok bejelölése:** a diák a koordináta-rendszerben rácspontokat jelöl be (koppintással, egérrel húzva vagy nyílbillentyűkkel), a görbét az oldal húzza meg (`valasz: { grafikon: … }`, illetve `{ pontok: … }`). A feladatok kérdésébe és megoldásába kész ábra is tehető. Új választípus az `assets/valasztipusok.js`-ben vehető fel. Részletek: `tananyag/README.md`.
 - **Közép / emelt szint:** a fejezetek, feladattípusok és igaz-hamis állítások megjelölhetők emelt szintűként (`szint: 'emelt'`). A Tanári felületen csoportonként és évfolyamonként beállítható a szint. Közép szintnél az emelt feladatok külön, alatta jelennek meg: ott egy jó megoldás kettőt ér, és csak a második hibás válasz (ugyanarra a feladatra) vagy a megoldás megnézése nullázza a sorozatot. Emelt szintnél minden feladat egy felületen van. Részletek: `tananyag/README.md`.
 - **Cukorkához szükséges jó válaszok:** a szükséges darabszám (`joValaszCukorkahoz`, feladattípusonként értendő) témakörönként is megadható a `kurzus.js`-ben.
 - **Haladási korlát:** a Tanári felületen csoportonként és témakörönként megadható, hogy a diákok cukorkával legfeljebb melyik fejezetig nyithatnak, hogy ne haladjanak az óra elé. A cukorka közben gyűlik, és a korlát emelése után felhasználható. A csoportnyitás ettől függetlenül működik.

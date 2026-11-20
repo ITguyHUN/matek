@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matek gyakorló – felületminta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathlive@0.111.4/mathlive-static.css">
+<style>
+/* A színek és betűk az élő oldal (assets/style.css) tokenjei – a füzetlap-arculat marad. */
+:root{
+  --paper:#f4f7fb; --card:#ffffff; --gridline:#e2e9f4; --line:#d3dcea;
+  --ink:#16203a; --muted:#56627d; --pen:#2148c9; --pen-soft:#e7edfc; --on-pen:#ffffff;
+  --red:#c2332b; --red-soft:#fcebe9; --green:#1b7a45; --green-soft:#e3f3e9; --margin:#eeb4b0;
+  --candy:#c4307a; --flame:#d9620b;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --gutter:64px; --pad:22px;
+}
+:root[data-theme="dark"]{
+  --paper:#0e1422; --card:#151d2e; --gridline:#1a2338; --line:#28334c;
+  --ink:#e5eaf5; --muted:#9ba7c1; --pen:#86a6ff; --pen-soft:#1d2a4b; --on-pen:#0e1422;
+  --red:#ff8076; --red-soft:#3a1d1c; --green:#62d597; --green-soft:#12301f; --margin:#5d2f33;
+  --candy:#ff7ab8; --flame:#ffa057; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-body);
+  background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:24px 24px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0}
+.brand{font:800 1.5rem/1 var(--f-display);letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.stats{display:flex;align-items:center;gap:8px}
+.stat{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:.92rem;color:var(--muted)}
+.stat b{color:var(--ink)}
+.stat.flame svg{color:var(--flame)} .stat.candy svg{color:var(--candy)}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr);gap:28px;align-items:start}
+.rail{position:sticky;top:12px}
+.rail summary{display:none}
+.rail-h{margin:0 0 6px;padding:0 10px;font-size:.88rem;font-weight:600;color:var(--muted)}
+.rail a{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;min-height:40px;padding:4px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:.94rem}
+.rail a:hover{background:var(--pen-soft)}
+.rail .n{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.rail .s{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--muted)}
+.rail .s svg{width:16px;height:16px}
+.rail a.kesz .s{color:var(--green)}
+.rail a.zart{color:var(--muted)}
+.rail a[aria-current]{background:var(--card);box-shadow:inset 0 0 0 1px var(--line);font-weight:700}
+.rail a[aria-current] .n{color:var(--pen)}
+
+/* A füzetlap: a piros margóvonaltól balra a „javítás” helye (sorszám, pipa, áthúzás). */
+.sheet{position:relative;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:26px 26px 26px calc(var(--gutter) + var(--pad))}
+.sheet::before{content:"";position:absolute;top:0;bottom:0;left:var(--gutter);width:2px;background:var(--margin)}
+.hol{margin:0;font-size:.9rem;font-weight:600;color:var(--muted)}
+h1{font:800 clamp(1.7rem,4vw,2.3rem)/1.1 var(--f-display);letter-spacing:-.02em;margin:2px 0 12px;text-wrap:balance}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.tabs button{flex:none;min-height:44px;padding:0 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);font:600 .95rem var(--f-body);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pen)}
+
+.tipusok{display:flex;flex-wrap:wrap;gap:8px;padding:2px;margin:0 -2px 16px}
+.tipus{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 .92rem var(--f-body);cursor:pointer;scroll-snap-align:start}
+.tipus .db{font-weight:500;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tipus.tele .db{color:var(--green)}
+.tipus[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.tipus[aria-pressed="true"] .db{color:inherit;opacity:.75}
+
+.sor{position:relative}
+.mark{position:absolute;top:0;left:calc(-1 * (var(--gutter) + var(--pad)));width:var(--gutter);display:grid;justify-items:center}
+.mark.szam{font:800 1.15rem/1.7 var(--f-display);color:var(--muted)}
+.mark.jo{color:var(--green)} .mark.rossz{color:var(--red)}
+.mark svg{width:34px;height:34px;stroke-width:2.6}
+.mark svg path{stroke-dasharray:60;stroke-dashoffset:60;animation:rajz .35s ease-out forwards}
+@keyframes rajz{to{stroke-dashoffset:0}}
+.kerdes{margin:0 0 4px;font-size:1.05rem}
+.kif{font-size:1.5rem;padding:8px 0 6px;overflow-x:auto;overflow-y:hidden}
+.valaszsor{display:flex;align-items:flex-end;gap:12px;margin-top:10px}
+.elotag{font-size:1.4rem;color:var(--muted);padding-bottom:9px;white-space:nowrap}
+math-field{flex:1;min-width:0;min-height:54px;font-size:1.5rem;color:var(--pen);background:transparent;border:0;border-bottom:2px solid var(--line);border-radius:0;padding:6px 2px;
+  --caret-color:var(--pen);--selection-background-color:var(--pen-soft);--contains-highlight-background-color:transparent}
+math-field:focus-within{outline:none;border-bottom-color:var(--pen);box-shadow:0 1px 0 var(--pen)}
+math-field::part(virtual-keyboard-toggle),math-field::part(menu-toggle){display:none}
+.valaszsor.jo math-field{color:var(--green);border-bottom-color:var(--green);box-shadow:none}
+.valaszsor.rossz math-field{border-bottom-color:var(--red);box-shadow:none}
+
+.btn{min-height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 .95rem var(--f-body);cursor:pointer;white-space:nowrap;transition:background-color .15s}
+.btn:hover{background:var(--pen-soft)}
+.btn.fo{background:var(--pen);border-color:var(--pen);color:var(--on-pen)}
+.btn.fo:hover{filter:brightness(1.08)}
+.btn.szoveg{border-color:transparent;background:none;color:var(--pen);padding:0 10px}
+.btn.szoveg:hover{background:var(--pen-soft)}
+
+.vissza{margin:14px 0 0;padding:10px 14px;border-radius:8px}
+.vissza.jo{background:var(--green-soft);color:var(--green)}
+.vissza.rossz{background:var(--red-soft);color:var(--red)}
+.vissza.info{background:var(--pen-soft);color:var(--ink)}
+.megoldas{margin:14px 0 0;padding:12px 14px;border:1px dashed var(--line);border-radius:8px}
+.megoldas p{margin:0 0 6px} .megoldas .kif{font-size:1.25rem}
+.egyeb{display:flex;flex-wrap:wrap;gap:4px;margin:14px 0 0 -10px}
+.gepeles{margin:10px 0 0;font-size:.86rem;color:var(--muted)}
+.gepeles kbd{font:500 .8rem var(--f-mono);background:var(--pen-soft);color:var(--pen);padding:1px 6px;border-radius:4px}
+
+/* Billentyűzet: fülek (Jelek / Függvény / Halmaz, telefonon 123 is) és egy-egy gombrács. */
+.kp{margin-top:14px}
+.kp-fej{display:flex;gap:6px;margin-bottom:8px}
+.kp-racs{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,56px)}
+.kp-racs[hidden],.kp .csak-mobil,.kp .chk{display:none}
+.key{min-height:44px;padding:0;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:600 1.05rem var(--f-body);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.key:hover,.key:active{background:var(--pen-soft)}
+.key.jel{color:var(--pen)}
+.key.kis{font-size:.84rem;white-space:nowrap}
+.key sup,.key sub{font-size:.65em}
+.key .fr{display:inline-grid;font-size:.72em;line-height:1.05}
+.key .fr i{font-style:normal;padding:0 3px}
+.key .fr i:first-child{border-bottom:1.5px solid currentColor}
+.lap-gomb{min-height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--muted);font:600 .9rem var(--f-body);cursor:pointer}
+.lap-gomb[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.megj{margin:18px 0 0;font-size:.85rem;color:var(--muted)}
+
+/* Széles képernyőn a jelek sora közvetlenül a válasz alá kerül (a DOM-ban a végén áll, hogy telefonon alulra tapadhasson). */
+@media (min-width:760px){
+  #gyak{display:flex;flex-direction:column} #gyak[hidden]{display:none}
+  #gyak>.kp{order:1} #gyak>.egyeb{order:2} #gyak>.gepeles{order:3}
+}
+@media (max-width:759px){
+  :root{--gutter:36px;--pad:12px}
+  .brand{font-size:1.25rem}
+  .stat span{display:none}
+  .layout{grid-template-columns:1fr;gap:12px}
+  .rail{position:static;background:var(--card);border:1px solid var(--line);border-radius:10px}
+  .rail summary{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 14px;font-weight:700;cursor:pointer;list-style:none}
+  .rail summary::-webkit-details-marker{display:none}
+  .rail[open] summary svg{transform:rotate(180deg)}
+  .rail-h{display:none}
+  .rail .lista{padding:0 6px 6px}
+  .sheet{padding:18px 14px 0 calc(var(--gutter) + var(--pad))}
+  .mark svg{width:26px;height:26px}
+  /* Telefonon a típusok egy sorban, ujjal húzhatók – nem tolják le a feladatot a képernyőről. */
+  .tipusok{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;margin-right:-14px;padding-right:14px}
+  .tipusok::-webkit-scrollbar{display:none}
+  .valaszsor .chk,.gepeles{display:none}
+  .kif,math-field{font-size:1.3rem}
+  /* A saját billentyűzet a lap aljára tapad, így a feladat és a válasz mindig látszik fölötte. */
+  .kp{position:sticky;bottom:0;z-index:2;margin:16px -14px 0 calc(-1 * (var(--gutter) + var(--pad)));padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line);border-radius:0 0 10px 10px}
+  .vissza,.megoldas{scroll-margin-bottom:350px}
+  .kp-racs{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .lap-gomb{flex:1;min-height:40px;padding:0 4px}
+  .kp .lap-gomb.csak-mobil{display:block}
+  .kp .key.csak-mobil{display:grid}
+  .kp .chk{display:block;width:100%;margin-top:8px}
+}
+@media (prefers-reduced-motion:reduce){.mark svg path{animation:none;stroke-dashoffset:0}.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#">Matek gyakorló</a>
+    <div class="stats">
+      <div class="stat flame" title="Napi sorozat"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.5.6-2.6 1.4-3.5C10 6.5 11.5 5 12 3z"/></svg><b>4</b><span>nap</span></div>
+      <div class="stat candy" title="Elkölthető cukorka"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M7.8 10.2 3.5 8v8l4.3-2.2M16.2 10.2 20.5 8v8l-4.3-2.2"/></svg><b>3</b><span>cukorka</span></div>
+      <button class="iconbtn" id="tema" aria-label="Váltás sötét és világos mód között"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <details class="rail" id="rail">
+      <summary>6. Nevezetes szorzatok <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <nav class="lista" aria-label="Fejezetek"><p class="rail-h">Matek 9 – Algebra és számelmélet</p></nav>
+    </details>
+
+    <main class="sheet">
+      <p class="hol">6. fejezet</p>
+      <h1>Nevezetes szorzatok</h1>
+      <div class="tabs" role="tablist" aria-label="A fejezet részei">
+        <button role="tab" aria-selected="false" data-lap="Elmélet">Elmélet</button>
+        <button role="tab" aria-selected="false" data-lap="Mintapélda">Mintapélda</button>
+        <button role="tab" aria-selected="false" data-lap="Igaz vagy hamis">Igaz vagy hamis</button>
+        <button role="tab" aria-selected="true" data-lap="">Gyakorlás</button>
+      </div>
+
+      <p class="vissza info" id="masLap" hidden></p>
+      <div id="gyak">
+        <div class="tipusok" id="tipusok" role="group" aria-label="Feladattípus"></div>
+
+        <div class="sor">
+          <div class="mark szam" id="mark" aria-hidden="true">1.</div>
+          <p class="kerdes" id="kerdes"></p>
+          <div class="kif" id="kif"></div>
+        </div>
+
+        <div class="valaszsor" id="valaszsor">
+          <span class="elotag" id="elotag" aria-hidden="true">=</span>
+          <math-field id="mf" aria-label="Válasz"></math-field>
+          <button class="btn fo chk">Ellenőrzés</button>
+        </div>
+
+        <p class="vissza" id="fb" role="status" aria-live="polite" hidden></p>
+        <div class="megoldas" id="sol" hidden></div>
+
+        <div class="egyeb">
+          <button class="btn szoveg" id="tipp">Tipp</button>
+          <button class="btn szoveg" id="megold">Megoldás</button>
+          <button class="btn szoveg" id="uj">Másik feladat</button>
+        </div>
+        <p class="gepeles">Billentyűzetről is megy: <kbd>^</kbd> hatvány · <kbd>/</kbd> tört · <kbd>sqrt</kbd> gyök · <kbd>sin</kbd> <kbd>log</kbd> függvény · <kbd>&lt;=</kbd> ≤ · <kbd>]1;5[</kbd> intervallum · <kbd>Enter</kbd> ellenőrzés</p>
+
+        <div class="kp" id="kp">
+          <div class="kp-fej" role="group" aria-label="Billentyűzet lapjai">
+            <button class="lap-gomb csak-mobil" data-lap="fo">123</button>
+            <button class="lap-gomb" data-lap="jel">Jelek</button>
+            <button class="lap-gomb" data-lap="fv">Függvény</button>
+            <button class="lap-gomb" data-lap="halmaz">Halmaz</button>
+          </div>
+          <div id="racsok"></div>
+          <button class="btn fo chk">Ellenőrzés</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <p class="megj">Felületminta: a fejezetlista és a számlálók példaadatok. A feladattípusok több fejezetből valók, hogy minden beviteli mód kipróbálható legyen; a képletbevitel és az ellenőrzés működik.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mathlive@0.111.4/mathlive.min.js"></script>
+<script src="../assets/kifejezes.js"></script>
+<script>
+/* Az ellenőrző az élő oldalé: assets/kifejezes.js */
+const kifejezesEllenoriz = Kifejezes.ellenoriz;
+
+/* ===================================================================================
+ * A MINTA FELÜLETE
+ * =================================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const P = lista => lista[R(0, lista.length - 1)];
+const ej = n => n < 0 ? `${n}` : `+${n}`;                       // előjeles tag: +3, -3
+const egyutt = (n, v) => (n === 1 ? '' : n === -1 ? '-' : n) + v; // együttható: x, -x, 3x
+const tex = s => window.MathLive && MathLive.convertLatexToMarkup ? MathLive.convertLatexToMarkup(s) : s;
+const IKON = {
+  pipa: '<svg class="i" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+  athuz: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  lakat: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  torol: '<svg class="i" viewBox="0 0 24 24"><path d="M9 6h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5-6 5-6zM12 10l4 4M16 10l-4 4"/></svg>',
+  balra: '<svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  jobbra: '<svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'
+};
+
+/* Feladattípusok – ugyanaz a szerkezet, mint a tananyagfájlokban, csak a valasz új fajtájával (kifejezes).
+ * lap: melyik billentyűzetlap nyíljon meg a feladathoz (gépen). */
+const TIPUSOK = {
+  szorzat: { nev: 'Szorzattá alakítás', db: 3, general() {
+    const a = R(2, 9);
+    if (R(0, 2) === 0) return { kerdes: 'Alakítsd szorzattá!', kif: `x^2-${a * a}`, elotag: '=', valasz: { kifejezes: `(x-${a})(x+${a})`, alak: 'szorzat' },
+      tipp: 'Két négyzet különbsége: a² − b² = (a − b)(a + b).', megoldas: [`x^2-${a * a}=x^2-${a}^2=(x-${a})(x+${a})`] };
+    const j = R(0, 1) ? '+' : '-';
+    return { kerdes: 'Alakítsd szorzattá!', kif: `x^2${j}${2 * a}x+${a * a}`, elotag: '=', valasz: { kifejezes: `(x${j}${a})^2`, alak: 'szorzat' },
+      tipp: `Teljes négyzet: a középső tag a két tag kétszeres szorzata, az utolsó tag ${a} négyzete.`, megoldas: [`x^2${j}2\\cdot ${a}\\cdot x+${a}^2=(x${j}${a})^2`] };
+  } },
+  kifejt: { nev: 'Zárójelfelbontás', db: 7, general() {
+    const a = R(1, 4), b = R(1, 7), j = R(0, 1) ? '+' : '-';
+    return { kerdes: 'Végezd el a négyzetre emelést, és vond össze!', kif: `(${egyutt(a, 'x')}${j}${b})^2`, elotag: '=',
+      valasz: { kifejezes: `${egyutt(a * a, 'x')}^2${j}${2 * a * b}x+${b * b}`, alak: 'kifejtett', tagok: 3 },
+      tipp: '(a ± b)² = a² ± 2ab + b² – a kétszeres szorzat nem maradhat el.', megoldas: [`(${egyutt(a, 'x')}${j}${b})^2=${egyutt(a * a, 'x')}^2${j}${2 * a * b}x+${b * b}`] };
+  } },
+  gyok: { nev: 'Gyökös kifejezés', db: 0, general() {
+    const k = R(2, 6), m = P([2, 3, 5, 6, 7]);
+    return { kerdes: 'Hozd ki a gyökjel alól, amit lehet!', kif: `\\sqrt{${k * k * m}}`, elotag: '=', valasz: { kifejezes: `${k}\\sqrt{${m}}`, alak: 'gyok' },
+      tipp: `Keress a gyök alatt négyzetszám osztót: ${k * k * m} = ${k * k} · ${m}.`, megoldas: [`\\sqrt{${k * k * m}}=\\sqrt{${k * k}\\cdot ${m}}=${k}\\sqrt{${m}}`] };
+  } },
+  egyenl: { nev: 'Egyenlőtlenség', db: 9, general() {
+    const a = P([-4, -3, -2, 2, 3, 4, 5]), n = R(-6, 6), b = R(1, 9) * (R(0, 1) ? 1 : -1), c = a * n + b;
+    const jel = R(0, 1) ? '<' : '\\ge', ford = { '<': '>', '\\ge': '\\le' }, ki = a > 0 ? jel : ford[jel];
+    return { kerdes: 'Oldd meg a valós számok halmazán! Relációval és intervallummal is megadhatod.', kif: `${egyutt(a, 'x')}${ej(b)}${jel}${c}`, elotag: '', lap: 'halmaz', valasz: { kifejezes: `x${ki}${n}` },
+      tipp: a < 0 ? 'Negatív számmal osztva a relációs jel megfordul.' : 'Rendezd úgy, hogy az x egyedül maradjon a bal oldalon.',
+      megoldas: [`${egyutt(a, 'x')}${jel}${c - b}`, `x${ki}${n}`] };
+  } },
+  halmaz: { nev: 'Megoldáshalmaz', db: 2, general() {
+    const a = R(-6, 3), b = R(a + 1, 7), tz = n => n === 0 ? 'x' : `(x${ej(-n)})`, jel = P(['<', '>', '\\le', '\\ge', '=']);
+    const iv = (bal, u, v, jobb) => `\\left${bal}${u};${v}\\right${jobb}`, V = '\\infty';
+    const ki = { '<': iv(']', a, b, '['), '\\le': iv('[', a, b, ']'), '>': iv(']', '-' + V, a, '[') + '\\cup' + iv(']', b, V, '['), '\\ge': iv(']', '-' + V, a, ']') + '\\cup' + iv('[', b, V, '['), '=': `\\lbrace${a};${b}\\rbrace` }[jel];
+    return { kerdes: 'Oldd meg a valós számok halmazán! Intervallummal, halmazzal vagy relációval is megadhatod.', kif: `${tz(a)}${tz(b)}${jel}0`, elotag: '', lap: 'halmaz', valasz: { kifejezes: ki },
+      tipp: jel === '=' ? 'Egy szorzat akkor nulla, ha valamelyik tényezője nulla.' : `A szorzat előjele a zérushelyeknél vált: ${a} és ${b}. Köztük a két tényező ellenkező előjelű.`,
+      megoldas: [`\\text{Zérushelyek: }x=${a}\\text{ és }x=${b}`, `x\\in${ki}`] };
+  } },
+  trig: { nev: 'Szögfüggvények', db: 5, general() {
+    if (R(0, 2) === 0) { const [k, v] = P([['\\sin 30\\degree', '\\frac{1}{2}'], ['\\cos 60\\degree', '\\frac{1}{2}'], ['\\sin 45\\degree', '\\frac{\\sqrt{2}}{2}'], ['\\cos 30\\degree', '\\frac{\\sqrt{3}}{2}'], ['\\sin 60\\degree', '\\frac{\\sqrt{3}}{2}'], ['\\tg 45\\degree', '1'], ['\\tg 60\\degree', '\\sqrt{3}']]);
+      return { kerdes: 'Add meg a pontos értékét!', kif: k, elotag: '=', lap: 'jel', valasz: { kifejezes: v, alak: 'fvNelkul' },
+        tipp: 'Nevezetes szög: gondolj a szabályos háromszög felére (30°, 60°) vagy a négyzet átlójára (45°).', megoldas: [`${k}=${v}`] }; }
+    const [k, v, tipp] = P([['2\\sin x\\cos x', '\\sin 2x', 'Kétszeres szög: sin 2x = 2 sin x cos x.'], ['\\cos^2x-\\sin^2x', '\\cos 2x', 'Kétszeres szög: cos 2x = cos²x − sin²x.'],
+      ['\\sin\\left(\\pi-x\\right)', '\\sin x', 'Kiegészítő szögek szinusza egyenlő.'], ['\\cos\\left(\\frac{\\pi}{2}-x\\right)', '\\sin x', 'Pótszögek: az egyik koszinusza a másik szinusza.'],
+      ['\\sin\\left(x+\\frac{\\pi}{2}\\right)', '\\cos x', 'A szinusz grafikonja π/2-vel balra tolva a koszinuszé.'], ['\\tg x\\cdot\\cos x', '\\sin x', 'tg x = sin x / cos x.']]);
+    return { kerdes: 'Írd fel egyetlen szögfüggvénnyel!', kif: k, elotag: '=', lap: 'fv', valasz: { kifejezes: v, alak: 'egyfv', minek: 'szögfüggvény' }, tipp, megoldas: [`${k}=${v}`] };
+  } },
+  trigegy: { nev: 'Trigonometrikus egyenlet', db: 1, general() {
+    const [k, v, tipp] = P([
+      ['\\sin x=\\frac{1}{2}', 'x=\\frac{\\pi}{6}+2k\\pi\\lor x=\\frac{5\\pi}{6}+2k\\pi', 'Az egységkörön két pont második koordinátája 1/2: a π/6 és az 5π/6. Mindkettő 2π-nként ismétlődik.'],
+      ['\\sin x=-\\frac{\\sqrt{2}}{2}', 'x=-\\frac{\\pi}{4}+2k\\pi\\lor x=\\frac{5\\pi}{4}+2k\\pi', 'A negatív érték a III. és IV. negyedben van; mindkét megoldássereg kell.'],
+      ['\\cos x=\\frac{1}{2}', 'x=\\pm\\frac{\\pi}{3}+2k\\pi', 'A koszinusz páros: ha α megoldás, akkor −α is. A ± jel a Függvény lapon van.'],
+      ['\\cos x=0', 'x=\\frac{\\pi}{2}+k\\pi', 'A koszinusz zérushelyei π-nként követik egymást.'],
+      ['\\sin x=0', 'x=k\\pi', 'A szinusz zérushelyei π-nként követik egymást.'],
+      ['\\sin x=1', 'x=\\frac{\\pi}{2}+2k\\pi', 'A szinusz a maximumát periódusonként egyszer veszi fel.'],
+      ['\\tg x=1', 'x=\\frac{\\pi}{4}+k\\pi', 'A tangens periódusa π, ezért elég egy megoldássereg.'],
+      ['\\cos 2x=1', 'x=k\\pi', 'Előbb 2x-re oldd meg (2x = 2kπ), aztán oszd el 2-vel – a periódus is feleződik.']]);
+    return { kerdes: 'Oldd meg a valós számok halmazán! Az egész paramétert k-val jelöld; fokban és radiánban is megadhatod.', kif: k, elotag: '', lap: 'fv', valasz: { kifejezes: v },
+      tipp, megoldas: [k, v.replace('\\lor', '\\;\\mathrm{vagy}\\;') + '\\quad(k\\in\\mathbb{Z})'] };
+  } },
+  log: { nev: 'Logaritmus', db: 0, general() {
+    const a = P([2, 3, 5]), L = x => `\\log_{${a}}${x}`, t = R(0, 2), m = R(2, 6), n = R(2, 6);
+    const [k, v, tipp] = t === 0 ? [`${L(m)}+${L(n)}`, m * n, 'Azonos alapú logaritmusok összege a szorzat logaritmusa.']
+      : t === 1 ? [`${L(m * n)}-${L(n)}`, m, 'Azonos alapú logaritmusok különbsége a hányados logaritmusa.']
+      : [`${R(2, 3) === 2 ? 2 : 3}${L(m)}`, 0, 'A logaritmus elé írt szorzó kitevőként bevihető: k · log x = log xᵏ.'];
+    const ertek = t === 2 ? m ** +k[0] : v;
+    return { kerdes: 'Írd fel egyetlen logaritmusként!', kif: k, elotag: '=', lap: 'fv', valasz: { kifejezes: `\\log_{${a}}{${ertek}}`, alak: 'egyfv', minek: 'logaritmus', argSzam: true }, tipp, megoldas: [`${k}=\\log_{${a}}${ertek}`] };
+  } }
+};
+const KELL = 10;   // ennyi jó megoldás kell típusonként (az élő oldalon: joValaszCukorkahoz)
+
+const mf = $('#mf'), kp = $('#kp'), szeles = matchMedia('(min-width:760px)');
+let tipus = 'szorzat', akt = null, megoldva = false, sorszam = 0;
+
+function tipusSav() {
+  $('#tipusok').innerHTML = Object.entries(TIPUSOK).map(([id, t]) =>
+    `<button class="tipus${t.db >= KELL ? ' tele' : ''}" data-t="${id}" aria-pressed="${id === tipus}">${t.nev}<span class="db">${Math.min(t.db, KELL)}/${KELL}</span></button>`).join('');
+}
+function visszajelzes(fajta, szoveg) {
+  const fb = $('#fb'); fb.hidden = !fajta; fb.className = 'vissza ' + (fajta || ''); fb.textContent = szoveg || '';
+  if (fajta) fb.scrollIntoView({ block: 'nearest' });   // telefonon ne maradjon a billentyűzet mögött
+}
+function jel(fajta) {
+  const m = $('#mark'); m.className = 'mark ' + fajta;
+  m.innerHTML = fajta === 'jo' ? IKON.pipa : fajta === 'rossz' ? IKON.athuz : `${sorszam}.`;
+  $('#valaszsor').className = 'valaszsor ' + (fajta === 'szam' ? '' : fajta);
+}
+function gombFelirat(s) { document.querySelectorAll('.chk').forEach(b => { b.textContent = s; }); }
+function lapValt(id) {
+  kp.querySelectorAll('.lap-gomb').forEach(b => b.setAttribute('aria-pressed', b.dataset.lap === id));
+  kp.querySelectorAll('.kp-racs').forEach(r => { r.hidden = r.dataset.racs !== id; });
+}
+const alapLap = () => szeles.matches ? (akt && akt.lap) || 'jel' : 'fo';
+
+function ujFeladat() {
+  akt = TIPUSOK[tipus].general(); megoldva = false; sorszam++;
+  $('#kerdes').textContent = akt.kerdes;
+  $('#kif').innerHTML = tex(akt.kif);
+  $('#elotag').textContent = akt.elotag; $('#elotag').hidden = !akt.elotag;
+  mf.readOnly = false; mf.value = '';
+  jel('szam'); visszajelzes(); $('#sol').hidden = true; gombFelirat('Ellenőrzés'); lapValt(alapLap());
+  if (matchMedia('(pointer:fine)').matches) mf.focus();
+}
+function ellenorzes() {
+  if (megoldva) { ujFeladat(); return; }
+  if (!mf.value.trim()) { visszajelzes('info', 'Írd be a válaszodat a vonalra.'); return; }
+  const e = kifejezesEllenoriz(akt.valasz, mf.value);
+  if (e.forma) { visszajelzes('info', e.uzenet + ' Ez nem számít hibának, javítsd tovább.'); return; }      // alaki gond: nincs pipa, nincs áthúzás
+  if (!e.ok) { jel('rossz'); visszajelzes('rossz', 'Nem egyenlő a helyes válasszal. ' + e.uzenet); return; }
+  megoldva = true; mf.readOnly = true;
+  const t = TIPUSOK[tipus]; t.db = Math.min(KELL, t.db + 1);
+  jel('jo'); tipusSav(); gombFelirat('Következő feladat');
+  visszajelzes('jo', t.db >= KELL ? `Helyes! Ebből a típusból megvan mind a ${KELL}.` : `Helyes! ${t.nev}: ${t.db}/${KELL}.`);
+}
+
+/* Billentyűzet: a mezőbe a MathLive insert parancsával ír (#@ = a kurzor előtti elem, #? = üres hely, #0 = a kijelölés). */
+const fvGomb = (nev, parancs) => ({ l: nev, a: nev, ins: `${parancs}\\left(#?\\right)`, kis: 1 });
+const B = {
+  negyzet: { l: 'x<sup>2</sup>', a: 'négyzet', ins: '#@^{2}' }, hatv: { l: 'x<sup>n</sup>', a: 'hatvány', ins: '#@^{#?}' },
+  gyok: { l: '√', a: 'négyzetgyök', ins: '\\sqrt{#0}' }, ngyok: { l: '<sup>n</sup>√', a: 'n-edik gyök', ins: '\\sqrt[#?]{#0}' },
+  tort: { l: '<span class="fr"><i>a</i><i>b</i></span>', a: 'tört', ins: '\\frac{#@}{#?}' }, abs: { l: '|x|', a: 'abszolút érték', ins: '\\left|#0\\right|' },
+  nyit: { l: '(', ins: '(' }, zar: { l: ')', ins: ')' }, pi: { l: 'π', a: 'pí', ins: '\\pi' },
+  kis: { l: '<', a: 'kisebb', ins: '<' }, nagy: { l: '>', a: 'nagyobb', ins: '>' }, kise: { l: '≤', a: 'kisebb vagy egyenlő', ins: '\\le' },
+  nagye: { l: '≥', a: 'nagyobb vagy egyenlő', ins: '\\ge' }, nem: { l: '≠', a: 'nem egyenlő', ins: '\\ne' }, egy: { l: '=', a: 'egyenlő', ins: '=' },
+  plusz: { l: '+', ins: '+' }, minusz: { l: '−', a: 'mínusz', ins: '-' }, szor: { l: '·', a: 'szorzás', ins: '\\cdot' }, oszt: { l: ':', a: 'osztás', ins: ':' },
+  vesszo: { l: ',', a: 'tizedesvessző', ins: ',' }, x: { l: 'x', ins: 'x', sz: 1 }, y: { l: 'y', ins: 'y', sz: 1 }, a: { l: 'a', ins: 'a', sz: 1 }, b: { l: 'b', ins: 'b', sz: 1 },
+  torol: { l: IKON.torol, a: 'törlés', cmd: 'deleteBackward' }, balra: { l: IKON.balra, a: 'balra', cmd: 'moveToPreviousChar' }, jobbra: { l: IKON.jobbra, a: 'jobbra', cmd: 'moveToNextChar' },
+  // függvények
+  sin: fvGomb('sin', '\\sin'), cos: fvGomb('cos', '\\cos'), tg: fvGomb('tg', '\\tg'), ctg: fvGomb('ctg', '\\ctg'), lg: fvGomb('lg', '\\lg'), ln: fvGomb('ln', '\\ln'),
+  log: { l: 'log<sub>a</sub>', a: 'logaritmus megadott alappal', ins: '\\log_{#?}\\left(#?\\right)', kis: 1 }, fok: { l: '°', a: 'fok', ins: '\\degree' },
+  // intervallumok, halmazok
+  // \left…\right határolók: így a −∞ előtti mínusz előjel marad, nem kivonásként szedődik
+  ivNN: { l: ']a; b[', a: 'nyílt intervallum', ins: '\\left\\rbrack#?;#?\\right\\lbrack', kis: 1 }, ivZZ: { l: '[a; b]', a: 'zárt intervallum', ins: '\\left\\lbrack#?;#?\\right\\rbrack', kis: 1 },
+  ivNZ: { l: ']a; b]', a: 'balról nyílt, jobbról zárt intervallum', ins: '\\left\\rbrack#?;#?\\right\\rbrack', kis: 1 }, ivZN: { l: '[a; b[', a: 'balról zárt, jobbról nyílt intervallum', ins: '\\left\\lbrack#?;#?\\right\\lbrack', kis: 1 },
+  vegt: { l: '∞', a: 'végtelen', ins: '\\infty' }, eleme: { l: '∈', a: 'eleme', ins: '\\in' }, unio: { l: '∪', a: 'unió', ins: '\\cup' }, kiv: { l: '∖', a: 'halmazok különbsége', ins: '\\setminus' },
+  hz: { l: '{ }', a: 'felsorolt halmaz', ins: '\\lbrace#?\\rbrace' }, ures: { l: '∅', a: 'üres halmaz', ins: '\\emptyset' }, valos: { l: 'ℝ', a: 'valós számok halmaza', ins: '\\mathbb{R}' },
+  egeszek: { l: 'ℤ', a: 'egész számok halmaza', ins: '\\mathbb{Z}' }, termeszetes: { l: 'ℕ', a: 'természetes számok halmaza', ins: '\\mathbb{N}' }, racionalis: { l: 'ℚ', a: 'racionális számok halmaza', ins: '\\mathbb{Q}' },
+  pm: { l: '±', a: 'plusz-mínusz', ins: '\\pm' }, k: { l: 'k', a: 'k egész paraméter', ins: 'k', sz: 1 },
+  pv: { l: ';', a: 'pontosvessző', ins: ';' }, vagy: { l: 'vagy', ins: '\\;\\mathrm{vagy}\\;', kis: 1 }, es: { l: 'és', ins: '\\;\\mathrm{és}\\;', kis: 1 }   // \mathrm, nem \text: a mező matematikai módban marad
+};
+for (let d = 0; d <= 9; d++) B[d] = { l: String(d), ins: String(d), sz: 1 };
+const RACS = {   // „m:” előtag: csak telefonon látszik (gépen ott a billentyűzet)
+  fo: [7, 8, 9, 'plusz', 'nyit', 'torol', 4, 5, 6, 'minusz', 'zar', 'balra', 1, 2, 3, 'szor', 'negyzet', 'jobbra', 0, 'vesszo', 'x', 'oszt', 'tort', 'gyok'],
+  jel: ['negyzet', 'hatv', 'gyok', 'ngyok', 'tort', 'abs', 'nyit', 'zar', 'pi', 'kis', 'nagy', 'kise', 'nagye', 'nem', 'egy', 'm:y', 'm:a', 'm:b'],
+  fv: ['sin', 'cos', 'tg', 'ctg', 'lg', 'log', 'ln', 'fok', 'pi', 'pm', 'k', 'vagy', 'm:x', 'm:nyit', 'm:zar', 'm:tort', 'm:balra', 'm:jobbra'],
+  halmaz: ['ivNN', 'ivZZ', 'ivNZ', 'ivZN', 'vegt', 'eleme', 'unio', 'kiv', 'hz', 'ures', 'valos', 'egeszek', 'termeszetes', 'racionalis', 'pv', 'vagy', 'es', 'k', 'm:x', 'm:minusz', 'm:balra', 'm:jobbra']
+};
+for (const [lap, lista] of Object.entries(RACS)) {
+  const racs = document.createElement('div'); racs.className = 'kp-racs'; racs.dataset.racs = lap; racs.hidden = true;
+  for (const nyers of lista) {
+    const mobil = String(nyers).startsWith('m:'), k = B[mobil ? nyers.slice(2) : nyers], g = document.createElement('button');
+    g.type = 'button'; g.className = 'key' + (k.sz ? '' : ' jel') + (k.kis ? ' kis' : '') + (mobil ? ' csak-mobil' : ''); g.innerHTML = `<span>${k.l}</span>`;
+    if (k.a) g.setAttribute('aria-label', k.a);
+    if (k.cmd) g.dataset.cmd = k.cmd; else g.dataset.ins = k.ins;
+    racs.append(g);
+  }
+  $('#racsok').append(racs);
+}
+kp.addEventListener('pointerdown', e => { if (e.target.closest('.key')) e.preventDefault(); });   // a mező ne veszítse el a fókuszt
+kp.addEventListener('click', e => {
+  const lap = e.target.closest('.lap-gomb'); if (lap) { lapValt(lap.dataset.lap); return; }
+  const k = e.target.closest('.key'); if (!k || megoldva) return;
+  if (k.dataset.cmd) mf.executeCommand(k.dataset.cmd); else mf.insert(k.dataset.ins, { focus: true });
+});
+
+/* Fejezetlista (példaadat) */
+const FEJEZETEK = ['Betűk, kifejezések', 'Hatványozás', '0 és negatív kitevő', 'Normálalak', 'Polinomok', 'Nevezetes szorzatok', 'Szorzattá alakítás', 'Algebrai törtek', 'Oszthatóság, prímek', 'LNKO, LKKT', 'Számrendszerek'];
+$('#rail .lista').insertAdjacentHTML('beforeend', FEJEZETEK.map((c, i) => i < 5
+  ? `<a href="#" class="kesz"><span class="n">${i + 1}.</span>${c}<span class="s" title="Kész">${IKON.pipa}</span></a>`
+  : i === 5 ? `<a href="#" aria-current="page"><span class="n">${i + 1}.</span>${c}<span class="s">2/4</span></a>`
+  : `<a href="#" class="zart"><span class="n">${i + 1}.</span>${c}<span class="s" title="Zárva – 1 cukorkáért nyitható">${IKON.lakat}</span></a>`).join(''));
+const nezetAllit = () => { $('#rail').open = szeles.matches; lapValt(alapLap()); };
+nezetAllit(); szeles.addEventListener('change', nezetAllit);
+
+/* Események */
+$('#tipusok').addEventListener('click', e => { const b = e.target.closest('.tipus'); if (!b) return; tipus = b.dataset.t; tipusSav(); ujFeladat(); });
+document.querySelectorAll('.chk').forEach(b => b.addEventListener('click', ellenorzes));
+mf.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ellenorzes(); } });
+$('#uj').onclick = ujFeladat;
+$('#tipp').onclick = () => visszajelzes('info', 'Tipp: ' + akt.tipp);
+$('#megold').onclick = () => { const s = $('#sol'); s.hidden = false; s.innerHTML = '<p><b>Megoldás</b></p>' + akt.megoldas.map(m => `<div class="kif">${tex(m)}</div>`).join(''); s.scrollIntoView({ block: 'nearest' }); };
+$('#tema').onclick = () => { const r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; };
+document.querySelector('.tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  $('#gyak').hidden = !!b.dataset.lap; $('#masLap').hidden = !b.dataset.lap;
+  $('#masLap').textContent = b.dataset.lap ? `${b.dataset.lap}: a mintában csak a Gyakorlás lap van kidolgozva. A fülek lényege, hogy a gyakorlásért ne kelljen végiggörgetni az elméletet.` : '';
+});
+
+if (window.MathfieldElement) {
+  MathfieldElement.decimalSeparator = ',';
+  MathfieldElement.soundsDirectory = null;
+  mf.mathVirtualKeyboardPolicy = 'manual';   // a MathLive saját billentyűzete helyett a fenti, az oldal arculatához illő
+  mf.menuItems = [];
+  mf.smartFence = false;                     // a ]1;5[ intervallum miatt: a begépelt zárójel maradjon az, ami
+  tipusSav(); ujFeladat();
+} else {
+  tipusSav(); visszajelzes('info', 'A képletbeviteli mező (MathLive) nem töltődött be – internetkapcsolat kell hozzá.');
+}
+</script>
+</body>
+</html>

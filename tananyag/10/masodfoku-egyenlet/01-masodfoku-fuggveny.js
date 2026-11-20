@@ -158,6 +158,26 @@
       megoldas: [T`\[f(x)=\left(x${el(-u)}\right)^2${el(v)}=${q2(1, p, q)}\]`, T`Tehát \(p=${p}\) és \(q=${q}\).`] };
   } };
 
+  /* ---------- ábrázolás: a diák a koordináta-rendszerben bejelöli a tengelypontot és még egy pontot ---------- */
+  feladatok.abrazol = { nev: 'Ábrázolás', general() {
+    const a = P([1, 1, -1, 2, -2]), u = R(-3, 3), v = a > 0 ? R(-5, 3) : R(-3, 5);
+    const szabaly = csT(a, u, v), alak = R(0, 1) ? szabaly : q2(a, -2 * a * u, a * u * u + v);   // hol csúcsponti, hol általános alakban kapja
+    return { kerdes: T`<p>Ábrázold a függvényt a koordináta-rendszerben!</p>\[f(x)=${alak}\]`,
+      valasz: { grafikon: szabaly, fajta: 'parabola' }, formatum: 'a tengelypont és a grafikon még egy pontja',
+      tipp: T`Alakítsd teljes négyzetté: \(f(x)=a(x-u)^2+v\). A tengelypont \(T(u;v)\); innen egyet jobbra lépve \(a\)-val változik az érték.`,
+      megoldas: [T`\[f(x)=${szabaly}\]`, T`A tengelypont \(T(${u};\,${v})\). Egyet jobbra lépve az érték ${Math.abs(a)}-${Math.abs(a) === 1 ? 'gyel' : 'vel'} ${a > 0 ? 'nő' : 'csökken'}: \(P(${u + 1};\,${v + a})\).`,
+        Grafikon.kep({ gorbek: [szabaly], pontok: [{ x: u, y: v, c: 'T' }, { x: u + 1, y: v + a, c: 'P' }], cimke: 'A függvény grafikonja a két bejelölt ponttal' })] };
+  } };
+
+  /* ---------- szabály leolvasása: a kérdésben grafikon, a válasz kifejezés (bármelyik egyenértékű alakban) ---------- */
+  feladatok.leolvas = { nev: 'Szabály leolvasása grafikonról', general() {
+    const a = P([1, 1, -1, 2, -2]), u = R(-3, 3), v = a > 0 ? R(-5, 2) : R(-2, 5), szabaly = csT(a, u, v);
+    return { kerdes: T`<p>Add meg a grafikonon látható másodfokú függvény hozzárendelési szabályát!</p>${Grafikon.kep({ gorbek: [szabaly], cimke: 'Egy parabola grafikonja' })}`,
+      valasz: { kifejezes: szabaly }, formatum: 'bármelyik alakban, pl. (x−2)²+1 vagy x²−4x+5',
+      tipp: T`Olvasd le a tengelypontot: \(T(u;v)\), ebből \(f(x)=a(x-u)^2+v\). Az \(a\)-t az mutatja meg, mennyit változik az érték, ha a tengelyponttól egyet lépsz jobbra.`,
+      megoldas: [T`A tengelypont \(T(${u};\,${v})\), egyet jobbra lépve az érték ${Math.abs(a)}-${Math.abs(a) === 1 ? 'gyel' : 'vel'} ${a > 0 ? 'nő' : 'csökken'}, tehát \(a=${a}\).`, T`\[f(x)=${szabaly}=${q2(a, -2 * a * u, a * u * u + v)}\]`] };
+  } };
+
   Tananyag.fejezet(M10.tisztit({
     id: 'mfv',
     cim: 'A másodfokú függvény és a teljes négyzet',
